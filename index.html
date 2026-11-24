@@ -124,7 +124,7 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
 @keyframes sfwig{from{transform:rotate(-2.5deg)}to{transform:rotate(2.5deg)}}
 .sfish .sft{transform-box:fill-box;transform-origin:0% 50%;animation:sftail .75s ease-in-out infinite alternate}
 .sfish.fast .sft{animation-duration:.22s}
-@keyframes sftail{from{transform:rotate(14deg) scaleX(.9)}to{transform:rotate(-14deg) scaleX(1)}}
+@keyframes sftail{from{transform:rotate(8deg) scaleX(.92)}to{transform:rotate(-8deg) scaleX(1)}}
 .sfish .sfd{transform-box:fill-box;transform-origin:50% 100%;animation:sfdor 1.5s ease-in-out infinite alternate}
 @keyframes sfdor{from{transform:scaleY(.9)}to{transform:scaleY(1.05)}}
 .sfish.fast .sfw{animation-duration:.22s}
@@ -1211,12 +1211,12 @@ const PAW=`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'><g fill='
 function cuteFishSVG(){ // chibi spiny fish for the easter egg: long and straight, big eye, spiky crest, spotted fins
   const O='#d9864a',OD='#a8552a',BL='#f6d7ae',PK='#f29a8a',DK='#3a2214',sp=(pts,c,r)=>pts.map(([x,y])=>`<circle cx="${x}" cy="${y}" r="${r}" fill="${c}"/>`).join('');
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 124">
-  <g class="sft"><path d="M160 66 C172 50 186 40 197 38 C192 54 192 78 197 94 C186 92 172 82 160 70Z" fill="#e3a06a" stroke="${OD}" stroke-width="1.6" stroke-linejoin="round"/>
+  <g class="sft"><path d="M150 64 C160 62 170 54 197 38 C192 54 192 78 197 94 C172 84 160 76 150 72Z" fill="#e3a06a" stroke="${OD}" stroke-width="1.6" stroke-linejoin="round"/>
     <path d="M166 66 L194 44 M166 67 L192 58 M166 68 L192 72 M166 69 L194 88" stroke="${OD}" stroke-width="1" opacity=".55"/>
     ${sp([[178,52],[186,60],[176,64],[188,74],[178,78],[186,86]],'#7a3d1c',1.8)}</g>
-  <path d="M112 76 C118 92 136 94 146 78Z" fill="#e8a877" stroke="${OD}" stroke-width="1.4"/>${sp([[122,83],[131,86],[139,82]],'#7a3d1c',1.6)}
-  <path d="M108 46 C114 32 136 32 146 50Z" fill="#e8a877" stroke="${OD}" stroke-width="1.4"/>${sp([[118,42],[128,39],[137,44]],'#7a3d1c',1.6)}
-  <g class="sfd"><path d="M58 40 L60 8 L68 34 L74 4 L80 33 L88 10 L92 36 L100 20 L102 44Z" fill="${PK}" opacity=".92" stroke="#c0604e" stroke-width="1.4" stroke-linejoin="round"/>
+  <path d="M112 80 C120 92 134 92 146 76Z" fill="#e8a877" stroke="${OD}" stroke-width="1.4"/>${sp([[122,85],[130,87],[138,82]],'#7a3d1c',1.5)}
+  <path d="M106 55 C112 38 132 38 146 63Z" fill="#e8a877" stroke="${OD}" stroke-width="1.4"/>${sp([[117,48],[126,45],[135,50]],'#7a3d1c',1.6)}
+  <g class="sfd"><path d="M56 50 L60 8 L68 34 L74 4 L80 33 L88 10 L92 36 L100 20 L104 54Z" fill="${PK}" opacity=".92" stroke="#c0604e" stroke-width="1.4" stroke-linejoin="round"/>
     <path d="M62 40 L60 10 M71 38 L74 6 M83 38 L88 12 M96 42 L100 22" stroke="#b5503e" stroke-width="1.3" stroke-linecap="round"/></g>
   <path d="M36 52 C40 34 70 34 96 44 C124 52 148 60 166 64 L166 72 C146 76 120 82 94 84 C68 88 42 86 34 74Z" fill="${O}" stroke="${OD}" stroke-width="2" stroke-linejoin="round"/>
   <path d="M44 76 C70 84 110 80 160 71 C130 80 90 86 52 84Z" fill="${BL}" opacity=".9"/>
@@ -1225,9 +1225,9 @@ function cuteFishSVG(){ // chibi spiny fish for the easter egg: long and straigh
   <ellipse cx="44" cy="60" rx="28" ry="24" fill="${O}" stroke="${OD}" stroke-width="2"/>
   <path d="M20 66 C24 78 40 84 58 80 C44 84 26 80 20 66Z" fill="${BL}"/>
   <path d="M30 38 l2 -7 l4 6 l3 -8 l4 7 l4 -6 l2 7" fill="#e8a877" stroke="${OD}" stroke-width="1.3" stroke-linejoin="round"/>
-  <path d="M19 59 C13 59 9 55 9 50 C9 46 13 45 16 47 C18 49 19 51 22 52Z" fill="${O}" stroke="${OD}" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12.5" cy="51" r="1.1" fill="${OD}"/>
-  <path d="M14 62 C10 70 12 78 6 82 M20 66 C18 74 22 80 16 86" stroke="${OD}" stroke-width="1.6" fill="none" stroke-linecap="round"/>
-  <circle cx="6" cy="82" r="1.8" fill="${OD}"/><circle cx="16" cy="86" r="1.8" fill="${OD}"/>
+  
+  <path d="M18 58 C10 56 6 59 1 55 M17 62 C9 63 6 68 1 69 M18 65 C10 70 11 77 4 81 M21 68 C17 77 21 83 14 89 M25 70 C25 80 31 85 26 93 M30 70 C33 79 39 82 37 90" stroke="${OD}" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  ${sp([[1,55],[1,69],[4,81],[14,89],[26,93],[37,90]],OD,1.6)}
   <g transform="rotate(10 64 84)"><path d="M56 78 C60 98 78 106 88 100 C84 90 74 82 56 78Z" fill="#eaa06a" stroke="${OD}" stroke-width="1.5" stroke-linejoin="round"/>
     <path d="M60 82 L82 98 M60 82 L76 100 M60 82 L70 99" stroke="${OD}" stroke-width=".9" opacity=".5"/></g>
   <circle cx="40" cy="54" r="11" fill="#fff" stroke="${OD}" stroke-width="1.6"/><circle cx="38.5" cy="55" r="8" fill="${DK}"/>
