@@ -1254,7 +1254,8 @@ function showMenu(){
 }
 $('#tiles').addEventListener('click',e=>{const b=e.target.closest('[data-game]');if(b)go(b.dataset.game)});
 function go(id){
-  try{ if(id){location.hash=id}else if(location.hash){history.replaceState(null,'',location.pathname+location.search)} }catch(e){}
+  // replaceState (not location.hash=) so opening a game adds no back-history: an accidental edge swipe can't back out of a game
+  try{ history.replaceState(null,'',location.pathname+location.search+(id?'#'+id:'')) }catch(e){}
   route(id);
 }
 function route(id){
