@@ -1,0 +1,14 @@
+{
+  "name": "Tyler's Games",
+  "short_name": "Tyler's Games",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#140f33",
+  "theme_color": "#140f33",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
