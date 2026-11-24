@@ -92,6 +92,37 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
 .plist .opt.sel{outline:3px solid #ffd166}
 .peekhint{position:absolute;left:0;right:0;bottom:calc(18px + env(safe-area-inset-bottom));text-align:center;font-size:12px;font-weight:800;opacity:0;transition:opacity .3s;pointer-events:none;text-shadow:0 2px 6px rgba(0,0,0,.7)}
 #menu.peek .peekhint{opacity:.8}
+/* ---------- high scores ---------- */
+#hs .shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(14,10,40,.9) 0%,rgba(14,10,40,.78) 60%,rgba(14,10,40,.6) 100%);pointer-events:none}
+#hs .hud span{font-size:17px}
+.hswrap{position:relative;flex:1;overflow:auto;padding:6px 12px calc(24px + env(safe-area-inset-bottom));-webkit-overflow-scrolling:touch}
+.hsgrid{display:grid;gap:8px;max-width:520px;margin:0 auto}
+.hsrow{display:grid;grid-template-columns:minmax(118px,1fr) repeat(var(--n),minmax(66px,92px));gap:6px;align-items:center;
+  border:1px solid rgba(255,255,255,.14);border-radius:16px;background:rgba(34,26,72,.82);padding:8px;text-align:left;width:100%}
+.hsrow:active{background:rgba(60,48,110,.9)}
+.hsrow.hd{background:none;border:0;padding:0 8px;position:sticky;top:-6px;z-index:2}
+.hsrow.hd div{font-size:12px;font-weight:900;text-align:center;opacity:.8;padding:6px 2px;border-radius:10px;background:rgba(20,14,48,.85);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hsrow.hd div.me{opacity:1;color:#ffd166}
+.hsg{display:flex;align-items:center;gap:8px;min-width:0}
+.hsg .ico{width:34px;height:34px;flex:none;border-radius:10px;padding:3px}
+.hsg b{font-size:14px;font-weight:900;line-height:1.1}
+.hsc{text-align:center;border-radius:12px;padding:6px 2px;background:rgba(0,0,0,.18);min-width:0}
+.hsc.me{background:rgba(255,209,102,.14);box-shadow:inset 0 0 0 1.5px rgba(255,209,102,.45)}
+.hsc b{display:block;font-size:16px;font-weight:900;white-space:nowrap}
+.hsc small{display:block;font-size:10.5px;font-weight:700;opacity:.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hsc.none b{opacity:.35}
+.hsc .cr{font-size:13px}
+.hsnote{margin:14px auto 0;text-align:center;font-size:12px;font-weight:700;opacity:.65;max-width:320px}
+.hsfish{margin:10px auto 0;text-align:center;font-size:13px;font-weight:800;color:#f0cfa6}
+/* spiny fish easter egg */
+.sfish{position:fixed;left:0;top:0;z-index:2500;width:var(--w);height:calc(var(--w)*1.4);cursor:pointer;will-change:transform}
+.sfish .sfw{width:100%;height:100%;transform-origin:22% 37%;animation:sfwig .42s ease-in-out infinite alternate;filter:drop-shadow(0 6px 10px rgba(0,0,0,.45))}
+.sfish svg{width:100%;height:100%;display:block}
+@keyframes sfwig{from{transform:rotate(-56deg)}to{transform:rotate(-46deg)}}
+.sfish .blub{position:absolute;left:-30%;top:4%;background:#fff;color:#2a1a10;font-weight:900;font-size:14px;padding:5px 10px;border-radius:14px;white-space:nowrap;
+  box-shadow:0 4px 10px rgba(0,0,0,.3);animation:blub .3s ease-out}
+@keyframes blub{from{opacity:0;transform:scale(.6)}}
+.sbub{position:fixed;z-index:2499;width:8px;height:8px;border-radius:50%;border:1.5px solid rgba(220,240,255,.8);pointer-events:none}
 
 /* ---------- solitaire ---------- */
 #sol .shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,32,32,.82) 0%,rgba(10,32,32,.62) 55%,rgba(10,32,32,.28) 100%);pointer-events:none}
@@ -461,7 +492,7 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
     <div class="logo"><span class="l1">TYLER'S</span><span class="l2">GAMES</span></div>
     <button class="pchip" id="pChip">👤 Add your name</button>
   </header>
-  <div class="mbtns"><button id="peekBtn" aria-label="See the campsite">🏕️</button><span class="r"></span></div>
+  <div class="mbtns"><button id="peekBtn" aria-label="See the campsite">🏕️</button><span class="r"><button id="hsBtn" aria-label="High scores">🏆 Scores</button></span></div>
   <div class="wel" id="wel"><h2 id="welH">Welcome back!</h2><p id="welP"></p>
     <form id="welForm" hidden><input id="welName" maxlength="16" placeholder="Your name" autocomplete="off" autocapitalize="words"><button class="go" type="submit">Let's play</button><button class="skip" type="button" id="welSkip">Skip for now</button></form></div>
   <div class="peekhint">Tap anywhere to see the games</div>
@@ -472,6 +503,17 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
   <div class="plist" id="pList"></div>
   <form id="pAddForm" hidden style="display:flex;gap:8px;margin:8px 0"><input id="pAddName" maxlength="16" placeholder="Name" autocomplete="off" autocapitalize="words" style="flex:1;min-width:0"><button class="opt primary" type="submit" style="width:auto;margin:0;text-align:center">Add</button></form>
   <button class="opt" id="pAdd">＋ Add a player</button><button class="opt" id="pRename">✏️ Rename me</button><button class="opt ghost" id="pClose">Close</button></div></div>
+
+<!-- HIGH SCORES -->
+<section id="hs" class="screen">
+  <div class="shade"></div>
+  <div class="topbar">
+    <button class="tb" id="hsBack" aria-label="Menu">‹ Menu</button>
+    <div class="hud"><span>🏆 High Scores</span></div>
+    <span class="tb" style="visibility:hidden" aria-hidden="true">‹ Menu</span>
+  </div>
+  <div class="hswrap"><div class="hsgrid" id="hsGrid"></div><div class="hsfish" id="hsFish"></div><p class="hsnote" id="hsNote"></p></div>
+</section>
 
 <!-- SOLITAIRE -->
 <section id="sol" class="screen">
@@ -1156,7 +1198,7 @@ function sceneSVG(){
 $('#scene').innerHTML=sceneSVG();
 const PAW=`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'><g fill='rgba(255,214,150,.55)'><ellipse cx='20' cy='26' rx='8' ry='6.5'/><ellipse cx='10.5' cy='17' rx='3.3' ry='4'/><ellipse cx='16.5' cy='11' rx='3.3' ry='4'/><ellipse cx='23.5' cy='11' rx='3.3' ry='4'/><ellipse cx='29.5' cy='17' rx='3.3' ry='4'/></g></svg>`;
 /* ---- card back designs (each is an SVG drawn at 100x140) ---- */
-function fishSVG(){
+function fishSVG(bg=true){
   let sd=21;const rnd=()=>(sd=(sd*9301+49297)%233280)/233280;
   const bz=(t,a,b,c,d)=>{const u=1-t;return u*u*u*a+3*u*u*t*b+3*u*t*t*c+t*t*t*d};
   const P=[];for(let i=0;i<=60;i++){const t=i/60;P.push({x:bz(t,26,72,92,76),y:bz(t,50,30,72,128),r:12.5*Math.pow(1-t,.85)+1.3,t})}
@@ -1168,7 +1210,7 @@ function fishSVG(){
   for(let k=0;k<70;k++){const p=P[Math.floor(rnd()*56)],a=rnd()*6.28,d=rnd()*p.r*.8;
     spots+=`<ellipse cx="${(p.x+Math.cos(a)*d).toFixed(1)}" cy="${(p.y+Math.sin(a)*d).toFixed(1)}" rx="${(.6+rnd()*1.4).toFixed(2)}" ry="${(.5+rnd()*.9).toFixed(2)}" fill="${rnd()<.6?'#b0582c':'#f5dcb8'}" opacity=".7"/>`}
   let rays='';for(let k=0;k<9;k++){const a=(68+k*8)*Math.PI/180;rays+=`<path d="M40 62 L${(40+Math.cos(a)*30).toFixed(1)} ${(62+Math.sin(a)*30).toFixed(1)}" stroke="#fff" stroke-width=".8" opacity=".75"/>`}
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 140"><rect width="100" height="140" fill="#050505"/><g transform="translate(5,2)">
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 140">${bg?'<rect width="100" height="140" fill="#050505"/>':''}<g transform="translate(5,2)">
   <path d="M75 125 L70 137 L84 134Z" fill="#9a8a80" opacity=".8"/>
   ${body}${belly}${spots}${ridge}
   <path d="M40 62 L${(40+Math.cos(68*Math.PI/180)*30).toFixed(1)} ${(62+Math.sin(68*Math.PI/180)*30).toFixed(1)} Q32 98 ${(40+Math.cos(132*Math.PI/180)*30).toFixed(1)} ${(62+Math.sin(132*Math.PI/180)*30).toFixed(1)}Z" fill="#fbf6ee" opacity=".7"/>
@@ -1279,8 +1321,8 @@ function go(id){
 }
 function route(id){
   if(id===undefined)id=location.hash.slice(1);
-  Sol.close();Patch.close();Snake.close();Blocks.close();G48.close();Mines.close();Cabin.close();Sand.close();Bz.close();
-  if(id==='solitaire')Sol.open();else if(id==='patch')Patch.open();else if(id==='snake')Snake.open();else if(id==='blocks')Blocks.open();else if(id==='2048')G48.open();else if(id==='mines')Mines.open();else if(id==='cabin')Cabin.open();else if(id==='sort')Sand.open();else if(id==='bounce')Bz.open();else showMenu();
+  Sol.close();Patch.close();Snake.close();Blocks.close();G48.close();Mines.close();Cabin.close();Sand.close();Bz.close();HS.close();
+  if(id==='solitaire')Sol.open();else if(id==='patch')Patch.open();else if(id==='snake')Snake.open();else if(id==='blocks')Blocks.open();else if(id==='2048')G48.open();else if(id==='mines')Mines.open();else if(id==='cabin')Cabin.open();else if(id==='sort')Sand.open();else if(id==='bounce')Bz.open();else if(id==='scores')HS.open();else showMenu();
 }
 window.addEventListener('hashchange',()=>route());
 
@@ -4146,6 +4188,98 @@ const Cabin=(()=>{
 })();
 
 /* ================= WELCOME + PLAYERS ================= */
+/* ================= HIGH SCORES (every player on this phone, side by side) ================= */
+const HS=(()=>{
+  const scr=$('#hs');let open=false;
+  // read another player's saves without switching to them (player 0 uses the plain keys)
+  const getter=pid=>(k,d)=>{try{const v=localStorage.getItem(pid?'p'+pid+':'+k:k);return v?JSON.parse(v):d}catch(e){return d}};
+  const lvl=(g,k)=>{const l=g(k,1);return l>1?{v:l,t:`Level ${l}`}:null};
+  const pts=(g,k)=>{const b=g(k,0);return b?{v:b,t:b.toLocaleString()}:null};
+  // each entry: v = number to compare (higher wins), t = big text, s = small line
+  const ROWS={
+    solitaire:g=>{const s=g('tg_sol_stats',{});return s.won?{v:s.won,t:`${s.won} win${s.won>1?'s':''}`,s:s.best?`fastest ${fmt(s.best)}`:''}:null},
+    patch:g=>{const r=pts(g,'tg_patch_best');const top=g('tg_patch_scores',[]);if(r&&Array.isArray(top)&&top.length>1)r.s=`top 5 · ${top.length} games`;return r},
+    snake:g=>pts(g,'tg_snake_best'),
+    blocks:g=>pts(g,'tg_blocks_best'),
+    '2048':g=>pts(g,'tg_2048_best'),
+    mines:g=>{const w=g('tg_mines_wins',0),b=g('tg_mines_best',{});if(!w)return null;
+      const f=['easy','medium','hard'].filter(k=>b[k]).map(k=>k[0].toUpperCase()+' '+fmt(b[k])).join(' · ');
+      return{v:w,t:`${w} win${w>1?'s':''}`,s:f}},
+    cabin:g=>{const s=g('tg_cabin3',null);const n=s?(s.done||[]).length:0;return n?{v:n,t:`${n}/40`,s:'jobs done'}:null},
+    sort:g=>lvl(g,'tg_sort_level'),
+    bounce:g=>lvl(g,'tg_bz_best')
+  };
+  const esc=s=>String(s).replace(/[<&>]/g,'');
+  function render(){
+    let o=null;try{o=JSON.parse(localStorage.getItem('tg_players'))}catch(e){}
+    let ppl=o&&o.list&&o.list.length?o.list.slice():[{id:0,name:'You'}];
+    if(!ppl.some(p=>p.id===curPid))ppl.push({id:curPid,name:'You'});
+    ppl.sort((a,b)=>(b.id===curPid)-(a.id===curPid)||a.id-b.id); // you first
+    const n=ppl.length,multi=n>1,G=ppl.map(p=>getter(p.id));
+    let h=`<div class="hsrow hd" style="--n:${n}"><span></span>${ppl.map(p=>`<div class="${p.id===curPid?'me':''}">${esc(p.name)}</div>`).join('')}</div>`;
+    h+=GAMES.filter(g=>ROWS[g.id]).map(g=>{
+      const vals=G.map(get=>{try{return ROWS[g.id](get)}catch(e){return null}});
+      const top=Math.max(0,...vals.map(v=>v?v.v:0));
+      const crown=multi&&top>0&&vals.filter(v=>v&&v.v>0).length>1;
+      return `<button class="hsrow" data-game="${g.id}" style="--n:${n}"><div class="hsg"><div class="ico" style="${g.style||''}">${typeof g.icon==='function'?g.icon():g.icon}</div><b>${g.name}</b></div>${
+        vals.map((v,i)=>`<div class="hsc${ppl[i].id===curPid?' me':''}${v?'':' none'}"><b>${v?(crown&&v.v===top?'<span class="cr">👑</span> ':'')+v.t:'–'}</b><small>${v&&v.s?v.s:'&nbsp;'}</small></div>`).join('')}</button>`}).join('');
+    $('#hsGrid').innerHTML=h;
+    const f=store.get('tg_fish',{seen:0,caught:0});
+    $('#hsFish').textContent=f.seen?`🐟 Spiny fish sightings: ${f.seen}${f.caught?` · caught: ${f.caught}`:''}`:'';
+    $('#hsNote').textContent=multi?'👑 = best on this phone. Tap a game to play it.':'Tap a game to play it. Add players from your name chip to compare scores.';
+  }
+  $('#hsBack').onclick=()=>go('');
+  $('#hsGrid').addEventListener('click',e=>{const b=e.target.closest('[data-game]');if(b)go(b.dataset.game)});
+  return{
+    open(){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));scr.classList.add('on');open=true;render();
+      scr.querySelector('.hswrap').scrollTop=0;
+      // every so often a little spiny fish drifts past the scoreboard
+      if(Math.random()<.2)setTimeout(()=>{if(open)Fish.swim({small:true})},1800)},
+    close(){if(!open)return;open=false;scr.classList.remove('on');Fish.stop()},
+    refresh(){if(open)render()}
+  };
+})();
+
+/* ================= SPINY FISH (easter egg) =================
+   Tap the TYLER'S GAMES logo 5 times quickly and the spiny fish swims across the screen.
+   Tap the fish to catch it. It also sometimes drifts past the High Scores screen. */
+const Fish=(()=>{
+  let cur=null;
+  function stop(){if(cur){cur.remove();cur=null}}
+  function swim(o={}){
+    if(cur)return;
+    const w=o.small?84:Math.min(170,innerWidth*.42),el=document.createElement('div');
+    el.className='sfish';el.style.setProperty('--w',w+'px');el.setAttribute('aria-label','Spiny fish');
+    el.innerHTML=`<div class="sfw">${fishSVG(false)}</div>`;
+    document.body.appendChild(el);cur=el;
+    const f=store.get('tg_fish',{seen:0,caught:0});f.seen++;store.set('tg_fish',f);HS.refresh();
+    const H=innerHeight,y0=o.small?H*.72:H*(.28+Math.random()*.3),x0=innerWidth+w*.2,x1=-w*1.6,dur=o.small?11000:7500;
+    const a=el.animate([
+      {transform:`translate(${x0}px,${y0}px)`},
+      {transform:`translate(${x0+(x1-x0)*.25}px,${y0-26}px)`},
+      {transform:`translate(${x0+(x1-x0)*.5}px,${y0+14}px)`},
+      {transform:`translate(${x0+(x1-x0)*.75}px,${y0-20}px)`},
+      {transform:`translate(${x1}px,${y0}px)`}],{duration:dur,easing:'linear'});
+    // a few bubbles from its mouth
+    const bub=setInterval(()=>{if(!cur||cur!==el)return clearInterval(bub);const r=el.getBoundingClientRect(),b=document.createElement('div');
+      b.className='sbub';b.style.left=(r.left+r.width*.12)+'px';b.style.top=(r.top+r.height*.3)+'px';document.body.appendChild(b);
+      b.animate([{transform:'none',opacity:.9},{transform:`translate(${-6+Math.random()*12}px,-60px) scale(1.4)`,opacity:0}],{duration:1400,easing:'ease-out'}).onfinish=()=>b.remove()},650);
+    let caught=false;
+    el.addEventListener('click',e=>{e.stopPropagation();if(caught)return;caught=true;
+      const f=store.get('tg_fish',{seen:0,caught:0});f.caught++;store.set('tg_fish',f);HS.refresh();
+      const LINES=['blub.','You caught the spiny fish!','🐟 blub blub','Spiny fish says hi!','Ouch, spiky!'];
+      const t=document.createElement('div');t.className='blub';t.textContent=f.caught===1?LINES[1]:LINES[Math.floor(Math.random()*LINES.length)];el.appendChild(t);
+      a.pause();setTimeout(()=>{if(cur!==el)return;t.remove();a.playbackRate=5;a.play()},1300)});
+    a.onfinish=()=>{clearInterval(bub);if(cur===el)stop();else el.remove()};
+  }
+  // secret: 5 quick taps on the logo
+  let taps=0,tt=0;
+  $('.logo').addEventListener('click',()=>{if($('#menu').classList.contains('welcome'))return;
+    clearTimeout(tt);tt=setTimeout(()=>taps=0,1500);if(++taps>=5){taps=0;swim()}});
+  return{swim,stop};
+})();
+$('#hsBtn').onclick=e=>{e.stopPropagation();go('scores')};
+
 const Welcome=(()=>{
   const menu=$('#menu');let timer=0,test=false;
   let pl=players; // live copy so naming yourself doesn't need a page reload
