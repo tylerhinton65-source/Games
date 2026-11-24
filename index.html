@@ -2854,11 +2854,11 @@ const Sand=(()=>{
 const Bz=(()=>{
   const scr=$('#bz'),wrap=$('#bzWrap'),cv=$('#bzCanvas'),ctx=cv.getContext('2d');
   // world units: 1 = one brick cell. Row 0 is always empty so balls can get up behind the bricks.
-  const COLS=7,ROWS=10,G=.05,R=.13,FH=ROWS+.45,SPEED=15,DT=1/240,GAP_T=.075,MIN_ANG=7*Math.PI/180,RING=.2;
+  const COLS=7,ROWS=10,G=.05,R=.13,FH=ROWS+.45,SPEED=11,DT=1/240,GAP_T=.075,MIN_ANG=7*Math.PI/180,RING=.2;
   let grid=null,L=1,balls=1,x0=COLS/2,best=store.get('tg_bz_best',1),hiAtStart=1,open=false;
   let phase='aim'; // aim | fly | over
   let flying=[],toLaunch=0,launchT=0,aimDir=null,nextX=null,gained=0,turnT=0,speed=1,acc=0;
-  let fx=[],shiftA=0,drag=null,raf=0,last=0,t=0,overT=0;
+  let quietT=0,fx=[],shiftA=0,drag=null,raf=0,last=0,t=0,overT=0;
   let W=300,H=400,cell=40,offX=0,offY=0,dpr=1;
 
   const clamp=(v,a,b)=>v<a?a:v>b?b:v;
@@ -2906,7 +2906,7 @@ const Bz=(()=>{
     return hit;
   }
   function damage(o,r,c){
-    o.v--;o.hit=1;
+    o.v--;o.hit=1;quietT=0;
     if(o.v<=0){grid[r][c]=null;const col=brickCol(o.max||1);
       for(let i=0;i<12;i++){const a=Math.random()*Math.PI*2,s=1.5+Math.random()*3;
         fx.push({k:'p',x:c+.5+(Math.random()-.5)*.6,y:r+.5+(Math.random()-.5)*.6,vx:Math.cos(a)*s,vy:Math.sin(a)*s-1,life:.5+Math.random()*.3,col})}}
@@ -2938,7 +2938,7 @@ const Bz=(()=>{
 
   /* ---------- aiming ---------- */
   function aimFrom(dx,dy){ // pull back: the shot goes the opposite way from the drag
-    if(Math.hypot(dx,dy)<16)return null;
+    if(Math.hypot(dx,dy)<24)return null;
     let a=Math.atan2(dy,-dx); // angle above horizontal of (-dx,-dy)
     if(a<0)a=-dx>=0?MIN_ANG:Math.PI-MIN_ANG;
     a=clamp(a,MIN_ANG,Math.PI-MIN_ANG);
@@ -2947,17 +2947,17 @@ const Bz=(()=>{
   function aimPath(){ // march a ghost ball to the first thing it touches
     const b={x:x0,y:FH-R,vx:aimDir.x*SPEED,vy:aimDir.y*SPEED},st=.02,pts=[];
     for(let i=0;i<700;i++){b.x+=aimDir.x*st;b.y+=aimDir.y*st;
-      const vx=b.vx,vy=b.vy;if(collide(b,false)||b.vx!==vx||b.vy!==vy)return{x:b.x,y:b.y}}
+      const vx=b.vx,vy=b.vy;if(collide(b,false)||b.vx!==vx||b.vy!==vy){const s=Math.hypot(b.vx,b.vy)||1;return{x:b.x,y:b.y,bx:b.vx/s,by:b.vy/s}}}
     return{x:b.x,y:b.y};
   }
   const pos=e=>{const r=cv.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}};
   wrap.addEventListener('pointerdown',e=>{if(phase!=='aim'||!open)return;const p=pos(e);drag={sx:p.x,sy:p.y,id:e.pointerId};aimDir=null;
     try{wrap.setPointerCapture(e.pointerId)}catch(_){}e.preventDefault()});
   wrap.addEventListener('pointermove',e=>{if(!drag||e.pointerId!==drag.id)return;const p=pos(e);aimDir=aimFrom(p.x-drag.sx,p.y-drag.sy)});
-  wrap.addEventListener('pointerup',e=>{if(!drag||e.pointerId!==drag.id)return;const p=pos(e);aimDir=aimFrom(p.x-drag.sx,p.y-drag.sy);drag=null;if(aimDir)fire()});
+  wrap.addEventListener('pointerup',e=>{if(!drag||e.pointerId!==drag.id)return;drag=null;if(aimDir)fire()});
   wrap.addEventListener('pointercancel',()=>{drag=null;aimDir=null});
   function fire(){
-    if(phase!=='aim')return;phase='fly';flying=[];toLaunch=balls;launchT=0;nextX=null;gained=0;turnT=0;speed=1;acc=0;bar();
+    if(phase!=='aim')return;phase='fly';flying=[];toLaunch=balls;launchT=0;nextX=null;gained=0;turnT=0;quietT=0;speed=1;acc=0;bar();
   }
 
   /* ---------- drawing ---------- */
@@ -2996,6 +2996,8 @@ const Bz=(()=>{
       ctx.fillStyle='rgba(255,255,255,.85)';
       for(let d=.45;d<len-.15;d+=.32){ctx.beginPath();ctx.arc(X(x0+aimDir.x*d),Y(FH-R+aimDir.y*d),cell*.045,0,Math.PI*2);ctx.fill()}
       ctx.strokeStyle='rgba(255,255,255,.55)';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(X(end.x),Y(end.y),R*cell,0,Math.PI*2);ctx.stroke();
+      if(end.bx!==undefined){ctx.fillStyle='rgba(255,255,255,.35)'; // where it goes after the first bounce
+        for(let d=.4;d<2.2;d+=.32){const px=end.x+end.bx*d,py=end.y+end.by*d;if(px<R||px>COLS-R||py<R||py>FH-R)break;ctx.beginPath();ctx.arc(X(px),Y(py),cell*.04,0,Math.PI*2);ctx.fill()}}
     }
     // balls
     ctx.fillStyle='#fff';ctx.shadowColor='rgba(255,255,255,.6)';ctx.shadowBlur=6;
@@ -3024,7 +3026,10 @@ const Bz=(()=>{
     for(let r=0;r<ROWS;r++)for(const o of grid[r])if(o&&o.hit>0)o.hit=Math.max(0,o.hit-dt*6);
     fx=fx.filter(f=>{f.life-=dt;f.x+=(f.vx||0)*dt;f.y+=(f.vy||-1.2)*dt;if(f.k==='p')f.vy+=9*dt;return f.life>0});
     if(phase==='fly'){
-      turnT+=dt;if(turnT>7&&speed===1)speed=2;
+      turnT+=dt;quietT+=dt;
+      // speed up when the balls are just bouncing around without hitting bricks (and a little anyway on long turns)
+      if(quietT>2.5&&speed<3){speed++;quietT=0}
+      if(turnT>10&&speed===1)speed=2;
       acc+=dt*speed;let n=0;while(acc>=DT&&n<2000){simStep();acc-=DT;n++}
       for(const b of flying)if(b.landed){ // landed balls roll over to where the first one stopped
         const tx=nextX,ty=FH-R,dx=tx-b.x,dy=ty-b.y,dd=Math.hypot(dx,dy),mv=(b.ret?26:13)*dt*Math.max(1,speed*.8);
