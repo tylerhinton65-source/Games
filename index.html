@@ -445,6 +445,10 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
 .bzbtn.on{background:#ffd166;color:#2a1a00}
 .bzhint{font-size:12.5px;font-weight:800;opacity:.7;text-align:center}
 #bzOver{align-items:center}
+.bzsw{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:4px 0 8px}
+.bzsw button{border:0;border-radius:16px;padding:10px 4px 8px;background:rgba(255,255,255,.08);display:flex;flex-direction:column;align-items:center;gap:6px;font-weight:800;font-size:12px}
+.bzsw button.sel{background:rgba(255,255,255,.2);box-shadow:inset 0 0 0 2.5px #ffd166}
+.bzsw i{display:block;width:30px;height:30px;border-radius:50%;box-shadow:0 0 10px rgba(255,255,255,.25)}
 .sddecor{position:absolute;z-index:1;pointer-events:none}.sddecor svg{width:100%;height:100%;display:block;overflow:visible}
 </style>
 </head>
@@ -722,7 +726,7 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
   <div class="topbar">
     <button class="tb" id="bzBack" aria-label="Menu">‹ Menu</button>
     <div class="hud"><span style="font-size:16px">Brick Bounce</span><small>Break the bricks</small></div>
-    <span class="tb" style="visibility:hidden" aria-hidden="true">‹ Menu</span>
+    <button class="tb" id="bzColor" aria-label="Ball color" style="min-width:76px">🎨 Balls</button>
   </div>
   <div class="pboard">
     <div class="pstat"><small>Level</small><b id="bzLevel">1</b></div>
@@ -736,6 +740,15 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
     <button class="bzbtn" id="bzRecall" hidden>⤓ Bring back</button>
   </div>
 </section>
+
+<div class="overlay" id="bzColors" hidden>
+  <div class="sheet">
+    <h3>Ball color</h3>
+    <p>Pick the color of your balls.</p>
+    <div class="bzsw" id="bzSw"></div>
+    <button class="opt ghost" id="bzSwDone" style="text-align:center">Done</button>
+  </div>
+</div>
 
 <div class="overlay" id="bzConfirm" hidden>
   <div class="sheet">
@@ -2977,7 +2990,11 @@ const Bz=(()=>{
   let grid=null,L=1,balls=1,x0=COLS/2,best=store.get('tg_bz_best',1),hiAtStart=1,open=false;
   let phase='aim'; // aim | fly | over
   let flying=[],toLaunch=0,launchT=0,aimDir=null,nextX=null,gained=0,turnT=0,speed=1,acc=0;
-  let quietT=0,fx=[],shiftA=0,drag=null,raf=0,last=0,t=0,overT=0;
+  const BALLS=[['white','White','#ffffff'],['gold','Gold','#ffd166'],['pink','Pink','#ff6fb5'],['lime','Lime','#8ef05a'],
+    ['sky','Sky blue','#5cc8ff'],['orange','Orange','#ff9a3c'],['purple','Purple','#b48cff'],['rainbow','Rainbow','']];
+  let ballSkin=store.get('tg_bz_ball','white');if(!BALLS.some(b=>b[0]===ballSkin))ballSkin='white';
+  const ballCol=i=>ballSkin==='rainbow'?`hsl(${(i*47+t*90)%360},90%,64%)`:BALLS.find(b=>b[0]===ballSkin)[2];
+  let launched=0,quietT=0,fx=[],shiftA=0,drag=null,raf=0,last=0,t=0,overT=0;
   let W=300,H=400,cell=40,offX=0,offY=0,dpr=1;
 
   const clamp=(v,a,b)=>v<a?a:v>b?b:v;
@@ -3032,7 +3049,7 @@ const Bz=(()=>{
   }
   function simStep(){
     launchT-=DT;
-    if(toLaunch>0&&launchT<=0){flying.push({x:x0,y:FH-R,vx:aimDir.x*SPEED,vy:aimDir.y*SPEED,landed:false});toLaunch--;launchT=GAP_T}
+    if(toLaunch>0&&launchT<=0){flying.push({x:x0,y:FH-R,vx:aimDir.x*SPEED,vy:aimDir.y*SPEED,landed:false,n:launched++});toLaunch--;launchT=GAP_T}
     for(const b of flying){
       if(b.landed)continue;
       b.x+=b.vx*DT;b.y+=b.vy*DT;
@@ -3076,7 +3093,7 @@ const Bz=(()=>{
   wrap.addEventListener('pointerup',e=>{if(!drag||e.pointerId!==drag.id)return;drag=null;if(aimDir)fire()});
   wrap.addEventListener('pointercancel',()=>{drag=null;aimDir=null});
   function fire(){
-    if(phase!=='aim')return;phase='fly';flying=[];toLaunch=balls;launchT=0;nextX=null;gained=0;turnT=0;quietT=0;speed=1;acc=0;bar();
+    if(phase!=='aim')return;phase='fly';flying=[];toLaunch=balls;launched=0;launchT=0;nextX=null;gained=0;turnT=0;quietT=0;speed=1;acc=0;bar();
   }
 
   /* ---------- drawing ---------- */
@@ -3115,14 +3132,12 @@ const Bz=(()=>{
       ctx.fillStyle='rgba(255,255,255,.85)';
       for(let d=.45;d<len-.15;d+=.32){ctx.beginPath();ctx.arc(X(x0+aimDir.x*d),Y(FH-R+aimDir.y*d),cell*.045,0,Math.PI*2);ctx.fill()}
       ctx.strokeStyle='rgba(255,255,255,.55)';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(X(end.x),Y(end.y),R*cell,0,Math.PI*2);ctx.stroke();
-      if(end.bx!==undefined){ctx.fillStyle='rgba(255,255,255,.35)'; // where it goes after the first bounce
-        for(let d=.4;d<2.2;d+=.32){const px=end.x+end.bx*d,py=end.y+end.by*d;if(px<R||px>COLS-R||py<R||py>FH-R)break;ctx.beginPath();ctx.arc(X(px),Y(py),cell*.04,0,Math.PI*2);ctx.fill()}}
     }
     // balls
-    ctx.fillStyle='#fff';ctx.shadowColor='rgba(255,255,255,.6)';ctx.shadowBlur=6;
-    for(const b of flying){ctx.beginPath();ctx.arc(X(b.x),Y(b.y),R*cell,0,Math.PI*2);ctx.fill()}
+    ctx.shadowBlur=7;
+    for(const b of flying){const c=ballCol(b.n);ctx.fillStyle=c;ctx.shadowColor=c;ctx.beginPath();ctx.arc(X(b.x),Y(b.y),R*cell,0,Math.PI*2);ctx.fill()}
     const showLauncher=phase==='aim'||(phase==='fly'&&toLaunch>0)||phase==='over';
-    if(showLauncher){ctx.beginPath();ctx.arc(X(x0),Y(FH-R),R*cell,0,Math.PI*2);ctx.fill()}
+    if(showLauncher){const c=ballCol(launched);ctx.fillStyle=c;ctx.shadowColor=c;ctx.beginPath();ctx.arc(X(x0),Y(FH-R),R*cell,0,Math.PI*2);ctx.fill()}
     ctx.shadowBlur=0;
     const cnt=phase==='aim'?balls:phase==='fly'?toLaunch:0;
     if(cnt>0){ctx.font=`900 ${cell*.3}px ui-rounded,system-ui,sans-serif`;ctx.textBaseline='middle';
@@ -3201,6 +3216,11 @@ const Bz=(()=>{
 
   $('#bzBack').onclick=()=>{save();go('')};
   $('#bzRecall').onclick=recall;
+  function swatches(){$('#bzSw').innerHTML=BALLS.map(([id,name,c])=>`<button data-ball="${id}" class="${id===ballSkin?'sel':''}"><i style="background:${c||'conic-gradient(#ff6f6f,#ffd166,#8ef05a,#5cc8ff,#b48cff,#ff6fb5,#ff6f6f)'}"></i>${name}</button>`).join('')}
+  $('#bzColor').onclick=()=>{swatches();$('#bzColors').hidden=false};
+  $('#bzSw').addEventListener('click',e=>{const b=e.target.closest('[data-ball]');if(!b)return;ballSkin=b.dataset.ball;store.set('tg_bz_ball',ballSkin);swatches()});
+  $('#bzSwDone').onclick=()=>{$('#bzColors').hidden=true};
+  $('#bzColors').addEventListener('click',e=>{if(e.target.id==='bzColors')e.currentTarget.hidden=true});
   $('#bzFast').onclick=()=>{speed=speed>=3?1:speed+1;bar()};
   $('#bzNew').onclick=()=>{if(L>1&&phase!=='over'){$('#bzcLevel').textContent=L;$('#bzConfirm').hidden=false}else reset()};
   $('#bzcYes').onclick=()=>{$('#bzConfirm').hidden=true;reset()};
@@ -3225,7 +3245,7 @@ const Bz=(()=>{
       layout();hud();last=0;cancelAnimationFrame(raf);raf=requestAnimationFrame(frame);
       if(phase==='over'&&overT<=0)gameOver();
     },
-    close(){if(!open)return;save();open=false;drag=null;aimDir=null;cancelAnimationFrame(raf);['#bzConfirm','#bzOver'].forEach(i=>$(i).hidden=true);scr.classList.remove('on')}
+    close(){if(!open)return;save();open=false;drag=null;aimDir=null;cancelAnimationFrame(raf);['#bzConfirm','#bzOver','#bzColors'].forEach(i=>$(i).hidden=true);scr.classList.remove('on')}
   };
 })();
 {const endIco=h=>h.replace('class="ico"','class="endico"');$('#bzOverIco').innerHTML=endIco(Bz.icon())}
