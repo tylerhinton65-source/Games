@@ -4128,7 +4128,8 @@ const Cabin=(()=>{
 /* ================= WELCOME + PLAYERS ================= */
 const Welcome=(()=>{
   const menu=$('#menu');let timer=0,test=false;
-  const P=()=>players||{list:[],cur:0};
+  let pl=players; // live copy so naming yourself doesn't need a page reload
+  const P=()=>pl||{list:[],cur:0};
   const me=()=>P().list.find(p=>p.id===curPid);
   const saveP=o=>{try{localStorage.setItem(PKEY,JSON.stringify(o))}catch(e){}};
   const clean=n=>(n||'').replace(/\s+/g,' ').trim().slice(0,16);
@@ -4141,7 +4142,11 @@ const Welcome=(()=>{
   function setName(n){ // name the current player (creates the owner profile on first visit)
     const o=P();const m=o.list.find(p=>p.id===curPid);
     if(m)m.name=n;else o.list.push({id:curPid,name:n});
-    if(!players)o.cur=curPid;saveP(o);try{sessionStorage.setItem('tg_newname','1')}catch(e){}location.reload();
+    if(!pl)o.cur=curPid;saveP(o);pl=o;chip();
+    // same player id, so saves don't change: greet right here instead of reloading (a reload made the screen blink)
+    $('#welForm').hidden=true;$('#welP').textContent='';$('#welH').textContent=`Welcome, ${n}!`;
+    try{$('#wel').animate([{opacity:0,transform:'translateY(6px)'},{opacity:1,transform:'none'}],{duration:450,easing:'ease-out'})}catch(e){}
+    clearTimeout(timer);timer=setTimeout(showTiles,1600);
   }
   function welcome(first){
     menu.classList.add('welcome');const f=$('#welForm');
@@ -4150,14 +4155,13 @@ const Welcome=(()=>{
       f.hidden=false;$('#welName').value='';
     }else{
       // right after naming yourself it's a first hello, not "welcome back"
-      let fresh=false;try{fresh=sessionStorage.getItem('tg_newname')==='1';sessionStorage.removeItem('tg_newname')}catch(e){}
-      const m=me(),w=fresh?'Welcome':'Welcome back';$('#welH').textContent=m?`${w}, ${m.name}!`:`${w}!`;$('#welP').textContent='';f.hidden=true;
+      const m=me();$('#welH').textContent=m?`Welcome back, ${m.name}!`:'Welcome back!';$('#welP').textContent='';f.hidden=true;
       timer=setTimeout(showTiles,1600);
     }
   }
   $('#welForm').addEventListener('submit',e=>{e.preventDefault();const n=clean($('#welName').value);if(!n){$('#welName').focus();return}
     test=false;$('#welName').blur();setName(n)});
-  $('#welSkip').onclick=()=>{$('#welName').blur();if(!players&&!test)saveP({list:[],cur:0});test=false;showTiles()};
+  $('#welSkip').onclick=()=>{$('#welName').blur();if(!pl&&!test){pl={list:[],cur:0};saveP(pl)}test=false;showTiles()};
   menu.addEventListener('click',e=>{
     if(menu.classList.contains('welcome')){if(!e.target.closest('form'))showTiles();return}
     if(menu.classList.contains('peek')){menu.classList.remove('peek')}
@@ -4180,7 +4184,7 @@ const Welcome=(()=>{
   $('#pAddForm').addEventListener('submit',e=>{e.preventDefault();const n=clean($('#pAddName').value);if(!n)return;
     const o=P();if(renaming){o.list.find(p=>p.id===curPid).name=n;saveP(o);location.reload();return}
     const id=Math.max(0,...o.list.map(p=>p.id))+1;o.list.push({id,name:n});o.cur=id;saveP(o);location.reload()});
-  return{chip,start(){if(!menu.classList.contains('on'))return;welcome(!players)}};
+  return{chip,start(){if(!menu.classList.contains('on'))return;welcome(!pl)}};
 })();
 
 route();
