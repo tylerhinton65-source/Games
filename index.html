@@ -554,6 +554,7 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
   <button class="opt" id="pAdd">＋ Add a player</button><button class="opt" id="pRename">✏️ Rename me</button><button class="opt ghost" id="pClose">Close</button></div></div>
 
 <!-- HIGH SCORES -->
+<section id="gate" class="screen" style="background:#141a24"><iframe id="gateFrame" title="Gate Dash" style="flex:1;width:100%;border:0;display:block;background:#141a24"></iframe></section>
 <section id="hs" class="screen">
   <div class="shade"></div>
   <div class="topbar">
@@ -1418,7 +1419,11 @@ const GAMES=[
   {id:'ttt',name:'Tic Tac Toe',desc:'Three in a row — vs the computer or each other',
    style:'background:linear-gradient(160deg,rgba(110,190,80,.9),rgba(30,92,54,.9))',
    icon:()=>TTT.icon(),
-   stats(){return TTT.stats()}}
+   stats(){return TTT.stats()}},
+  {id:'gate',name:'Gate Dash',desc:'Dash through the airport and make your flight',
+   style:'background:linear-gradient(160deg,rgba(52,64,86,.92),rgba(14,18,28,.94))',
+   icon:()=>Gate.icon(),
+   stats(){return Gate.stats()}}
 ];
 const TAGS=['Offline arcade · Benji approved','No Wi-Fi? No problem.','Airplane-mode friendly','Campfire certified 🔥','Good boy edition 🐾'];
 function showMenu(){
@@ -1439,8 +1444,8 @@ function go(id){
 }
 function route(id){
   if(id===undefined)id=location.hash.slice(1);
-  Sol.close();Patch.close();Snake.close();Blocks.close();G48.close();Mines.close();Cabin.close();Sand.close();Bz.close();TTT.close();HS.close();
-  if(id==='solitaire')Sol.open();else if(id==='patch')Patch.open();else if(id==='snake')Snake.open();else if(id==='blocks')Blocks.open();else if(id==='2048')G48.open();else if(id==='mines')Mines.open();else if(id==='cabin')Cabin.open();else if(id==='sort')Sand.open();else if(id==='bounce')Bz.open();else if(id==='ttt')TTT.open();else if(id==='scores')HS.open();else showMenu();
+  Sol.close();Patch.close();Snake.close();Blocks.close();G48.close();Mines.close();Cabin.close();Sand.close();Bz.close();TTT.close();HS.close();Gate.close();
+  if(id==='solitaire')Sol.open();else if(id==='patch')Patch.open();else if(id==='snake')Snake.open();else if(id==='blocks')Blocks.open();else if(id==='2048')G48.open();else if(id==='mines')Mines.open();else if(id==='cabin')Cabin.open();else if(id==='sort')Sand.open();else if(id==='bounce')Bz.open();else if(id==='ttt')TTT.open();else if(id==='gate')Gate.open();else if(id==='scores')HS.open();else showMenu();
 }
 window.addEventListener('hashchange',()=>route());
 
@@ -4307,6 +4312,22 @@ const Cabin=(()=>{
 
 /* ================= WELCOME + PLAYERS ================= */
 /* ================= HIGH SCORES (every player on this phone, side by side) ================= */
+/* ================= GATE DASH (own file: gatedash.html, saves gatedash.v2 per player) ================= */
+const Gate=(()=>{
+  const scr=$('#gate'),fr=$('#gateFrame');let open=false;
+  window.tgGoHome=()=>go(''); // Gate Dash's ‹ button calls this from inside its frame
+  const data=()=>store.get('gatedash.v2',null)||{};
+  const top=d=>Math.max(d.bestScore||0,d.bestStroller||0,d.bestLauren||0);
+  return{
+    icon:()=>`<svg class="ico" viewBox="0 0 84 84"><rect x="12" y="14" width="60" height="42" rx="7" fill="#ffc72c"/><g transform="translate(25 16) scale(1.45)"><path d="M21 15.5l-8-4.5V5.5a1.5 1.5 0 0 0-3 0V11l-8 4.5v2l8-2.5v4l-2 1.5V22l3.5-1 3.5 1v-1.5l-2-1.5v-4l8 2.5z" fill="#141a24"/></g><rect x="20" y="60" width="44" height="14" rx="3" fill="#0b0f16"/><text x="42" y="71" text-anchor="middle" font-size="11" font-weight="800" fill="#ffc72c" font-family="ui-monospace,Menlo,monospace">A14</text></svg>`,
+    stats(){const b=top(data());return b?`Best ${b.toLocaleString()}`:'New!'},
+    row(g){const d=g('gatedash.v2',null)||{};const b=top(d);return b?{v:b,t:b.toLocaleString(),s:d.best?`${d.best} gate${d.best>1?'s':''} best run`:''}:null},
+    open(){document.querySelectorAll('.screen').forEach(x=>x.classList.remove('on'));scr.classList.add('on');open=true;
+      fr.src='gatedash.html'+(curPid?'?p='+curPid:'');setTimeout(()=>{try{fr.focus()}catch(e){}},60)},
+    close(){if(!open)return;open=false;scr.classList.remove('on');fr.src='about:blank'} // unloading stops its game loop
+  };
+})();
+
 const HS=(()=>{
   const scr=$('#hs');let open=false;
   // read another player's saves without switching to them (player 0 uses the plain keys)
@@ -4326,6 +4347,7 @@ const HS=(()=>{
     cabin:g=>{const s=g('tg_cabin3',null);const n=s?(s.done||[]).length:0;return n?{v:n,t:`${n}/40`,s:'jobs done'}:null},
     sort:g=>lvl(g,'tg_sort_level'),
     bounce:g=>lvl(g,'tg_bz_best'),
+    gate:g=>Gate.row(g),
     ttt:g=>{const t=g('tg_ttt',null);if(!t||!t.sc)return null;const w=['easy','medium','hard'].reduce((a,k)=>a+((t.sc[k]||[0])[0]|0),0);
       const h=t.sc.hard||[0,0,0];if(!w&&!h[1])return null;return{v:w*1000+(h[1]|0),t:`${w} win${w===1?'':'s'}`,s:h[1]?`${h[1]} tie${h[1]>1?'s':''} vs Hard`:''}}
   };

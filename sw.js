@@ -1,6 +1,6 @@
 // Tyler's Games offline cache. Bump VERSION whenever you upload new files.
-const VERSION = 'tylers-games-v63';
-const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
+const VERSION = 'tylers-games-v64';
+const FILES = ['./', './index.html', './gatedash.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
@@ -17,10 +17,12 @@ self.addEventListener('activate', e => {
 // The page itself: get the newest copy when there's signal (so updates show on the first open),
 // fall back to the saved copy when offline or if the network takes longer than 4 seconds.
 function pageFirst(req) {
+  // each page is saved under its own name (gatedash.html runs in a frame inside index.html)
+  const key = new URL(req.url).pathname.endsWith('/gatedash.html') ? './gatedash.html' : './index.html';
   return caches.open(VERSION).then(cache => {
-    const saved = () => cache.match(req, { ignoreSearch: true }).then(hit => hit || cache.match('./index.html'));
+    const saved = () => cache.match(req, { ignoreSearch: true }).then(hit => hit || cache.match(key));
     const net = fetch(req, { cache: 'no-cache' }).then(res => {
-      if (res && res.ok) { cache.put('./index.html', res.clone()); return res; }
+      if (res && res.ok) { cache.put(key, res.clone()); return res; }
       return saved().then(hit => hit || res);
     });
     const slow = new Promise(r => setTimeout(r, 4000)).then(saved);
@@ -32,7 +34,7 @@ function pageFirst(req) {
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET' || new URL(e.request.url).origin !== location.origin) return;
   const path = new URL(e.request.url).pathname;
-  if (e.request.mode === 'navigate' || path.endsWith('/') || path.endsWith('/index.html')) {
+  if (e.request.mode === 'navigate' || path.endsWith('/') || path.endsWith('/index.html') || path.endsWith('/gatedash.html')) {
     e.respondWith(pageFirst(e.request));
     return;
   }
