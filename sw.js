@@ -14,9 +14,28 @@ self.addEventListener('activate', e => {
   );
 });
 
-// Serve from cache instantly (works offline), refresh the cache in the background when online.
+// The page itself: get the newest copy when there's signal (so updates show on the first open),
+// fall back to the saved copy when offline or if the network takes longer than 4 seconds.
+function pageFirst(req) {
+  return caches.open(VERSION).then(cache => {
+    const saved = () => cache.match(req, { ignoreSearch: true }).then(hit => hit || cache.match('./index.html'));
+    const net = fetch(req, { cache: 'no-cache' }).then(res => {
+      if (res && res.ok) { cache.put('./index.html', res.clone()); return res; }
+      return saved().then(hit => hit || res);
+    });
+    const slow = new Promise(r => setTimeout(r, 4000)).then(saved);
+    return Promise.race([net.catch(saved), slow.then(hit => hit || net)]);
+  });
+}
+
+// Icons and other files: saved copy first, refreshed in the background.
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET' || new URL(e.request.url).origin !== location.origin) return;
+  const path = new URL(e.request.url).pathname;
+  if (e.request.mode === 'navigate' || path.endsWith('/') || path.endsWith('/index.html')) {
+    e.respondWith(pageFirst(e.request));
+    return;
+  }
   e.respondWith(
     caches.open(VERSION).then(cache =>
       cache.match(e.request, { ignoreSearch: true }).then(hit => {
