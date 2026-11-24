@@ -109,21 +109,26 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
 .hsg{display:flex;align-items:center;gap:8px;min-width:0}
 .hsg .ico{width:34px;height:34px;flex:none;border-radius:10px;padding:3px}
 .hsg b{font-size:14px;font-weight:900;line-height:1.1}
-.hsc{text-align:center;border-radius:12px;padding:6px 2px;background:rgba(0,0,0,.18);min-width:0}
+.hsc{text-align:center;border-radius:12px;padding:6px 2px;background:rgba(0,0,0,.18);min-width:0;align-self:stretch;min-height:48px;display:flex;flex-direction:column;align-items:center;justify-content:center}
 .hsc.me{background:rgba(255,209,102,.14);box-shadow:inset 0 0 0 1.5px rgba(255,209,102,.45)}
 .hsc b{display:block;font-size:16px;font-weight:900;white-space:nowrap}
-.hsc small{display:block;font-size:10.5px;font-weight:700;opacity:.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hsc small{display:block;max-width:100%;font-size:10.5px;font-weight:700;opacity:.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hsc.none b{opacity:.35}
 .hsc .cr{font-size:13px}
 .hsnote{margin:14px auto 0;text-align:center;font-size:12px;font-weight:700;opacity:.65;max-width:320px}
 .hsfish{margin:10px auto 0;text-align:center;font-size:13px;font-weight:800;color:#f0cfa6}
 /* spiny fish easter egg */
-.sfish{position:fixed;left:0;top:0;z-index:2500;width:var(--w);height:calc(var(--w)*1.4);cursor:pointer;will-change:transform}
-.sfish .sfw{width:100%;height:100%;transform-origin:22% 37%;animation:sfwig .75s ease-in-out infinite alternate;filter:drop-shadow(0 6px 10px rgba(0,0,0,.45))}
+.sfish{position:fixed;left:0;top:0;z-index:2500;width:var(--w);height:calc(var(--w)*.62);cursor:pointer;will-change:transform}
+.sfish .sfw{width:100%;height:100%;transform-origin:25% 55%;animation:sfwig .75s ease-in-out infinite alternate;filter:drop-shadow(0 6px 10px rgba(0,0,0,.45))}
 .sfish svg{width:100%;height:100%;display:block}
-@keyframes sfwig{from{transform:rotate(-54deg)}to{transform:rotate(-47deg)}}
+@keyframes sfwig{from{transform:rotate(-2.5deg)}to{transform:rotate(2.5deg)}}
+.sfish .sft{transform-box:fill-box;transform-origin:0% 50%;animation:sftail .75s ease-in-out infinite alternate}
+.sfish.fast .sft{animation-duration:.22s}
+@keyframes sftail{from{transform:rotate(14deg) scaleX(.9)}to{transform:rotate(-14deg) scaleX(1)}}
+.sfish .sfd{transform-box:fill-box;transform-origin:50% 100%;animation:sfdor 1.5s ease-in-out infinite alternate}
+@keyframes sfdor{from{transform:scaleY(.9)}to{transform:scaleY(1.05)}}
 .sfish.fast .sfw{animation-duration:.22s}
-.sfish .blub{position:absolute;left:-30%;top:4%;background:#fff;color:#2a1a10;font-weight:900;font-size:14px;padding:5px 10px;border-radius:14px;white-space:nowrap;
+.sfish .blub{position:absolute;left:-20%;top:-34%;background:#fff;color:#2a1a10;font-weight:900;font-size:14px;padding:5px 10px;border-radius:14px;white-space:nowrap;
   box-shadow:0 4px 10px rgba(0,0,0,.3);animation:blub .3s ease-out}
 @keyframes blub{from{opacity:0;transform:scale(.6)}}
 .sbub{position:fixed;z-index:2499;width:8px;height:8px;border-radius:50%;border:1.5px solid rgba(220,240,255,.8);pointer-events:none}
@@ -1203,6 +1208,34 @@ function sceneSVG(){
 $('#scene').innerHTML=sceneSVG();
 const PAW=`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'><g fill='rgba(255,214,150,.55)'><ellipse cx='20' cy='26' rx='8' ry='6.5'/><ellipse cx='10.5' cy='17' rx='3.3' ry='4'/><ellipse cx='16.5' cy='11' rx='3.3' ry='4'/><ellipse cx='23.5' cy='11' rx='3.3' ry='4'/><ellipse cx='29.5' cy='17' rx='3.3' ry='4'/></g></svg>`;
 /* ---- card back designs (each is an SVG drawn at 100x140) ---- */
+function cuteFishSVG(){ // chibi spiny fish for the easter egg: long and straight, big eye, spiky crest, spotted fins
+  const O='#d9864a',OD='#a8552a',BL='#f6d7ae',PK='#f29a8a',DK='#3a2214',sp=(pts,c,r)=>pts.map(([x,y])=>`<circle cx="${x}" cy="${y}" r="${r}" fill="${c}"/>`).join('');
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 124">
+  <g class="sft"><path d="M160 66 C172 50 186 40 197 38 C192 54 192 78 197 94 C186 92 172 82 160 70Z" fill="#e3a06a" stroke="${OD}" stroke-width="1.6" stroke-linejoin="round"/>
+    <path d="M166 66 L194 44 M166 67 L192 58 M166 68 L192 72 M166 69 L194 88" stroke="${OD}" stroke-width="1" opacity=".55"/>
+    ${sp([[178,52],[186,60],[176,64],[188,74],[178,78],[186,86]],'#7a3d1c',1.8)}</g>
+  <path d="M112 76 C118 92 136 94 146 78Z" fill="#e8a877" stroke="${OD}" stroke-width="1.4"/>${sp([[122,83],[131,86],[139,82]],'#7a3d1c',1.6)}
+  <path d="M108 46 C114 32 136 32 146 50Z" fill="#e8a877" stroke="${OD}" stroke-width="1.4"/>${sp([[118,42],[128,39],[137,44]],'#7a3d1c',1.6)}
+  <g class="sfd"><path d="M58 40 L60 8 L68 34 L74 4 L80 33 L88 10 L92 36 L100 20 L102 44Z" fill="${PK}" opacity=".92" stroke="#c0604e" stroke-width="1.4" stroke-linejoin="round"/>
+    <path d="M62 40 L60 10 M71 38 L74 6 M83 38 L88 12 M96 42 L100 22" stroke="#b5503e" stroke-width="1.3" stroke-linecap="round"/></g>
+  <path d="M36 52 C40 34 70 34 96 44 C124 52 148 60 166 64 L166 72 C146 76 120 82 94 84 C68 88 42 86 34 74Z" fill="${O}" stroke="${OD}" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M44 76 C70 84 110 80 160 71 C130 80 90 86 52 84Z" fill="${BL}" opacity=".9"/>
+  <path d="M104 50 C102 60 102 72 106 82 M128 56 C126 64 126 72 130 79 M148 61 C147 66 147 70 149 75" stroke="${OD}" stroke-width="5" opacity=".28" stroke-linecap="round" fill="none"/>
+  ${sp([[86,52],[96,60],[114,62],[120,70],[138,66],[110,52],[152,68],[92,70]],'#f4c48e',1.9)}
+  <ellipse cx="44" cy="60" rx="28" ry="24" fill="${O}" stroke="${OD}" stroke-width="2"/>
+  <path d="M20 66 C24 78 40 84 58 80 C44 84 26 80 20 66Z" fill="${BL}"/>
+  <path d="M30 38 l2 -7 l4 6 l3 -8 l4 7 l4 -6 l2 7" fill="#e8a877" stroke="${OD}" stroke-width="1.3" stroke-linejoin="round"/>
+  <path d="M19 59 C13 59 9 55 9 50 C9 46 13 45 16 47 C18 49 19 51 22 52Z" fill="${O}" stroke="${OD}" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12.5" cy="51" r="1.1" fill="${OD}"/>
+  <path d="M14 62 C10 70 12 78 6 82 M20 66 C18 74 22 80 16 86" stroke="${OD}" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+  <circle cx="6" cy="82" r="1.8" fill="${OD}"/><circle cx="16" cy="86" r="1.8" fill="${OD}"/>
+  <g transform="rotate(10 64 84)"><path d="M56 78 C60 98 78 106 88 100 C84 90 74 82 56 78Z" fill="#eaa06a" stroke="${OD}" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M60 82 L82 98 M60 82 L76 100 M60 82 L70 99" stroke="${OD}" stroke-width=".9" opacity=".5"/></g>
+  <circle cx="40" cy="54" r="11" fill="#fff" stroke="${OD}" stroke-width="1.6"/><circle cx="38.5" cy="55" r="8" fill="${DK}"/>
+  <circle cx="35.5" cy="51.5" r="3" fill="#fff"/><circle cx="41.5" cy="58.5" r="1.4" fill="#fff"/>
+  <ellipse cx="54" cy="68" rx="6" ry="3.6" fill="#f08a80" opacity=".7"/>
+  <path d="M20 66 Q26 71 32 66" stroke="${DK}" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+  </svg>`;
+}
 function fishSVG(bg=true){
   let sd=21;const rnd=()=>(sd=(sd*9301+49297)%233280)/233280;
   const bz=(t,a,b,c,d)=>{const u=1-t;return u*u*u*a+3*u*u*t*b+3*u*t*t*c+t*t*t*d};
@@ -4227,7 +4260,7 @@ const HS=(()=>{
       const top=Math.max(0,...vals.map(v=>v?v.v:0));
       const crown=multi&&top>0&&vals.filter(v=>v&&v.v>0).length>1;
       return `<button class="hsrow" data-game="${g.id}" style="--n:${n}"><div class="hsg"><div class="ico" style="${g.style||''}">${typeof g.icon==='function'?g.icon():g.icon}</div><b>${g.name}</b></div>${
-        vals.map((v,i)=>`<div class="hsc${ppl[i].id===curPid?' me':''}${v?'':' none'}"><b>${v?(crown&&v.v===top?'<span class="cr">👑</span> ':'')+v.t:'–'}</b><small>${v&&v.s?v.s:'&nbsp;'}</small></div>`).join('')}</button>`}).join('');
+        vals.map((v,i)=>`<div class="hsc${ppl[i].id===curPid?' me':''}${v?'':' none'}"><b>${v?(crown&&v.v===top?'<span class="cr">👑</span> ':'')+v.t:'–'}</b>${v&&v.s?`<small>${v.s}</small>`:''}</div>`).join('')}</button>`}).join('');
     $('#hsGrid').innerHTML=h;
     const f=store.get('tg_fish',{seen:0,caught:0});
     $('#hsFish').textContent=f.seen?`🐟 Spiny fish sightings: ${f.seen}${f.caught?` · caught: ${f.caught}`:''}`:'';
@@ -4253,9 +4286,9 @@ const Fish=(()=>{
   function stop(){if(cur){cur.remove();cur=null}}
   function swim(o={}){
     if(cur)return;
-    const w=o.small?84:Math.min(170,innerWidth*.42),el=document.createElement('div');
+    const w=o.small?110:Math.min(210,innerWidth*.52),el=document.createElement('div');
     el.className='sfish';el.style.setProperty('--w',w+'px');el.setAttribute('aria-label','Spiny fish');
-    el.innerHTML=`<div class="sfw">${fishSVG(false)}</div>`;
+    el.innerHTML=`<div class="sfw">${cuteFishSVG()}</div>`;
     document.body.appendChild(el);cur=el;
     const f=store.get('tg_fish',{seen:0,caught:0});f.seen++;store.set('tg_fish',f);HS.refresh();
     const H=innerHeight,y0=o.small?H*.72:H*(.28+Math.random()*.3),x0=innerWidth+w*.2,x1=-w*1.6,dur=o.small?11000:7500;
@@ -4272,7 +4305,7 @@ const Fish=(()=>{
     el.style.transform=`translate(${x0}px,${y0}px)`;requestAnimationFrame(tick);
     // a few bubbles from its mouth
     const bub=setInterval(()=>{if(!cur||cur!==el)return clearInterval(bub);const r=el.getBoundingClientRect(),b=document.createElement('div');
-      b.className='sbub';b.style.left=(r.left+r.width*.12)+'px';b.style.top=(r.top+r.height*.3)+'px';document.body.appendChild(b);
+      b.className='sbub';b.style.left=(r.left+r.width*.06)+'px';b.style.top=(r.top+r.height*.48)+'px';document.body.appendChild(b);
       b.animate([{transform:'none',opacity:.9},{transform:`translate(${-6+Math.random()*12}px,-60px) scale(1.4)`,opacity:0}],{duration:1400,easing:'ease-out'}).onfinish=()=>b.remove()},650);
     let caught=false;
     el.addEventListener('click',e=>{e.stopPropagation();if(caught)return;caught=true;
