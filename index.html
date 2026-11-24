@@ -461,7 +461,7 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
     <div class="logo"><span class="l1">TYLER'S</span><span class="l2">GAMES</span></div>
     <button class="pchip" id="pChip">👤 Add your name</button>
   </header>
-  <div class="mbtns"><button id="peekBtn" aria-label="See the campsite">🏕️</button><span class="r"><button class="tst" id="testFirst" aria-label="Test first visit">🧪 First visit</button></span></div>
+  <div class="mbtns"><button id="peekBtn" aria-label="See the campsite">🏕️</button><span class="r"></span></div>
   <div class="wel" id="wel"><h2 id="welH">Welcome back!</h2><p id="welP"></p>
     <form id="welForm" hidden><input id="welName" maxlength="16" placeholder="Your name" autocomplete="off" autocapitalize="words"><button class="go" type="submit">Let's play</button><button class="skip" type="button" id="welSkip">Skip for now</button></form></div>
   <div class="peekhint">Tap anywhere to see the games</div>
@@ -4187,7 +4187,6 @@ const Welcome=(()=>{
     if(menu.classList.contains('peek')){menu.classList.remove('peek')}
   });
   $('#peekBtn').onclick=e=>{e.stopPropagation();menu.classList.toggle('peek')};
-  $('#testFirst').onclick=e=>{e.stopPropagation();test=true;welcome(true)};
   // player picker
   const sheet=$('#pSheet');
   function list(){const o=P();const all=o.list.length?o.list:[];
