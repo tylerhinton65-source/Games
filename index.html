@@ -391,6 +391,18 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
 .sdstream{position:absolute;border-radius:3px;pointer-events:none;z-index:5;transform-origin:top}
 .sdbar{position:relative;display:flex;gap:10px;justify-content:center;padding:4px 10px 4px}
 #sand .g4hint{position:relative;padding:2px 10px 12px}
+
+/* ---------- brick bounce (ballz-style) ---------- */
+#bz{touch-action:none}
+#bz .shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,16,34,.92) 0%,rgba(10,16,34,.84) 60%,rgba(10,16,34,.7) 100%);pointer-events:none}
+#bzWrap{position:relative;flex:1;min-height:0;touch-action:none}
+#bzCanvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.bzbar{position:relative;height:58px;display:flex;align-items:center;justify-content:center;gap:10px;padding:0 12px 8px}
+.bzbtn{border:0;border-radius:14px;padding:10px 16px;font-weight:900;font-size:15px;background:rgba(255,255,255,.15);box-shadow:0 4px 12px rgba(0,0,0,.3)}
+.bzbtn:active{transform:scale(.95)}
+.bzbtn.on{background:#ffd166;color:#2a1a00}
+.bzhint{font-size:12.5px;font-weight:800;opacity:.7;text-align:center}
+#bzOver{align-items:center}
 </style>
 </head>
 <body>
@@ -652,6 +664,52 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
     <button class="opt ghost" id="g4oMenu">Back to menu</button>
   </div>
 </div>
+<!-- BRICK BOUNCE -->
+<section id="bz" class="screen">
+  <div class="shade"></div>
+  <div class="topbar">
+    <button class="tb" id="bzBack" aria-label="Menu">‹ Menu</button>
+    <div class="hud"><span style="font-size:16px">Brick Bounce</span><small>Break the bricks</small></div>
+    <span class="tb" style="visibility:hidden" aria-hidden="true">‹ Menu</span>
+  </div>
+  <div class="pboard">
+    <div class="pstat"><small>Level</small><b id="bzLevel">1</b></div>
+    <div class="pstat hi"><small>🏆 Best</small><b id="bzBest">1</b></div>
+    <button class="pnew" id="bzNew">New Game</button>
+  </div>
+  <div id="bzWrap"><canvas id="bzCanvas"></canvas></div>
+  <div class="bzbar">
+    <div class="bzhint" id="bzHint">Drag back to aim, let go to shoot</div>
+    <button class="bzbtn" id="bzFast" hidden>⏩ Faster</button>
+    <button class="bzbtn" id="bzRecall" hidden>⤓ Bring back</button>
+  </div>
+</section>
+
+<div class="overlay" id="bzConfirm" hidden>
+  <div class="sheet">
+    <h3>Start a new game?</h3>
+    <p>You're on level <b id="bzcLevel">1</b>. That still counts toward your best.</p>
+    <button class="opt primary" id="bzcYes" style="text-align:center">New Game</button>
+    <button class="opt ghost" id="bzcNo">Keep playing</button>
+  </div>
+</div>
+
+<div class="overlay" id="bzOver" hidden>
+  <div class="wincard">
+    <div id="bzOverIco"></div>
+    <h2>Game over</h2>
+    <div class="newhi" id="bzNewHi" hidden>🎉 New best!</div>
+    <div style="opacity:.8;font-weight:700" id="bzOverLine">Nicely played!</div>
+    <div class="ws">
+      <div><span id="bzoLevel">0</span><small>level</small></div>
+      <div><span id="bzoBest">0</span><small>best</small></div>
+      <div><span id="bzoBalls">0</span><small>balls</small></div>
+    </div>
+    <button class="opt primary" id="bzoAgain" style="text-align:center">Play again</button>
+    <button class="opt ghost" id="bzoMenu">Back to menu</button>
+  </div>
+</div>
+
 <!-- SAND SORT -->
 <section id="sand" class="screen">
   <div class="shade"></div>
@@ -1126,7 +1184,11 @@ const GAMES=[
   {id:'sort',name:'Sand Sort',desc:'Pour colored sand until every jar is one color',
    style:'background:linear-gradient(160deg,rgba(242,150,90,.9),rgba(150,56,96,.9))',
    icon:()=>Sand.icon(),
-   stats(){return Sand.stats()}}
+   stats(){return Sand.stats()}},
+  {id:'bounce',name:'Brick Bounce',desc:'Aim, shoot and break the numbered bricks',
+   style:'background:linear-gradient(160deg,rgba(40,190,170,.9),rgba(16,74,104,.9))',
+   icon:()=>Bz.icon(),
+   stats(){return Bz.stats()}}
 ];
 const TAGS=['Offline arcade · Benji approved','No Wi-Fi? No problem.','Airplane-mode friendly','Campfire certified 🔥','Good boy edition 🐾'];
 function showMenu(){
@@ -1145,8 +1207,8 @@ function go(id){
 }
 function route(id){
   if(id===undefined)id=location.hash.slice(1);
-  Sol.close();Patch.close();Snake.close();Blocks.close();G48.close();Mines.close();Cabin.close();Sand.close();
-  if(id==='solitaire')Sol.open();else if(id==='patch')Patch.open();else if(id==='snake')Snake.open();else if(id==='blocks')Blocks.open();else if(id==='2048')G48.open();else if(id==='mines')Mines.open();else if(id==='cabin')Cabin.open();else if(id==='sort')Sand.open();else showMenu();
+  Sol.close();Patch.close();Snake.close();Blocks.close();G48.close();Mines.close();Cabin.close();Sand.close();Bz.close();
+  if(id==='solitaire')Sol.open();else if(id==='patch')Patch.open();else if(id==='snake')Snake.open();else if(id==='blocks')Blocks.open();else if(id==='2048')G48.open();else if(id==='mines')Mines.open();else if(id==='cabin')Cabin.open();else if(id==='sort')Sand.open();else if(id==='bounce')Bz.open();else showMenu();
 }
 window.addEventListener('hashchange',()=>route());
 
@@ -2745,6 +2807,263 @@ const Sand=(()=>{
   };
 })();
 {const endIco=h=>h.replace('class="ico"','class="endico"').replace(/sdclip/g,'sdclipW');$('#sdWinIco').innerHTML=endIco(Sand.icon())}
+
+/* ================= BRICK BOUNCE (Ballz-style) ================= */
+const Bz=(()=>{
+  const scr=$('#bz'),wrap=$('#bzWrap'),cv=$('#bzCanvas'),ctx=cv.getContext('2d');
+  // world units: 1 = one brick cell. Row 0 is always empty so balls can get up behind the bricks.
+  const COLS=7,ROWS=10,G=.05,R=.13,FH=ROWS+.45,SPEED=15,DT=1/240,GAP_T=.075,MIN_ANG=7*Math.PI/180,RING=.2;
+  let grid=null,L=1,balls=1,x0=COLS/2,best=store.get('tg_bz_best',1),hiAtStart=1,open=false;
+  let phase='aim'; // aim | fly | over
+  let flying=[],toLaunch=0,launchT=0,aimDir=null,nextX=null,gained=0,turnT=0,speed=1,acc=0;
+  let fx=[],shiftA=0,drag=null,raf=0,last=0,t=0,overT=0;
+  let W=300,H=400,cell=40,offX=0,offY=0,dpr=1;
+
+  const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+  const emptyRow=()=>Array(COLS).fill(null);
+  function newRow(lv){
+    const row=emptyRow(),cols=[...Array(COLS).keys()];
+    for(let i=COLS-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[cols[i],cols[j]]=[cols[j],cols[i]]}
+    const maxK=Math.min(6,2+Math.floor(lv/4)),minK=lv<8?1:lv<25?2:3;
+    const k=minK+Math.floor(Math.random()*(maxK-minK+1));
+    const p2=lv<10?0:Math.min(.35,.08+(lv-10)/120); // later on some bricks are worth double
+    for(let i=0;i<k;i++){const v=Math.random()<p2?lv*2:lv;row[cols[i]]={t:'b',v,max:v,hit:0}}
+    row[cols[k]]={t:'o'}; // every row has one +1 ball ring
+    return row;
+  }
+
+  /* ---------- physics ---------- */
+  function collide(b,real){ // walls + bricks; returns true if it touched something
+    let hit=false;
+    if(b.x<R){b.x=R;b.vx=Math.abs(b.vx);hit=true}else if(b.x>COLS-R){b.x=COLS-R;b.vx=-Math.abs(b.vx);hit=true}
+    if(b.y<R){b.y=R;b.vy=Math.abs(b.vy);hit=true}
+    const c0=Math.floor(b.x-R),c1=Math.floor(b.x+R),r0=Math.floor(b.y-R),r1=Math.floor(b.y+R);
+    for(let r=Math.max(0,r0);r<=Math.min(ROWS-1,r1);r++)for(let c=Math.max(0,c0);c<=Math.min(COLS-1,c1);c++){
+      const o=grid[r][c];if(!o)continue;
+      if(o.t==='o'){
+        if(real&&Math.hypot(b.x-(c+.5),b.y-(r+.5))<RING+R*.6){grid[r][c]=null;gained++;
+          fx.push({k:'txt',x:c+.5,y:r+.5,s:'+1',life:.9,col:'#7cf2a4'});
+          for(let i=0;i<8;i++){const a=i/8*Math.PI*2;fx.push({k:'p',x:c+.5,y:r+.5,vx:Math.cos(a)*2.4,vy:Math.sin(a)*2.4,life:.4,col:'#7cf2a4'})}}
+        continue}
+      const bx0=c+G,bx1=c+1-G,by0=r+G,by1=r+1-G;
+      const px=clamp(b.x,bx0,bx1),py=clamp(b.y,by0,by1);
+      let nx=b.x-px,ny=b.y-py;const d=Math.hypot(nx,ny);
+      if(d>=R)continue;
+      if(d<1e-6){ // centre ended up inside: leave by the closest side
+        const dl=b.x-bx0,dr=bx1-b.x,dt=b.y-by0,db=by1-b.y,m=Math.min(dl,dr,dt,db);
+        if(m===dl){nx=-1;ny=0;b.x=bx0-R}else if(m===dr){nx=1;ny=0;b.x=bx1+R}else if(m===dt){nx=0;ny=-1;b.y=by0-R}else{nx=0;ny=1;b.y=by1+R}
+      }else{nx/=d;ny/=d;b.x=px+nx*R;b.y=py+ny*R}
+      const vn=b.vx*nx+b.vy*ny;
+      if(vn<0){b.vx-=2*vn*nx;b.vy-=2*vn*ny;hit=true;if(real)damage(o,r,c)}
+    }
+    if(hit){ // keep speed constant and never let a ball skate flat across the board
+      const s=Math.hypot(b.vx,b.vy)||1;b.vx*=SPEED/s;b.vy*=SPEED/s;
+      const mn=SPEED*Math.sin(MIN_ANG*.7);
+      if(Math.abs(b.vy)<mn){b.vy=b.vy<0?-mn:mn;b.vx=Math.sign(b.vx||1)*Math.sqrt(SPEED*SPEED-mn*mn)}
+    }
+    return hit;
+  }
+  function damage(o,r,c){
+    o.v--;o.hit=1;
+    if(o.v<=0){grid[r][c]=null;const col=brickCol(o.max||1);
+      for(let i=0;i<12;i++){const a=Math.random()*Math.PI*2,s=1.5+Math.random()*3;
+        fx.push({k:'p',x:c+.5+(Math.random()-.5)*.6,y:r+.5+(Math.random()-.5)*.6,vx:Math.cos(a)*s,vy:Math.sin(a)*s-1,life:.5+Math.random()*.3,col})}}
+  }
+  function simStep(){
+    launchT-=DT;
+    if(toLaunch>0&&launchT<=0){flying.push({x:x0,y:FH-R,vx:aimDir.x*SPEED,vy:aimDir.y*SPEED,landed:false});toLaunch--;launchT=GAP_T}
+    for(const b of flying){
+      if(b.landed)continue;
+      b.x+=b.vx*DT;b.y+=b.vy*DT;
+      if(b.y>=FH-R&&b.vy>0){b.y=FH-R;b.landed=true;if(nextX===null)nextX=clamp(b.x,R,COLS-R);continue}
+      collide(b,true);
+    }
+  }
+  function recall(){
+    if(phase!=='fly')return;toLaunch=0;if(nextX===null)nextX=x0;
+    for(const b of flying)if(!b.landed){b.landed=true;b.ret=true}
+  }
+  function endTurn(){
+    x0=nextX===null?x0:nextX;balls+=gained;gained=0;
+    for(let r=ROWS-1;r>=2;r--)grid[r]=grid[r-1];
+    grid[1]=newRow(L+1);grid[0]=emptyRow();
+    let dead=false;
+    grid[ROWS-1].forEach((o,c)=>{if(!o)return;if(o.t==='o'){grid[ROWS-1][c]=null;balls++}else dead=true});
+    shiftA=1;flying=[];speed=1;
+    if(dead){phase='over';overT=.75;store.set('tg_bz_state',null);hud();return}
+    L++;phase='aim';hud();save();
+  }
+
+  /* ---------- aiming ---------- */
+  function aimFrom(dx,dy){ // pull back: the shot goes the opposite way from the drag
+    if(Math.hypot(dx,dy)<16)return null;
+    let a=Math.atan2(dy,-dx); // angle above horizontal of (-dx,-dy)
+    if(a<0)a=-dx>=0?MIN_ANG:Math.PI-MIN_ANG;
+    a=clamp(a,MIN_ANG,Math.PI-MIN_ANG);
+    return{x:Math.cos(a),y:-Math.sin(a)};
+  }
+  function aimPath(){ // march a ghost ball to the first thing it touches
+    const b={x:x0,y:FH-R,vx:aimDir.x*SPEED,vy:aimDir.y*SPEED},st=.02,pts=[];
+    for(let i=0;i<700;i++){b.x+=aimDir.x*st;b.y+=aimDir.y*st;
+      const vx=b.vx,vy=b.vy;if(collide(b,false)||b.vx!==vx||b.vy!==vy)return{x:b.x,y:b.y}}
+    return{x:b.x,y:b.y};
+  }
+  const pos=e=>{const r=cv.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}};
+  wrap.addEventListener('pointerdown',e=>{if(phase!=='aim'||!open)return;const p=pos(e);drag={sx:p.x,sy:p.y,id:e.pointerId};aimDir=null;
+    try{wrap.setPointerCapture(e.pointerId)}catch(_){}e.preventDefault()});
+  wrap.addEventListener('pointermove',e=>{if(!drag||e.pointerId!==drag.id)return;const p=pos(e);aimDir=aimFrom(p.x-drag.sx,p.y-drag.sy)});
+  wrap.addEventListener('pointerup',e=>{if(!drag||e.pointerId!==drag.id)return;const p=pos(e);aimDir=aimFrom(p.x-drag.sx,p.y-drag.sy);drag=null;if(aimDir)fire()});
+  wrap.addEventListener('pointercancel',()=>{drag=null;aimDir=null});
+  function fire(){
+    if(phase!=='aim')return;phase='fly';flying=[];toLaunch=balls;launchT=0;nextX=null;gained=0;turnT=0;speed=1;acc=0;bar();
+  }
+
+  /* ---------- drawing ---------- */
+  function brickCol(v){const k=Math.min(1,Math.log(Math.max(1,v))/Math.log(1000));return`hsl(${(48-k*188+360)%360},85%,58%)`}
+  function rr(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath()}
+  const X=u=>offX+u*cell,Y=u=>offY+u*cell;
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    rr(X(0),Y(0),COLS*cell,FH*cell,cell*.18);ctx.fillStyle='rgba(8,12,30,.62)';ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,.16)';ctx.lineWidth=1.5;ctx.stroke();
+    // floor + danger row
+    ctx.fillStyle='rgba(255,80,90,.07)';ctx.fillRect(X(0),Y(ROWS-1),COLS*cell,cell);
+    ctx.strokeStyle='rgba(255,255,255,.35)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(X(0)+4,Y(FH)-1);ctx.lineTo(X(COLS)-4,Y(FH)-1);ctx.stroke();
+    const sh=shiftA*shiftA*(3-2*shiftA); // eased slide down after each turn
+    for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+      const o=grid[r][c];if(!o)continue;const yy=r-sh;
+      if(o.t==='o'){
+        const cx=X(c+.5),cy=Y(yy+.5),rad=RING*cell*(1+.07*Math.sin(t*5+c));
+        ctx.strokeStyle='#5ee08f';ctx.lineWidth=cell*.07;ctx.beginPath();ctx.arc(cx,cy,rad,0,Math.PI*2);ctx.stroke();
+        ctx.fillStyle='#5ee08f';ctx.beginPath();ctx.arc(cx,cy,cell*.07,0,Math.PI*2);ctx.fill();
+        continue}
+      const g=G*cell,x=X(c)+g,y=Y(yy)+g,s=cell-2*g,col=brickCol(o.v);
+      const pop=o.hit>0?o.hit*.06*s:0;
+      rr(x-pop/2,y-pop/2,s+pop,s+pop,s*.14);ctx.fillStyle=col;ctx.fill();
+      ctx.fillStyle='rgba(0,0,0,.16)';ctx.fillRect(x+s*.1,y+s*.86,s*.8,s*.08);
+      if(o.hit>0){rr(x-pop/2,y-pop/2,s+pop,s+pop,s*.14);ctx.fillStyle=`rgba(255,255,255,${o.hit*.45})`;ctx.fill()}
+      if(r===ROWS-2&&phase!=='fly'){ctx.strokeStyle=`rgba(255,70,70,${.55+.4*Math.sin(t*6)})`;ctx.lineWidth=3;rr(x,y,s,s,s*.14);ctx.stroke()}
+      const txt=String(o.v),fs=s*(txt.length<3?.46:txt.length===3?.38:.3);
+      ctx.font=`900 ${fs}px ui-rounded,"SF Pro Rounded",system-ui,sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillStyle='rgba(0,0,0,.18)';ctx.fillText(txt,x+s/2,y+s/2+fs*.08);
+      ctx.fillStyle='#fff';ctx.fillText(txt,x+s/2,y+s/2);
+    }
+    // aim line
+    if(phase==='aim'&&aimDir){
+      const end=aimPath(),len=Math.hypot(end.x-x0,end.y-(FH-R));
+      ctx.fillStyle='rgba(255,255,255,.85)';
+      for(let d=.45;d<len-.15;d+=.32){ctx.beginPath();ctx.arc(X(x0+aimDir.x*d),Y(FH-R+aimDir.y*d),cell*.045,0,Math.PI*2);ctx.fill()}
+      ctx.strokeStyle='rgba(255,255,255,.55)';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(X(end.x),Y(end.y),R*cell,0,Math.PI*2);ctx.stroke();
+    }
+    // balls
+    ctx.fillStyle='#fff';ctx.shadowColor='rgba(255,255,255,.6)';ctx.shadowBlur=6;
+    for(const b of flying){ctx.beginPath();ctx.arc(X(b.x),Y(b.y),R*cell,0,Math.PI*2);ctx.fill()}
+    const showLauncher=phase==='aim'||(phase==='fly'&&toLaunch>0)||phase==='over';
+    if(showLauncher){ctx.beginPath();ctx.arc(X(x0),Y(FH-R),R*cell,0,Math.PI*2);ctx.fill()}
+    ctx.shadowBlur=0;
+    const cnt=phase==='aim'?balls:phase==='fly'?toLaunch:0;
+    if(cnt>0){ctx.font=`900 ${cell*.3}px ui-rounded,system-ui,sans-serif`;ctx.textBaseline='middle';
+      const lx=X(x0),right=x0<COLS-1.2;ctx.textAlign=right?'left':'right';ctx.fillStyle='rgba(255,255,255,.9)';
+      ctx.fillText('×'+cnt,lx+(right?1:-1)*(R*cell+6),Y(FH-R)-cell*.3)}
+    // effects
+    for(const f of fx){
+      ctx.globalAlpha=Math.max(0,Math.min(1,f.life*2.5));
+      if(f.k==='p'){ctx.fillStyle=f.col;ctx.fillRect(X(f.x)-cell*.05,Y(f.y)-cell*.05,cell*.1,cell*.1)}
+      else{ctx.fillStyle=f.col;ctx.font=`900 ${cell*.36}px ui-rounded,system-ui,sans-serif`;ctx.textAlign='center';ctx.fillText(f.s,X(f.x),Y(f.y))}
+    }
+    ctx.globalAlpha=1;
+  }
+
+  /* ---------- loop ---------- */
+  function frame(now){
+    if(!open)return;raf=requestAnimationFrame(frame);
+    const dt=Math.min(.05,(now-(last||now))/1000);last=now;t+=dt;
+    if(shiftA>0)shiftA=Math.max(0,shiftA-dt/.22);
+    for(let r=0;r<ROWS;r++)for(const o of grid[r])if(o&&o.hit>0)o.hit=Math.max(0,o.hit-dt*6);
+    fx=fx.filter(f=>{f.life-=dt;f.x+=(f.vx||0)*dt;f.y+=(f.vy||-1.2)*dt;if(f.k==='p')f.vy+=9*dt;return f.life>0});
+    if(phase==='fly'){
+      turnT+=dt;if(turnT>7&&speed===1)speed=2;
+      acc+=dt*speed;let n=0;while(acc>=DT&&n<2000){simStep();acc-=DT;n++}
+      for(const b of flying)if(b.landed){ // landed balls roll over to where the first one stopped
+        const tx=nextX,ty=FH-R,dx=tx-b.x,dy=ty-b.y,dd=Math.hypot(dx,dy),mv=(b.ret?26:13)*dt*Math.max(1,speed*.8);
+        if(dd<=mv){b.x=tx;b.y=ty}else{b.x+=dx/dd*mv;b.y+=dy/dd*mv}}
+      if(toLaunch===0&&flying.every(b=>b.landed&&b.x===nextX&&b.y===FH-R))endTurn();
+      bar();
+    }
+    if(phase==='over'&&shiftA===0&&overT>0){overT-=dt;if(overT<=0)gameOver()}
+    draw();
+  }
+  function layout(){
+    const r=wrap.getBoundingClientRect();dpr=Math.min(3,window.devicePixelRatio||1);
+    W=Math.max(100,r.width);H=Math.max(100,r.height);
+    cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);
+    cell=Math.min((W-16)/COLS,(H-6)/FH);offX=(W-cell*COLS)/2;offY=Math.max(3,(H-cell*FH)/2);
+  }
+  function bar(){
+    const fly=phase==='fly';
+    $('#bzHint').hidden=fly;$('#bzRecall').hidden=!(fly&&turnT>.6);$('#bzFast').hidden=!(fly&&turnT>1.5);
+    const f=$('#bzFast');f.textContent=speed===1?'⏩ Faster':`⏩ ${speed}×`;f.classList.toggle('on',speed>1);
+    if(!fly)$('#bzHint').textContent=L<=3?'Drag back to aim, let go to shoot':`${balls} ball${balls>1?'s':''} · drag back to aim`;
+  }
+  function hud(){
+    if(L>best){best=L;store.set('tg_bz_best',best)}
+    $('#bzLevel').textContent=L;$('#bzBest').textContent=best;bar();
+  }
+  function save(){
+    if(phase==='over'||!grid)return;
+    store.set('tg_bz_state',{L,balls,x0,hiAtStart,grid:grid.map(row=>row.map(o=>!o?0:o.t==='o'?-1:[o.v,o.max]))});
+  }
+  function restore(){
+    const s=store.get('tg_bz_state',null);if(!s||!Array.isArray(s.grid)||s.grid.length!==ROWS)return false;
+    L=s.L|0||1;balls=s.balls|0||1;x0=clamp(+s.x0||COLS/2,R,COLS-R);hiAtStart=s.hiAtStart??best;
+    grid=s.grid.map(row=>row.map(v=>v===-1?{t:'o'}:Array.isArray(v)?{t:'b',v:v[0],max:v[1],hit:0}:null));
+    phase='aim';flying=[];return true;
+  }
+  function reset(){
+    grid=[];for(let r=0;r<ROWS;r++)grid.push(emptyRow());
+    L=1;balls=1;x0=COLS/2;hiAtStart=best;phase='aim';flying=[];fx=[];toLaunch=0;gained=0;aimDir=null;drag=null;
+    grid[1]=newRow(1);shiftA=1;hud();save();
+  }
+  const OVER_LINES=['Nicely played!','The bricks got you this time.','So close! One more round?','Good game!'];
+  function gameOver(){
+    if(!open)return;
+    $('#bzoLevel').textContent=L;$('#bzoBest').textContent=best;$('#bzoBalls').textContent=balls;
+    $('#bzNewHi').hidden=!(L>hiAtStart&&L>1);
+    $('#bzOverLine').textContent=OVER_LINES[Math.floor(Math.random()*OVER_LINES.length)];
+    $('#bzOver').hidden=false;
+  }
+
+  $('#bzBack').onclick=()=>{save();go('')};
+  $('#bzRecall').onclick=recall;
+  $('#bzFast').onclick=()=>{speed=speed>=3?1:speed+1;bar()};
+  $('#bzNew').onclick=()=>{if(L>1&&phase!=='over'){$('#bzcLevel').textContent=L;$('#bzConfirm').hidden=false}else reset()};
+  $('#bzcYes').onclick=()=>{$('#bzConfirm').hidden=true;reset()};
+  $('#bzcNo').onclick=()=>{$('#bzConfirm').hidden=true};
+  $('#bzConfirm').addEventListener('click',e=>{if(e.target.id==='bzConfirm')e.currentTarget.hidden=true});
+  $('#bzoAgain').onclick=()=>{$('#bzOver').hidden=true;reset()};
+  $('#bzoMenu').onclick=()=>{$('#bzOver').hidden=true;reset();go('')};
+  document.addEventListener('visibilitychange',()=>{if(document.hidden&&open)save()});
+  let rt;window.addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>{if(open)layout()},120)});
+
+  return{
+    icon:()=>`<svg class="ico" viewBox="0 0 84 84">
+      ${[[7,8,'5',5],[31,8,'12',12],[55,8,'2',2],[7,32,'9',9],[31,32,'',0]].map(([x,y,s,v])=>v?`<rect x="${x}" y="${y+2}" width="22" height="22" rx="4" fill="rgba(0,0,0,.25)"/><rect x="${x}" y="${y}" width="22" height="22" rx="4" fill="${brickCol(v)}"/><text x="${x+11}" y="${y+16.5}" text-anchor="middle" font-size="${s.length>1?12:14}" font-weight="900" font-family="ui-rounded,system-ui,sans-serif" fill="#fff">${s}</text>`:'').join('')}
+      <circle cx="66" cy="43" r="6" fill="none" stroke="#5ee08f" stroke-width="2.6"/><circle cx="66" cy="43" r="1.8" fill="#5ee08f"/>
+      ${[0,1,2,3,4,5].map(i=>`<circle cx="${44+i*2.6}" cy="${70-i*6.4}" r="1.7" fill="#fff" opacity="${1-i*.1}"/>`).join('')}
+      <circle cx="42" cy="75" r="5" fill="#fff"/></svg>`,
+    stats:()=>best>1?`Level ${best}`:'New!',
+    open(){
+      document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
+      scr.classList.add('on');open=true;
+      if(!grid&&!restore())reset();
+      layout();hud();last=0;cancelAnimationFrame(raf);raf=requestAnimationFrame(frame);
+      if(phase==='over'&&overT<=0)gameOver();
+    },
+    close(){if(!open)return;save();open=false;drag=null;aimDir=null;cancelAnimationFrame(raf);['#bzConfirm','#bzOver'].forEach(i=>$(i).hidden=true);scr.classList.remove('on')}
+  };
+})();
+{const endIco=h=>h.replace('class="ico"','class="endico"');$('#bzOverIco').innerHTML=endIco(Bz.icon())}
+
 
 /* ================= MINESWEEPER ================= */
 const Mines=(()=>{
