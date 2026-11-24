@@ -60,9 +60,12 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
 .tile .ts{font-size:11px;font-weight:700;opacity:.8;white-space:nowrap}
 .tile.locked{opacity:.55}
 .tile.locked .lk{width:62px;height:62px;display:flex;align-items:center;justify-content:center;font-size:26px;border-radius:16px;background:rgba(255,255,255,.08)}
-.mfoot{margin:18px 0 0;font-size:12px;font-weight:700;opacity:.7;text-align:center;padding:0 20px}
+.hsbar{display:block;width:calc(100% - 32px);max-width:428px;margin:14px auto 0;border:1px solid rgba(255,209,102,.45);border-radius:18px;padding:13px;
+  background:rgba(20,14,48,.66);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 6px 18px rgba(0,0,0,.28);font-weight:900;font-size:17px;color:#ffd166;flex:none}
+.hsbar:active{transform:scale(.97)}
+.mfoot{margin:10px 0 0;font-size:12px;font-weight:700;opacity:.7;text-align:center;padding:0 20px}
 /* welcome + players */
-.mhead,.tiles,.mfoot{transition:transform .55s cubic-bezier(.2,.8,.3,1),opacity .4s}
+.mhead,.tiles,.hsbar,.mfoot{transition:transform .55s cubic-bezier(.2,.8,.3,1),opacity .4s}
 .mbtns{position:absolute;top:calc(8px + env(safe-area-inset-top));left:0;right:0;display:flex;justify-content:space-between;padding:0 12px;z-index:3;pointer-events:none;transition:opacity .3s}
 .mbtns button{pointer-events:auto;border:0;border-radius:12px;background:rgba(20,14,48,.55);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);padding:7px 10px;font-weight:800;font-size:13px}
 .mbtns .r{display:flex;gap:6px}
@@ -78,15 +81,15 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
 #menu.welcome,#menu.peek{overflow:hidden}
 #menu.welcome .wel{opacity:1;transform:none}
 #menu.welcome .mbtns,#menu.welcome .pchip{opacity:0;pointer-events:none}
-#menu.peek .tiles,#menu.peek .mfoot{transform:translateY(105vh);pointer-events:none}
-#menu.welcome .tiles,#menu.welcome .mfoot{pointer-events:none}
-#menu.welcome .tile,#menu.welcome .mfoot{opacity:0}
+#menu.peek .tiles,#menu.peek .hsbar,#menu.peek .mfoot{transform:translateY(105vh);pointer-events:none}
+#menu.welcome .tiles,#menu.welcome .hsbar,#menu.welcome .mfoot{pointer-events:none}
+#menu.welcome .tile,#menu.welcome .hsbar,#menu.welcome .mfoot{opacity:0}
 #menu.peek .mhead{transform:translateY(-140%)}
 #menu.peek .mbtns .r,#menu.peek .mbtns .tst{opacity:0;pointer-events:none}
 /* tiles drift up and fade in, one after another — calm, no bounce */
 .tiles.pop .tile{animation:tpop .8s cubic-bezier(.22,.7,.25,1) backwards;animation-delay:calc(var(--i)*75ms)}
 @keyframes tpop{from{opacity:0;transform:translateY(22px)}}
-.tiles.pop~.mfoot{animation:tfade .8s ease .8s backwards}
+.tiles.pop~.mfoot,.tiles.pop~.hsbar{animation:tfade .8s ease .8s backwards}
 @keyframes tfade{from{opacity:0}}
 @media (prefers-reduced-motion:reduce){.tiles.pop .tile{animation:tfade .4s ease backwards}}
 .plist .opt.sel{outline:3px solid #ffd166}
@@ -116,9 +119,10 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
 .hsfish{margin:10px auto 0;text-align:center;font-size:13px;font-weight:800;color:#f0cfa6}
 /* spiny fish easter egg */
 .sfish{position:fixed;left:0;top:0;z-index:2500;width:var(--w);height:calc(var(--w)*1.4);cursor:pointer;will-change:transform}
-.sfish .sfw{width:100%;height:100%;transform-origin:22% 37%;animation:sfwig .42s ease-in-out infinite alternate;filter:drop-shadow(0 6px 10px rgba(0,0,0,.45))}
+.sfish .sfw{width:100%;height:100%;transform-origin:22% 37%;animation:sfwig .75s ease-in-out infinite alternate;filter:drop-shadow(0 6px 10px rgba(0,0,0,.45))}
 .sfish svg{width:100%;height:100%;display:block}
-@keyframes sfwig{from{transform:rotate(-56deg)}to{transform:rotate(-46deg)}}
+@keyframes sfwig{from{transform:rotate(-54deg)}to{transform:rotate(-47deg)}}
+.sfish.fast .sfw{animation-duration:.22s}
 .sfish .blub{position:absolute;left:-30%;top:4%;background:#fff;color:#2a1a10;font-weight:900;font-size:14px;padding:5px 10px;border-radius:14px;white-space:nowrap;
   box-shadow:0 4px 10px rgba(0,0,0,.3);animation:blub .3s ease-out}
 @keyframes blub{from{opacity:0;transform:scale(.6)}}
@@ -492,11 +496,12 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
     <div class="logo"><span class="l1">TYLER'S</span><span class="l2">GAMES</span></div>
     <button class="pchip" id="pChip">👤 Add your name</button>
   </header>
-  <div class="mbtns"><button id="peekBtn" aria-label="See the campsite">🏕️</button><span class="r"><button id="hsBtn" aria-label="High scores">🏆 Scores</button></span></div>
+  <div class="mbtns"><button id="peekBtn" aria-label="See the campsite">🏕️</button><span class="r"></span></div>
   <div class="wel" id="wel"><h2 id="welH">Welcome back!</h2><p id="welP"></p>
     <form id="welForm" hidden><input id="welName" maxlength="16" placeholder="Your name" autocomplete="off" autocapitalize="words"><button class="go" type="submit">Let's play</button><button class="skip" type="button" id="welSkip">Skip for now</button></form></div>
   <div class="peekhint">Tap anywhere to see the games</div>
   <div class="tiles" id="tiles"></div>
+  <button class="hsbar" id="hsBtn">🏆 High Scores</button>
   <div class="mfoot" id="mfoot"></div>
 </section>
 <div class="overlay" id="pSheet" hidden><div class="sheet psheet"><h3>Who's playing?</h3><p>Each player gets their own scores and saves on this phone.</p>
@@ -4254,12 +4259,17 @@ const Fish=(()=>{
     document.body.appendChild(el);cur=el;
     const f=store.get('tg_fish',{seen:0,caught:0});f.seen++;store.set('tg_fish',f);HS.refresh();
     const H=innerHeight,y0=o.small?H*.72:H*(.28+Math.random()*.3),x0=innerWidth+w*.2,x1=-w*1.6,dur=o.small?11000:7500;
-    const a=el.animate([
-      {transform:`translate(${x0}px,${y0}px)`},
-      {transform:`translate(${x0+(x1-x0)*.25}px,${y0-26}px)`},
-      {transform:`translate(${x0+(x1-x0)*.5}px,${y0+14}px)`},
-      {transform:`translate(${x0+(x1-x0)*.75}px,${y0-20}px)`},
-      {transform:`translate(${x1}px,${y0}px)`}],{duration:dur,easing:'linear'});
+    // smooth glide: steady speed, slow sine-wave rise and fall, body tilts with the path (no keyframe corners)
+    const a={rate:1,paused:false,onfinish:null,pause(){this.paused=true},play(){this.paused=false}};
+    const vx=(x0-x1)/dur*1000,ph=Math.random()*6;let x=x0,t=0,last=performance.now(),rate=1;
+    const tick=now=>{if(!el.isConnected)return;const dt=Math.min(.05,(now-last)/1000);last=now;
+      rate+=((a.paused?0:a.rate)-rate)*Math.min(1,dt*4); // ease into stops and speed-ups
+      x-=vx*rate*dt;t+=dt*(.35+rate*.65);
+      const y=y0+Math.sin(t*.9+ph)*16+Math.sin(t*.33+ph)*9,dy=Math.cos(t*.9+ph)*16*.9+Math.cos(t*.33+ph)*3;
+      const tilt=Math.max(-14,Math.min(14,-Math.atan2(dy,vx*Math.max(rate,.3))*57.3));
+      el.style.transform=`translate(${x.toFixed(1)}px,${y.toFixed(1)}px) rotate(${tilt.toFixed(1)}deg)`;
+      if(x<x1){a.onfinish&&a.onfinish();return}requestAnimationFrame(tick)};
+    el.style.transform=`translate(${x0}px,${y0}px)`;requestAnimationFrame(tick);
     // a few bubbles from its mouth
     const bub=setInterval(()=>{if(!cur||cur!==el)return clearInterval(bub);const r=el.getBoundingClientRect(),b=document.createElement('div');
       b.className='sbub';b.style.left=(r.left+r.width*.12)+'px';b.style.top=(r.top+r.height*.3)+'px';document.body.appendChild(b);
@@ -4269,7 +4279,7 @@ const Fish=(()=>{
       const f=store.get('tg_fish',{seen:0,caught:0});f.caught++;store.set('tg_fish',f);HS.refresh();
       const LINES=['blub.','You caught the spiny fish!','🐟 blub blub','Spiny fish says hi!','Ouch, spiky!'];
       const t=document.createElement('div');t.className='blub';t.textContent=f.caught===1?LINES[1]:LINES[Math.floor(Math.random()*LINES.length)];el.appendChild(t);
-      a.pause();setTimeout(()=>{if(cur!==el)return;t.remove();a.playbackRate=5;a.play()},1300)});
+      a.pause();setTimeout(()=>{if(cur!==el)return;t.remove();el.classList.add('fast');a.rate=5;a.play()},1300)});
     a.onfinish=()=>{clearInterval(bub);if(cur===el)stop();else el.remove()};
   }
   // secret: 5 quick taps on the logo
