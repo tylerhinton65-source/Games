@@ -396,24 +396,35 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
 #sdBoard{position:relative}
 .sdjar{position:absolute;left:0;top:0;border:0;background:none;padding:0;transition:transform .16s ease}
 .sdjar.sel{transform:translateY(-18px)}
-.sdlid{position:absolute;left:9%;right:9%;top:0;height:var(--lid);border-radius:4px 4px 2px 2px;
-  background:repeating-linear-gradient(180deg,rgba(0,0,0,0) 0 3px,rgba(0,0,0,.14) 3px 4px),linear-gradient(90deg,#8a6a22,#d6b04e 25%,#f7e2a0 42%,#c99c3c 68%,#7d5f1e);
-  box-shadow:0 2px 0 rgba(0,0,0,.25)}
-.sdglass{position:absolute;left:0;right:0;top:calc(var(--lid) - 1px);bottom:0;border:2.5px solid rgba(225,240,255,.55);
-  border-radius:7px 7px 18px 18px;overflow:hidden;
-  background:linear-gradient(90deg,rgba(255,255,255,.05),rgba(255,255,255,.13) 22%,rgba(255,255,255,.03) 45%,rgba(255,255,255,.07))}
-.sdglass::after{content:"";position:absolute;left:12%;top:6%;width:9%;bottom:10%;border-radius:99px;background:rgba(255,255,255,.22);pointer-events:none;z-index:2}
+.sdg{position:absolute;left:0;pointer-events:none;overflow:visible}
+.sdsand{position:absolute;left:0;right:0;overflow:hidden;pointer-events:none}
+.sdlid{position:absolute;z-index:3;pointer-events:none;box-shadow:0 2px 0 rgba(0,0,0,.25)}
+.lid-gold{border-radius:4px 4px 2px 2px;background:repeating-linear-gradient(180deg,rgba(0,0,0,0) 0 3px,rgba(0,0,0,.14) 3px 4px),linear-gradient(90deg,#8a6a22,#d6b04e 25%,#f7e2a0 42%,#c99c3c 68%,#7d5f1e)}
+.lid-cork{border-radius:4px 4px 3px 3px;clip-path:polygon(0 0,100% 0,88% 100%,12% 100%);box-shadow:none;
+  background:radial-gradient(rgba(90,50,20,.45) .9px,transparent 1.4px) 0 0/5px 4px,radial-gradient(rgba(255,240,210,.35) .8px,transparent 1.3px) 2px 2px/6px 5px,linear-gradient(90deg,#9c6d3c,#d8a867 35%,#e6bd82 50%,#b9854c 75%,#8a5c30)}
+.lid-silver{border-radius:6px 6px 3px 3px;background:linear-gradient(180deg,rgba(255,255,255,.35),rgba(0,0,0,0) 40%),linear-gradient(90deg,#7d8794,#e9eef3 38%,#b4bec9 65%,#6f7a86)}
+.lid-rubber{border-radius:4px 4px 3px 3px;clip-path:polygon(0 0,100% 0,90% 100%,10% 100%);box-shadow:none;background:linear-gradient(90deg,#8e2a22,#d4574a 35%,#e57a6a 48%,#b63c31 72%,#7d231c)}
+.lid-wood{border-radius:6px 6px 3px 3px;background:repeating-linear-gradient(90deg,rgba(0,0,0,.08) 0 2px,rgba(0,0,0,0) 2px 7px),linear-gradient(180deg,#a8764a,#7a4d2a 60%,#5c381c)}
 .sdrun{position:absolute;left:0;right:0;bottom:0;background-color:var(--c);
   background-image:radial-gradient(rgba(0,0,0,.18) .8px,transparent 1.3px),radial-gradient(rgba(255,255,255,.25) .8px,transparent 1.3px);
   background-size:5px 5px,7px 6px;background-position:0 0,2px 3px;box-shadow:inset 0 2px 0 rgba(255,255,255,.3)}
+.sdshelf{position:absolute;border-radius:3px;z-index:0;
+  background:repeating-linear-gradient(90deg,rgba(60,30,10,.12) 0 1px,rgba(0,0,0,0) 1px 11px,rgba(255,230,190,.06) 11px 13px,rgba(0,0,0,0) 13px 23px),
+    linear-gradient(180deg,#d9a46c 0,#d9a46c 18%,#b67a44 20%,#9a6234 70%,#7a4a26 100%);
+  box-shadow:0 10px 16px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,235,200,.5)}
+.sdshelf::before,.sdshelf::after{content:"";position:absolute;top:100%;width:10px;height:16px;background:linear-gradient(90deg,#5c381c,#7a4a26);
+  clip-path:polygon(0 0,100% 0,100% 30%,0 100%)}
+.sdshelf::before{left:14px}.sdshelf::after{right:14px;transform:scaleX(-1)}
+.sdglow{position:absolute;pointer-events:none;z-index:0;background:radial-gradient(ellipse 60% 70% at 50% 100%,rgba(255,196,120,.16),rgba(255,196,120,0) 70%)}
+.sdjar{z-index:1}
 .sdjar.done{filter:drop-shadow(0 0 9px rgba(255,214,110,.75))}
 .sdjar.justdone .sdlid{animation:sdlid .5s ease-out}
 @keyframes sdlid{0%{transform:translateY(-14px) scale(1.1)}60%{transform:translateY(2px)}100%{transform:none}}
 .sdjar.hint{animation:sdpulse .7s ease-in-out 3}
 @keyframes sdpulse{50%{filter:drop-shadow(0 0 12px #7cf0ff) brightness(1.15)}}
-.sdjar.shake .sdglass{animation:sdshake .3s}
+.sdjar.shake{animation:sdshake .3s}
 @keyframes sdshake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
-.sdstream{position:absolute;border-radius:3px;pointer-events:none;z-index:5;transform-origin:top}
+.sdstream{position:absolute;border-radius:3px;pointer-events:none;z-index:19;transform-origin:top;background-color:var(--c);background-image:radial-gradient(rgba(0,0,0,.2) .8px,transparent 1.3px),radial-gradient(rgba(255,255,255,.28) .8px,transparent 1.3px);background-size:4px 5px,5px 4px}
 .sdbar{position:relative;display:flex;gap:10px;justify-content:center;padding:4px 10px 4px}
 #sand .g4hint{position:relative;padding:2px 10px 12px}
 
@@ -428,6 +439,7 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
 .bzbtn.on{background:#ffd166;color:#2a1a00}
 .bzhint{font-size:12.5px;font-weight:800;opacity:.7;text-align:center}
 #bzOver{align-items:center}
+.sddecor{position:absolute;z-index:1;pointer-events:none}.sddecor svg{width:100%;height:100%;display:block;overflow:visible}
 </style>
 </head>
 <body>
@@ -761,7 +773,6 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
   <div class="sdbar">
     <button class="g4btn" id="sdUndo">↶ Undo</button>
     <button class="g4btn" id="sdHintBtn">💡 Hint</button>
-    <button class="g4btn" id="sdAdd">＋ Jar</button>
   </div>
   <div class="g4hint" id="sdHint">Tap a jar, then tap where to pour it.</div>
 </section>
@@ -783,9 +794,8 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
 <div class="overlay" id="sdStuck" hidden>
   <div class="sheet">
     <h3>No moves left</h3>
-    <p>Every jar is blocked. Undo a few pours, add an extra jar, or start this level over.</p>
+    <p>Every jar is blocked. Undo a few pours or start this level over. Every level can be solved.</p>
     <button class="opt primary" id="sdsUndo" style="text-align:center">↶ Undo</button>
-    <button class="opt" id="sdsAdd" style="text-align:center">＋ Add a jar</button>
     <button class="opt" id="sdsRestart" style="text-align:center">↻ Restart level</button>
     <button class="opt ghost" id="sdsClose">Close</button>
   </div>
@@ -2670,9 +2680,29 @@ const SandLogic=(()=>{
     return dfs(J0.map(j=>j.slice()))?path.slice():null;
   }
 
-  const colorsFor=lvl=>Math.min(12,3+Math.floor(Math.sqrt((lvl-1)*1.5)));
+  const MAXC=9;   // chill cap: never more than 9 colors (11 jars)
+  const colorsFor=lvl=>Math.min(MAXC,3+Math.floor(Math.sqrt((lvl-1)*1.5)));
+  // how forgiving a puzzle is: share of random (non-repeating) playouts that still solve it
+  function ease(J0,tries=24,rnd=Math.random){
+    let wins=0;
+    for(let t=0;t<tries;t++){
+      let J=J0.map(j=>j.slice());const seen=new Set();let ok=false;
+      for(let s=0;s<300;s++){
+        if(solved(J)){ok=true;break}
+        seen.add(key(J));const mv=[];
+        for(let a=0;a<J.length;a++)for(let b=0;b<J.length;b++){if(!amount(J,a,b))continue;
+          if(!J[b].length&&uniform(J[a]))continue;const r=pour(J,a,b).J;if(!seen.has(key(r)))mv.push(r)}
+        if(!mv.length)break;J=mv[Math.floor(rnd()*mv.length)];
+      }
+      if(ok)wins++;
+    }
+    return wins/tries;
+  }
+  // target ease slides from very forgiving (level 1) to moderately tricky (level 50+), never below the floor
+  const targetEase=lvl=>.95-.55*Math.min(1,(lvl-1)/50);
+  const FLOOR=.3;
   function generate(lvl,rnd=Math.random){
-    const c=colorsFor(lvl);
+    const c=colorsFor(lvl);let best=null,found=0;
     for(let tries=0;tries<200;tries++){
       const units=[];for(let k=0;k<c;k++)for(let i=0;i<CAP;i++)units.push(k);
       for(let i=units.length-1;i>0;i--){const r=Math.floor(rnd()*(i+1));[units[i],units[r]]=[units[r],units[i]]}
@@ -2680,11 +2710,21 @@ const SandLogic=(()=>{
       if(J.some(j=>j.length&&uniform(j)))continue;            // no jar starts finished
       if(J.some(j=>j.length&&run(j)>=3))continue;              // no big easy runs on top
       if(lvl>2&&J.some(j=>j.length&&new Set(j).size<3&&rnd()<.6))continue; // keep jars mixed
-      if(solve(J,60000))return J;
+      if(!solve(J,60000))continue;
+      const e=ease(J,32,rnd);if(e<FLOOR)continue;
+      const d=Math.abs(e-targetEase(lvl));
+      if(!best||d<best.d)best={J,d,e};
+      if(++found>=6||d<.08)break;
     }
-    const J=[];for(let k=0;k<c;k++)J.push([k,k,k,k]);J.push([],[]);return J;
+    if(best)return best.J;
+    for(;;){ // fallback: any solvable shuffle
+      const u=[];for(let k=0;k<c;k++)for(let i=0;i<CAP;i++)u.push(k);
+      for(let i=u.length-1;i>0;i--){const r=Math.floor(rnd()*(i+1));[u[i],u[r]]=[u[r],u[i]]}
+      const J=[];for(let k=0;k<c;k++)J.push(u.slice(k*CAP,k*CAP+CAP));J.push([],[]);
+      if(!J.some(j=>uniform(j)&&j.length)&&solve(J,60000))return J;
+    }
   }
-  return{CAP,top,uniform,done,solved,run,amount,pour,anyMove,solve,generate,colorsFor};
+  return{CAP,top,uniform,done,solved,run,amount,pour,anyMove,solve,generate,colorsFor,ease,targetEase};
 })();
 /* ================= SAND SORT ================= */
 const Sand=(()=>{
@@ -2692,57 +2732,114 @@ const Sand=(()=>{
   const scr=$('#sand'),wrap=$('#sdWrap'),bd=$('#sdBoard');
   // 12 sand colors, picked to stay easy to tell apart
   const COL=['#e5483d','#f5a623','#f7dc4a','#8ccf3e','#24945a','#2ec4b6','#5ab8f5','#3159d6','#9157d9','#f283bd','#8b5a2b','#f4ecdc'];
-  let plan=null,lvl=1,J=[],start=[],undo=[],moves=0,added=false,open=false,sel=-1,hintT=0,pos=[],u=20,lid=10,justDone=new Set(),over=false;
+  let plan=null,lvl=1,J=[],start=[],undo=[],moves=0,open=false,sel=-1,hintT=0,pos=[],u=20,lid=10,hg=100,justDone=new Set(),over=false,busy=false,shelves=[];
+
+  /* Jar shapes — one per level, cycling. Paths are drawn in a 0..1 box (x across, y down; y=0 is the mouth). */
+  const SHAPES=[
+    {id:'mason',name:'Mason jars',mouth:.84,top:.12,lid:'gold',shine:[.13,.2,.88],
+     path:'M.08 0L.92 0L.92 .04Q1 .06 1 .13L1 .9Q1 1 .88 1L.12 1Q0 1 0 .9L0 .13Q0 .06 .08 .04Z'},
+    {id:'apoth',name:'Apothecary',mouth:.38,top:.27,lid:'cork',shine:[.12,.4,.86],
+     path:'M.31 0L.69 0L.69 .12Q.69 .19 .82 .23Q1 .29 1 .44L1 .88Q1 1 .86 1L.14 1Q0 1 0 .88L0 .44Q0 .29 .18 .23Q.31 .19 .31 .12Z'},
+    {id:'milk',name:'Milk bottles',mouth:.52,top:.22,lid:'silver',shine:[.13,.34,.88],
+     path:'M.24 0L.76 0L.76 .07Q.76 .13 .87 .19Q.99 .26 .99 .36L.99 .92Q.99 1 .88 1L.12 1Q.01 1 .01 .92L.01 .36Q.01 .26 .13 .19Q.24 .13 .24 .07Z'},
+    {id:'tube',name:'Test tubes',mouth:.74,top:.1,lid:'rubber',shine:[.24,.12,.74],
+     path:'M.13 0L.87 0L.87 .8Q.87 1 .5 1Q.13 1 .13 .8Z'},
+    {id:'spice',name:'Spice jars',mouth:.96,top:.07,lid:'wood',shine:[.1,.1,.88],
+     path:'M.02 0L.98 0L.98 .93Q.98 1 .9 1L.1 1Q.02 1 .02 .93Z'},
+  ];
+  /* Little things that sit at the ends of the shelves (40x40 art, standing on y=40) */
+  const DECOR={
+    succulent:()=>`<svg viewBox="0 0 40 40"><path d="M10 26h20l-2.5 14h-15z" fill="#c8673c"/><rect x="8.5" y="24" width="23" height="5" rx="1.5" fill="#dc7a4b"/>
+      <path d="M20 25C14 25 9 21 8 15c5 1 9 4 12 10zM20 25c6 0 11-4 12-10-5 1-9 4-12 10z" fill="#5f9e6e"/>
+      <path d="M20 25c-4-3-6-9-4-15 3 3 4 9 4 15zM20 25c4-3 6-9 4-15-3 3-4 9-4 15z" fill="#79b88a"/><path d="M20 25c-1.5-5-1-11 0-15 1 4 1.5 10 0 15z" fill="#9bd3a8"/></svg>`,
+    candle:()=>`<svg viewBox="0 0 40 40"><circle cx="20" cy="10" r="9" fill="rgba(255,190,90,.22)"/>
+      <ellipse cx="20" cy="38" rx="12" ry="2.5" fill="#b08a3c"/><rect x="14" y="17" width="12" height="20" rx="2" fill="#f3e6cc"/><rect x="14" y="17" width="4" height="20" fill="rgba(255,255,255,.4)"/>
+      <path d="M20 17v-3" stroke="#3a2a1a" stroke-width="1"/><path class="fl" d="M20 4c3 4 3.5 7 0 10-3.5-3-3-6 0-10z" fill="#ffb347"/><path class="fl f2" d="M20 8c1.6 2 1.8 3.8 0 5.5-1.8-1.7-1.6-3.5 0-5.5z" fill="#fff2b0"/></svg>`,
+    ball:()=>`<svg viewBox="0 0 40 40"><ellipse cx="20" cy="39" rx="10" ry="1.6" fill="rgba(0,0,0,.25)"/><circle cx="20" cy="28" r="11" fill="#cfe24a"/>
+      <path d="M10.5 22c5 2 6 10 2 15M29.5 22c-5 2-6 10-2 15" stroke="#f7f7ea" stroke-width="2" fill="none"/><circle cx="16" cy="23" r="3" fill="rgba(255,255,255,.35)"/></svg>`,
+    books:()=>`<svg viewBox="0 0 40 40"><rect x="5" y="31" width="30" height="8" rx="1.5" fill="#3f6b8a"/><rect x="7" y="32.5" width="26" height="1.4" fill="#f1e4c6"/>
+      <rect x="8" y="23" width="25" height="8" rx="1.5" fill="#a3423a"/><rect x="10" y="24.5" width="21" height="1.4" fill="#f1e4c6"/>
+      <rect x="10" y="16" width="20" height="7" rx="1.5" fill="#5d7f4a"/><rect x="12" y="17.5" width="16" height="1.2" fill="#f1e4c6"/></svg>`,
+    pinecone:()=>`<svg viewBox="0 0 40 40"><ellipse cx="20" cy="39" rx="8" ry="1.5" fill="rgba(0,0,0,.25)"/>
+      ${[[20,36,7],[15,31,5.5],[25,31,5.5],[20,28,6],[16,23,4.5],[24,23,4.5],[20,19,4.5],[20,14,3.5]].map(([x,y,r])=>`<ellipse cx="${x}" cy="${y}" rx="${r}" ry="${r*.75}" fill="#8a5a2e" stroke="#5e3a1a" stroke-width="1"/>`).join('')}</svg>`,
+    lantern:()=>`<svg viewBox="0 0 40 40"><circle cx="20" cy="26" r="13" fill="rgba(255,190,90,.2)"/><path d="M15 9a5 5 0 0 1 10 0" stroke="#2a2a2e" stroke-width="2" fill="none"/>
+      <rect x="12" y="11" width="16" height="4" rx="1" fill="#2a2a2e"/><rect x="13" y="15" width="14" height="20" rx="2" fill="#ffcf7a"/>
+      <rect class="fl" x="18" y="23" width="4" height="7" rx="2" fill="#fff4c2"/><path d="M13 15h14v20H13zM20 15v20" stroke="#2a2a2e" stroke-width="2" fill="none"/><rect x="11" y="35" width="18" height="4" rx="1" fill="#2a2a2e"/></svg>`,
+  };
+  const DECOR_PAIRS=[['succulent','candle'],['books','ball'],['lantern','succulent'],['candle','pinecone'],['ball','books'],['pinecone','lantern']];
+  const shape=()=>SHAPES[(lvl-1)%SHAPES.length];
+  const scalePath=(d,w,h)=>{let x=true;return d.replace(/-?[\d.]+/g,v=>{const o=(x?+v*w:+v*h).toFixed(1);x=!x;return o})};
+  const glassH=(w,sh)=>CAP*w*.62/(1-sh.top)+2;
 
   function newLevel(n){
-    lvl=n;J=L.generate(lvl);start=J.map(j=>j.slice());undo=[];moves=0;added=false;sel=-1;over=false;
+    lvl=n;J=L.generate(lvl);start=J.map(j=>j.slice());undo=[];moves=0;sel=-1;over=false;plan=null;
     store.set('tg_sort_level',Math.max(store.get('tg_sort_level',1),lvl));save();
   }
-  function save(){store.set('tg_sort_state',{lvl,J,start,undo:undo.slice(-120),moves,added})}
+  function save(){store.set('tg_sort_state',{lvl,J,start,undo:undo.slice(-120),moves})}
   function restore(){
     const s=store.get('tg_sort_state',null);if(!s||!Array.isArray(s.J)||!s.J.length)return false;
-    lvl=s.lvl||1;J=s.J;start=s.start||s.J;undo=s.undo||[];moves=s.moves|0;added=!!s.added;sel=-1;over=false;return true;
+    lvl=s.lvl||1;start=s.start||s.J;if(s.added){J=start.map(j=>j.slice());undo=[];moves=0}else{J=s.J;undo=s.undo||[];moves=s.moves|0}sel=-1;over=false;return true;
   }
 
   function layout(){
-    const r=wrap.getBoundingClientRect(),W=r.width-16,H=r.height-12,n=J.length;
+    const r=wrap.getBoundingClientRect(),W=r.width-100,H=r.height-12,n=J.length,sh=shape();
     const rows=n<=6?1:n<=14?2:3,per=Math.ceil(n/rows),gx=Math.max(8,W*.025);
-    let w=Math.min(68,(W-(per-1)*gx)/per);
-    const jh=w=>w*.24+CAP*w*.62+8,rowGap=26;
-    while(w>24&&rows*jh(w)+(rows-1)*rowGap+20>H)w-=1;
-    u=w*.62;lid=w*.24;const h=jh(w);
-    const bw=per*w+(per-1)*gx,bh=rows*h+(rows-1)*rowGap+18;
+    let w=Math.min(64,(W-(per-1)*gx)/per);
+    const shelfH=w=>Math.max(10,w*.2),jh=w=>w*.24+glassH(w,sh),rowGap=30;
+    while(w>24&&rows*(jh(w)+shelfH(w))+(rows-1)*rowGap+30>H)w-=1;
+    u=w*.62;lid=w*.24;hg=glassH(w,sh);const h=jh(w),sH=shelfH(w);
+    const bw=per*w+(per-1)*gx,bh=rows*(h+sH)+(rows-1)*rowGap+26;
     bd.style.width=bw+'px';bd.style.height=bh+'px';
-    pos=[];for(let i=0;i<n;i++){const row=Math.floor(i/per),inRow=Math.min(per,n-row*per),col=i-row*per;
-      const off=(bw-(inRow*w+(inRow-1)*gx))/2;pos.push({x:off+col*(w+gx),y:18+row*(h+rowGap),w,h})}
+    pos=[];shelves=[];
+    for(let i=0;i<n;i++){const row=Math.floor(i/per),inRow=Math.min(per,n-row*per),col=i-row*per;
+      const off=(bw-(inRow*w+(inRow-1)*gx))/2,y=26+row*(h+sH+rowGap);pos.push({x:off+col*(w+gx),y,w,h});
+      if(col===0){const rw=inRow*w+(inRow-1)*gx,side=Math.min(w*.95,(r.width-16-rw)/2-2),pair=DECOR_PAIRS[(lvl+row*2)%DECOR_PAIRS.length];
+        const ds=side>=22?Math.min(side-6,w*.85,44):0,ext=ds?ds+10:16;
+        shelves.push({x:off-ext,y:y+h,w:rw+ext*2,h:sH,ds,pair,rl:off,rr:off+rw})}}
     render();
   }
   function runs(j){const out=[];let i=0;while(i<j.length){let k=i;while(k<j.length&&j[k]===j[i])k++;out.push({c:j[i],from:i,n:k-i});i=k}return out}
   function render(){
-    bd.innerHTML='';
+    bd.innerHTML='';const sh=shape();
+    for(const s of shelves){const d=document.createElement('div');d.className='sdshelf';
+      Object.assign(d.style,{left:s.x+'px',top:s.y+'px',width:s.w+'px',height:s.h+'px'});
+      const g=document.createElement('div');g.className='sdglow';Object.assign(g.style,{left:s.x+'px',top:(s.y-pos[0].h*.9)+'px',width:s.w+'px',height:(pos[0].h*.9)+'px'});
+      bd.append(g,d);
+      if(s.ds){[[s.pair[0],s.rl-s.ds-5],[s.pair[1],s.rr+5]].forEach(([k,x],side)=>{const e=document.createElement('div');e.className='sddecor';
+        Object.assign(e.style,{left:x+'px',top:(s.y-s.ds+1)+'px',width:s.ds+'px',height:s.ds+'px'});e.innerHTML=DECOR[k](side);bd.appendChild(e)})}}
     J.forEach((j,i)=>{
-      const p=pos[i],b=document.createElement('button');
+      const p=pos[i],w=p.w,b=document.createElement('button');
       b.className='sdjar'+(L.done(j)?' done':'')+(justDone.has(i)?' justdone':'')+(i===sel?' sel':'');
       b.dataset.i=i;b.setAttribute('aria-label','Jar '+(i+1));
-      Object.assign(b.style,{left:p.x+'px',top:p.y+'px',width:p.w+'px',height:p.h+'px'});b.style.setProperty('--lid',lid+'px');
-      const g=document.createElement('div');g.className='sdglass';
+      Object.assign(b.style,{left:p.x+'px',top:p.y+'px',width:w+'px',height:p.h+'px'});
+      const d=scalePath(sh.path,w,hg),[sx,sy0,sy1]=sh.shine;
+      // glass back, sand (clipped to the jar shape), glass front with outline and shine
+      const back=`<svg class="sdg" style="top:${lid}px" width="${w}" height="${hg}"><path d="${d}" fill="rgba(255,255,255,.09)"/></svg>`;
+      const front=`<svg class="sdg" style="top:${lid}px" width="${w}" height="${hg}"><path d="${d}" fill="none" stroke="rgba(225,240,255,.62)" stroke-width="2.4"/>
+        <rect x="${(sx*w).toFixed(1)}" y="${(sy0*hg).toFixed(1)}" width="${(w*.07).toFixed(1)}" height="${((sy1-sy0)*hg).toFixed(1)}" rx="${(w*.035).toFixed(1)}" fill="rgba(255,255,255,.24)"/></svg>`;
+      b.innerHTML=back+`<div class="sdsand" style="top:${lid}px;height:${hg}px;clip-path:path('${d}');-webkit-clip-path:path('${d}')"></div>`+front+
+        `<div class="sdlid lid-${sh.lid}"></div>`;
+      const sand=b.querySelector('.sdsand');
       for(const r of runs(j)){const s=document.createElement('div');s.className='sdrun';
-        s.style.setProperty('--c',COL[r.c]);s.style.bottom=(2+r.from*u)+'px';s.style.height=(r.n*u+(r.from===0?2:0))+'px';
-        if(r.from===0)s.style.bottom='0px';g.appendChild(s)}
-      const l=document.createElement('div');l.className='sdlid';
-      b.append(g,l);bd.appendChild(b);
+        s.style.setProperty('--c',COL[r.c]);s.style.bottom=(r.from*u)+'px';s.style.height=(r.n*u)+'px';sand.appendChild(s)}
+      // lid sits on the mouth
+      const lw=sh.lid==='cork'||sh.lid==='rubber'?sh.mouth*w*1.04:sh.mouth*w+w*.06,ld=b.querySelector('.sdlid');
+      const lh=sh.lid==='cork'||sh.lid==='rubber'?lid*1.25:lid;
+      Object.assign(ld.style,{width:lw+'px',left:((w-lw)/2)+'px',height:lh+'px',top:(lid-lh+(lh>lid?lid*.45:1))+'px'});
+      bd.appendChild(b);
     });
     justDone.clear();hud();
   }
   const jarEl=i=>bd.querySelector(`.sdjar[data-i="${i}"]`);
   function hud(){
     $('#sdLevel').textContent=lvl;$('#sdMoves').textContent=moves;
-    $('#sdSub').textContent=`Level ${lvl} · ${L.colorsFor(lvl)} colors`;
-    $('#sdUndo').disabled=!undo.length;$('#sdAdd').disabled=added;
+    $('#sdSub').textContent=`Level ${lvl} · ${L.colorsFor(lvl)} colors · ${shape().name}`;
+    $('#sdUndo').disabled=!undo.length;
   }
   function hintMsg(t){$('#sdHint').textContent=t}
 
   function tap(i){
+    if(busy)return;
     clearHint();
     if(over)return;
     if(sel<0){
@@ -2756,46 +2853,62 @@ const Sand=(()=>{
       if(J[i].length&&!L.done(J[i])){sel=i;jarEl(i).classList.add('sel')}else shake(i);
       return;
     }
-    const c=L.top(J[a]),before=J[i].length,tRun=J[i].length?L.run(J[i]):0;
+    const c=L.top(J[a]);
     undo.push(J.map(j=>j.slice()));J=r.J;moves++;sel=-1;
     if(plan&&plan.path.length&&plan.path[0][0]===a&&plan.path[0][1]===i){plan.path.shift();plan.k=K()}else plan=null;
-    if(L.done(J[i]))justDone.add(i);
-    render();animatePour(a,i,c,r.n,before,tRun);save();
-    if(L.solved(J)){over=true;setTimeout(win,650)}
-    else if(!L.anyMove(J))setTimeout(()=>{if(open&&!L.anyMove(J)&&!L.solved(J))$('#sdStuck').hidden=false},650);
+    const fin=L.done(J[i]);
+    render();animatePour(a,i,c,r.n,fin);save();
+    if(L.solved(J)){over=true;setTimeout(win,1100)}
+    else if(!L.anyMove(J))setTimeout(()=>{if(open&&!L.anyMove(J)&&!L.solved(J))$('#sdStuck').hidden=false},1000);
   }
-  function animatePour(a,b,c,n,before,tRun){
-    // source: sand drains out of the top
-    const sg=jarEl(a).querySelector('.sdglass'),gh=document.createElement('div');gh.className='sdrun';
-    gh.style.setProperty('--c',COL[c]);gh.style.bottom=(J[a].length?2+J[a].length*u:0)+'px';gh.style.height=n*u+'px';sg.appendChild(gh);
-    gh.animate([{height:n*u+'px'},{height:'0px'}],{duration:260,easing:'ease-in',fill:'forwards'}).onfinish=()=>gh.remove();
-    // target: top layer grows upward
-    const tg=jarEl(b).querySelector('.sdglass'),rs=tg.querySelectorAll('.sdrun'),top=rs[rs.length-1];
-    if(top){const full=parseFloat(top.style.height),from=full-n*u;
-      top.animate([{height:Math.max(0,from)+'px'},{height:Math.max(0,from)+'px',offset:.3},{height:full+'px'}],{duration:380,easing:'ease-out'})}
-    // falling stream
-    const pa=pos[a],pb=pos[b],s=document.createElement('div');s.className='sdstream';
-    const sw=Math.max(4,pb.w*.13),y0=pb.y-14,y1=pb.y+pb.h-2-J[b].length*u;
-    Object.assign(s.style,{left:(pb.x+pb.w/2-sw/2)+'px',top:y0+'px',width:sw+'px',height:Math.max(8,y1-y0)+'px',background:COL[c]});
-    bd.appendChild(s);
-    s.animate([{transform:'scaleY(0)',opacity:1},{transform:'scaleY(1)',opacity:1,offset:.4},{transform:'scaleY(1)',opacity:1,offset:.75},{transform:'scaleY(1)',opacity:0}],{duration:420}).onfinish=()=>s.remove();
-    jarEl(a).animate([{transform:'translateY(-18px)'},{transform:`translateY(-24px) rotate(${pb.x>pa.x?14:-14}deg)`},{transform:'none'}],{duration:340,easing:'ease-out'});
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function animatePour(a,b,c,n,fin){
+    const T=reduce?300:860,tIn=.27,tOut=.74;busy=true;setTimeout(()=>{busy=false},T*.78);
+    const ea=jarEl(a),eb=jarEl(b),pa=pos[a],pb=pos[b],sh=shape(),bw=parseFloat(bd.style.width);
+    // which side the tipped jar's body hangs on: keep it on the roomier side
+    let dir=pa.x+pa.w/2<=pb.x+pb.w/2?1:-1;
+    const mx0=pb.x+pb.w/2;
+    if(dir===1&&mx0-pa.h*.95<-30)dir=-1;else if(dir===-1&&mx0+pa.h*.95>bw+30)dir=1;
+    const mouthHalf=sh.mouth*pb.w/2;
+    const Mx=mx0-dir*Math.min(mouthHalf*.45,pb.w*.14),My=pb.y+lid-8;
+    const ox=pa.x+pa.w/2,oy=pa.y+lid,ang=dir*104;
+    ea.style.transformOrigin=`50% ${lid}px`;ea.style.zIndex=20;
+    ea.animate([{transform:'translateY(-18px)'},{transform:`translate(${Mx-ox}px,${My-oy}px) rotate(${ang}deg)`,offset:tIn,easing:'ease-in-out'},
+      {transform:`translate(${Mx-ox}px,${My-oy}px) rotate(${ang}deg)`,offset:tOut,easing:'ease-in-out'},{transform:'none'}],{duration:T,easing:'ease-out'})
+      .onfinish=()=>{ea.style.zIndex='';ea.style.transformOrigin=''};
+    // lids come off while pouring
+    for(const e of [ea,eb]){const l=e.querySelector('.sdlid');
+      l.animate([{opacity:1,transform:'none'},{opacity:0,transform:'translateY(-10px)',offset:.18},{opacity:0,transform:'translateY(-10px)',offset:.8},{opacity:1,transform:'none'}],{duration:T})}
+    // source: the top layer drains while tipped
+    const ss=ea.querySelector('.sdsand'),gh=document.createElement('div');gh.className='sdrun';
+    gh.style.setProperty('--c',COL[c]);gh.style.bottom=(J[a].length*u)+'px';gh.style.height=n*u+'px';ss.appendChild(gh);
+    gh.animate([{height:n*u+'px'},{height:n*u+'px',offset:tIn},{height:'0px',offset:tOut},{height:'0px'}],{duration:T,fill:'forwards'}).onfinish=()=>gh.remove();
+    // target: the top layer fills up from the stream
+    const rs=eb.querySelectorAll('.sdrun'),top=rs[rs.length-1];
+    if(top){const full=parseFloat(top.style.height),from=Math.max(0,full-n*u);
+      top.animate([{height:from+'px'},{height:from+'px',offset:tIn+.04},{height:full+'px',offset:tOut+.02},{height:full+'px'}],{duration:T})}
+    // the falling stream of sand from the tipped jar's mouth into the target
+    const s=document.createElement('div');s.className='sdstream';
+    const sw=Math.max(3.5,Math.min(pb.w*.12,mouthHalf*.7)),y1=pb.y+lid+hg-(J[b].length-n)*u;
+    Object.assign(s.style,{left:(Mx-sw/2+dir*2)+'px',top:(My+2)+'px',width:sw+'px',height:Math.max(8,y1-My)+'px','--c':COL[c]});
+    s.style.setProperty('--c',COL[c]);bd.appendChild(s);
+    s.animate([{transform:'scaleY(0)',opacity:0},{transform:'scaleY(0)',opacity:1,offset:tIn-.02},{transform:'scaleY(1)',opacity:1,offset:tIn+.1},
+      {transform:'scaleY(1)',opacity:1,offset:tOut-.04},{transform:'scaleY(1) translateY(0)',opacity:0,offset:tOut+.04},{opacity:0}],{duration:T}).onfinish=()=>s.remove();
+    if(fin){eb.classList.remove('justdone');setTimeout(()=>{eb.classList.add('justdone')},T*.8)}
   }
   function shake(i){const e=jarEl(i);if(!e)return;e.classList.remove('shake');void e.offsetWidth;e.classList.add('shake')}
   function clearHint(){clearTimeout(hintT);bd.querySelectorAll('.hint').forEach(e=>e.classList.remove('hint'));hintMsg('Tap a jar, then tap where to pour it.')}
 
-  function doUndo(){if(!undo.length)return;clearHint();J=undo.pop();sel=-1;over=false;
-    if(J.length<pos.length||J.length>pos.length)layout();else render();save()}
-  function addJar(){if(added)return;clearHint();added=true;undo.push(J.map(j=>j.slice()));J=J.map(j=>j.slice());J.push([]);sel=-1;layout();save();
-    hintMsg('Extra jar added — one per level.')}
-  function restart(){clearHint();J=start.map(j=>j.slice());undo=[];moves=0;added=false;sel=-1;over=false;layout();save()}
+  function doUndo(){if(!undo.length||busy)return;clearHint();J=undo.pop();sel=-1;over=false;
+    render();save()}
+  function restart(){clearHint();J=start.map(j=>j.slice());undo=[];moves=0;sel=-1;over=false;layout();save()}
   const K=()=>JSON.stringify(J);
   function hint(){
     clearHint();if(over)return;
     // keep following the same plan so hints never go back and forth
     if(!plan||plan.k!==K()||!plan.path.length){const s=L.solve(J,150000);plan=s?{k:K(),path:s}:null}
     const p=plan&&plan.path;
-    if(!p){hintMsg(added?'This one looks stuck — try Undo or Restart.':'Stuck — try Undo, or add an extra jar.');return}
+    if(!p){hintMsg('This one looks stuck — try Undo or Restart.');return}
     if(!p.length)return;
     if(sel>=0){jarEl(sel).classList.remove('sel');sel=-1}
     const[a,b]=p[0];jarEl(a).classList.add('hint');jarEl(b).classList.add('hint');
@@ -2813,7 +2926,7 @@ const Sand=(()=>{
 
   bd.addEventListener('click',e=>{const b=e.target.closest('.sdjar');if(b)tap(+b.dataset.i)});
   $('#sdBack').onclick=()=>{save();go('')};
-  $('#sdUndo').onclick=doUndo;$('#sdAdd').onclick=addJar;$('#sdHintBtn').onclick=hint;
+  $('#sdUndo').onclick=doUndo;$('#sdHintBtn').onclick=hint;
   $('#sdRestart').onclick=()=>{if(moves>0)$('#sdConfirm').hidden=false};
   $('#sdcYes').onclick=()=>{$('#sdConfirm').hidden=true;restart()};
   $('#sdcNo').onclick=()=>{$('#sdConfirm').hidden=true};
@@ -2821,7 +2934,6 @@ const Sand=(()=>{
   $('#sdwNext').onclick=()=>{$('#sdWin').hidden=true;newLevel(lvl+1);layout()};
   $('#sdwMenu').onclick=()=>{$('#sdWin').hidden=true;newLevel(lvl+1);go('')};
   $('#sdsUndo').onclick=()=>{$('#sdStuck').hidden=true;doUndo()};
-  $('#sdsAdd').onclick=()=>{$('#sdStuck').hidden=true;addJar()};
   $('#sdsRestart').onclick=()=>{$('#sdStuck').hidden=true;restart()};
   $('#sdsClose').onclick=()=>{$('#sdStuck').hidden=true};
   document.addEventListener('visibilitychange',()=>{if(document.hidden&&open)save()});
