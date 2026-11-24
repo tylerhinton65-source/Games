@@ -61,6 +61,31 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
 .tile.locked{opacity:.55}
 .tile.locked .lk{width:62px;height:62px;display:flex;align-items:center;justify-content:center;font-size:26px;border-radius:16px;background:rgba(255,255,255,.08)}
 .mfoot{margin:18px 0 0;font-size:12px;font-weight:700;opacity:.7;text-align:center;padding:0 20px}
+/* welcome + players */
+.mhead,.tiles,.mfoot{transition:transform .55s cubic-bezier(.2,.8,.3,1),opacity .4s}
+.mbtns{position:absolute;top:calc(8px + env(safe-area-inset-top));left:0;right:0;display:flex;justify-content:space-between;padding:0 12px;z-index:3;pointer-events:none;transition:opacity .3s}
+.mbtns button{pointer-events:auto;border:0;border-radius:12px;background:rgba(20,14,48,.55);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);padding:7px 10px;font-weight:800;font-size:13px}
+.mbtns .r{display:flex;gap:6px}
+.pchip{margin:10px auto 0;display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(255,255,255,.22);border-radius:999px;background:rgba(20,14,48,.55);padding:6px 14px;font-weight:800;font-size:13px}
+.wel{position:absolute;left:0;right:0;top:calc(30vh + env(safe-area-inset-top));text-align:center;padding:0 24px;pointer-events:none;opacity:0;transform:translateY(10px);transition:opacity .4s,transform .4s;z-index:2}
+.wel h2{margin:0;font-size:28px;font-weight:900;text-shadow:0 3px 12px rgba(0,0,0,.6)}
+.wel p{margin:6px 0 0;font-size:14px;font-weight:700;opacity:.85;text-shadow:0 2px 8px rgba(0,0,0,.6)}
+.wel form{margin:16px auto 0;max-width:300px;display:flex;flex-direction:column;gap:8px;pointer-events:auto}
+.wel input,.psheet input{font:inherit;font-size:17px;font-weight:800;color:#fff;background:rgba(20,14,48,.7);border:2px solid rgba(255,255,255,.3);border-radius:14px;padding:12px 14px;text-align:center;-webkit-user-select:text;user-select:text;outline:none}
+.wel input:focus,.psheet input:focus{border-color:#ffd166}
+.wel .go{border:0;border-radius:999px;background:#ffd166;color:#2a1a00;padding:12px;font-weight:900;font-size:17px}
+.wel .skip{border:0;background:none;font-weight:800;font-size:14px;opacity:.8;padding:6px}
+#menu.welcome,#menu.peek{overflow:hidden}
+#menu.welcome .wel{opacity:1;transform:none}
+#menu.welcome .mbtns,#menu.welcome .pchip{opacity:0;pointer-events:none}
+#menu.welcome .tiles,#menu.welcome .mfoot,#menu.peek .tiles,#menu.peek .mfoot{transform:translateY(105vh);pointer-events:none}
+#menu.peek .mhead{transform:translateY(-140%)}
+#menu.peek .mbtns .r,#menu.peek .mbtns .tst{opacity:0;pointer-events:none}
+.tiles.pop .tile{animation:tpop .45s cubic-bezier(.2,.9,.3,1.25) backwards;animation-delay:calc(var(--i)*55ms)}
+@keyframes tpop{from{opacity:0;transform:translateY(30px) scale(.85)}}
+.plist .opt.sel{outline:3px solid #ffd166}
+.peekhint{position:absolute;left:0;right:0;bottom:calc(18px + env(safe-area-inset-bottom));text-align:center;font-size:12px;font-weight:800;opacity:0;transition:opacity .3s;pointer-events:none;text-shadow:0 2px 6px rgba(0,0,0,.7)}
+#menu.peek .peekhint{opacity:.8}
 
 /* ---------- solitaire ---------- */
 #sol .shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,32,32,.82) 0%,rgba(10,32,32,.62) 55%,rgba(10,32,32,.28) 100%);pointer-events:none}
@@ -412,10 +437,19 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
 <section id="menu" class="screen">
   <header class="mhead">
     <div class="logo"><span class="l1">TYLER'S</span><span class="l2">GAMES</span></div>
+    <button class="pchip" id="pChip">👤 Add your name</button>
   </header>
+  <div class="mbtns"><button id="peekBtn" aria-label="See the campsite">🏕️</button><span class="r"><button class="tst" id="testFirst" aria-label="Test first visit">🧪 First visit</button></span></div>
+  <div class="wel" id="wel"><h2 id="welH">Welcome back!</h2><p id="welP"></p>
+    <form id="welForm" hidden><input id="welName" maxlength="16" placeholder="Your name" autocomplete="off" autocapitalize="words"><button class="go" type="submit">Let's play</button><button class="skip" type="button" id="welSkip">Skip for now</button></form></div>
+  <div class="peekhint">Tap anywhere to see the games</div>
   <div class="tiles" id="tiles"></div>
   <div class="mfoot" id="mfoot"></div>
 </section>
+<div class="overlay" id="pSheet" hidden><div class="sheet psheet"><h3>Who's playing?</h3><p>Each player gets their own scores and saves on this phone.</p>
+  <div class="plist" id="pList"></div>
+  <form id="pAddForm" hidden style="display:flex;gap:8px;margin:8px 0"><input id="pAddName" maxlength="16" placeholder="Name" autocomplete="off" autocapitalize="words" style="flex:1;min-width:0"><button class="opt primary" type="submit" style="width:auto;margin:0;text-align:center">Add</button></form>
+  <button class="opt" id="pAdd">＋ Add a player</button><button class="opt" id="pRename">✏️ Rename me</button><button class="opt ghost" id="pClose">Close</button></div></div>
 
 <!-- SOLITAIRE -->
 <section id="sol" class="screen">
@@ -909,9 +943,16 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
 (function(){
 'use strict';
 const $=s=>document.querySelector(s);
+// Players: player id 0 is the phone's owner and uses the original keys (so existing scores stay theirs).
+// Other players get their own copy of every save under a "p<id>:" prefix.
+const PKEY='tg_players';
+const players=(()=>{try{return JSON.parse(localStorage.getItem(PKEY))}catch(e){return null}})();
+const curPid=players&&players.list.some(p=>p.id===players.cur)?players.cur:0;
+const skey=k=>(curPid&&k!==PKEY)?'p'+curPid+':'+k:k;
 const store={
-  get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},
-  set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+  get(k,d){try{const v=localStorage.getItem(skey(k));return v?JSON.parse(v):d}catch(e){return d}},
+  set(k,v){try{localStorage.setItem(skey(k),JSON.stringify(v))}catch(e){}},
+  del(k){try{localStorage.removeItem(skey(k))}catch(e){}}
 };
 const fmt=s=>{s=Math.max(0,s|0);const m=Math.floor(s/60);return m+':'+String(s%60).padStart(2,'0')};
 
@@ -1194,11 +1235,12 @@ const TAGS=['Offline arcade · Benji approved','No Wi-Fi? No problem.','Airplane
 function showMenu(){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
   $('#menu').classList.add('on');
-  $('#tiles').innerHTML=GAMES.map(g=>g.locked
+  $('#tiles').innerHTML=GAMES.map((g,i)=>g.locked
     ?`<div class="tile locked"><div class="lk">🔒</div><div class="tn">Soon</div><div class="ts">&nbsp;</div></div>`
-    :`<button class="tile" data-game="${g.id}" aria-label="${g.name}"${g.style?` style="${g.style}"`:''}>${typeof g.icon==='function'?g.icon():g.icon}<div class="tn">${g.name}</div><div class="ts">${g.stats?g.stats():''}</div></button>`).join('');
+    :`<button class="tile" data-game="${g.id}" aria-label="${g.name}" style="--i:${i};${g.style||''}">${typeof g.icon==='function'?g.icon():g.icon}<div class="tn">${g.name}</div><div class="ts">${g.stats?g.stats():''}</div></button>`).join('');
   const standalone=window.navigator.standalone||matchMedia('(display-mode: standalone)').matches;
   $('#mfoot').textContent=standalone?'Works offline · saves automatically':'Tip: in Safari tap Share → Add to Home Screen to play offline';
+  Welcome.chip();
 }
 $('#tiles').addEventListener('click',e=>{const b=e.target.closest('[data-game]');if(b)go(b.dataset.game)});
 function go(id){
@@ -3928,7 +3970,7 @@ const Cabin=(()=>{
   $('#cHow').addEventListener('click',e=>{if(e.target.id==='cHow')e.currentTarget.hidden=true});
   $('#cTReset').onclick=()=>{$('#cReset').hidden=false};
   $('#cResetNo').onclick=()=>{$('#cReset').hidden=true};
-  $('#cResetYes').onclick=()=>{$('#cReset').hidden=true;try{localStorage.removeItem('tg_cabin3');localStorage.removeItem('tg_cabin2');localStorage.removeItem('tg_cabin_intro2')}catch(_){}sel=-1;fresh();render();showTitle()};
+  $('#cResetYes').onclick=()=>{$('#cReset').hidden=true;store.del('tg_cabin3');store.del('tg_cabin2');store.del('tg_cabin_intro2');sel=-1;fresh();render();showTitle()};
   $('#cGo').onclick=()=>{$('#cView').hidden=true;$('#cBanner').hidden=true;render()};
   $('#cViewMenu').onclick=()=>{save();showTitle()};
   $('#cViewBody').addEventListener('click',e=>{const b=e.target.closest('[data-fix]');if(b)fix(b.dataset.fix)});
@@ -3959,7 +4001,64 @@ const Cabin=(()=>{
   };
 })();
 
+/* ================= WELCOME + PLAYERS ================= */
+const Welcome=(()=>{
+  const menu=$('#menu');let timer=0,test=false;
+  const P=()=>players||{list:[],cur:0};
+  const me=()=>P().list.find(p=>p.id===curPid);
+  const saveP=o=>{try{localStorage.setItem(PKEY,JSON.stringify(o))}catch(e){}};
+  const clean=n=>(n||'').replace(/\s+/g,' ').trim().slice(0,16);
+  function chip(){const m=me();$('#pChip').textContent=m?`👤 ${m.name} ▾`:'👤 Add your name'}
+  function showTiles(){
+    clearTimeout(timer);if(!menu.classList.contains('welcome'))return;
+    menu.classList.remove('welcome');const t=$('#tiles');t.classList.remove('pop');void t.offsetWidth;t.classList.add('pop');
+    setTimeout(()=>t.classList.remove('pop'),1400);
+  }
+  function setName(n){ // name the current player (creates the owner profile on first visit)
+    const o=P();const m=o.list.find(p=>p.id===curPid);
+    if(m)m.name=n;else o.list.push({id:curPid,name:n});
+    if(!players)o.cur=curPid;saveP(o);location.reload();
+  }
+  function welcome(first){
+    menu.classList.add('welcome');const f=$('#welForm');
+    if(first){
+      $('#welH').textContent="Welcome to Tyler's Games!";$('#welP').textContent='What should we call you? (for your high scores)';
+      f.hidden=false;$('#welName').value='';
+    }else{
+      const m=me();$('#welH').textContent=m?`Welcome back, ${m.name}!`:'Welcome back!';$('#welP').textContent='';f.hidden=true;
+      timer=setTimeout(showTiles,1600);
+    }
+  }
+  $('#welForm').addEventListener('submit',e=>{e.preventDefault();const n=clean($('#welName').value);if(!n){$('#welName').focus();return}
+    test=false;$('#welName').blur();setName(n)});
+  $('#welSkip').onclick=()=>{$('#welName').blur();if(!players&&!test)saveP({list:[],cur:0});test=false;showTiles()};
+  menu.addEventListener('click',e=>{
+    if(menu.classList.contains('welcome')){if(!e.target.closest('form'))showTiles();return}
+    if(menu.classList.contains('peek')){menu.classList.remove('peek')}
+  });
+  $('#peekBtn').onclick=e=>{e.stopPropagation();menu.classList.toggle('peek')};
+  $('#testFirst').onclick=e=>{e.stopPropagation();test=true;welcome(true)};
+  // player picker
+  const sheet=$('#pSheet');
+  function list(){const o=P();const all=o.list.length?o.list:[];
+    $('#pList').innerHTML=all.map(p=>`<button class="opt${p.id===curPid?' sel':''}" data-pid="${p.id}">${p.id===curPid?'✓ ':''}${p.name.replace(/[<&]/g,'')}<small>${p.id===curPid?'Playing now':'Tap to switch'}</small></button>`).join('');
+    $('#pRename').hidden=!me();$('#pAddForm').hidden=true;$('#pAdd').hidden=false}
+  $('#pChip').onclick=e=>{e.stopPropagation();if(!me()){test=false;welcome(true);return}list();sheet.hidden=false};
+  $('#pClose').onclick=()=>sheet.hidden=true;
+  sheet.addEventListener('click',e=>{if(e.target===sheet)sheet.hidden=true});
+  $('#pList').addEventListener('click',e=>{const b=e.target.closest('[data-pid]');if(!b)return;const id=+b.dataset.pid;if(id===curPid){sheet.hidden=true;return}
+    const o=P();o.cur=id;saveP(o);location.reload()});
+  let renaming=false;
+  $('#pAdd').onclick=()=>{renaming=false;$('#pAdd').hidden=true;$('#pAddForm').hidden=false;$('#pAddName').value='';$('#pAddName').placeholder='New player name';$('#pAddName').focus()};
+  $('#pRename').onclick=()=>{renaming=true;$('#pAdd').hidden=true;$('#pAddForm').hidden=false;$('#pAddName').value=me().name;$('#pAddName').focus()};
+  $('#pAddForm').addEventListener('submit',e=>{e.preventDefault();const n=clean($('#pAddName').value);if(!n)return;
+    const o=P();if(renaming){o.list.find(p=>p.id===curPid).name=n;saveP(o);location.reload();return}
+    const id=Math.max(0,...o.list.map(p=>p.id))+1;o.list.push({id,name:n});o.cur=id;saveP(o);location.reload()});
+  return{chip,start(){if(!menu.classList.contains('on'))return;welcome(!players)}};
+})();
+
 route();
+Welcome.start();
 
 /* offline support (works once hosted, e.g. GitHub Pages) */
 if('serviceWorker' in navigator&&location.protocol==='https:'){
