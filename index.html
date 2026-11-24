@@ -78,11 +78,17 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
 #menu.welcome,#menu.peek{overflow:hidden}
 #menu.welcome .wel{opacity:1;transform:none}
 #menu.welcome .mbtns,#menu.welcome .pchip{opacity:0;pointer-events:none}
-#menu.welcome .tiles,#menu.welcome .mfoot,#menu.peek .tiles,#menu.peek .mfoot{transform:translateY(105vh);pointer-events:none}
+#menu.peek .tiles,#menu.peek .mfoot{transform:translateY(105vh);pointer-events:none}
+#menu.welcome .tiles,#menu.welcome .mfoot{pointer-events:none}
+#menu.welcome .tile,#menu.welcome .mfoot{opacity:0}
 #menu.peek .mhead{transform:translateY(-140%)}
 #menu.peek .mbtns .r,#menu.peek .mbtns .tst{opacity:0;pointer-events:none}
-.tiles.pop .tile{animation:tpop .45s cubic-bezier(.2,.9,.3,1.25) backwards;animation-delay:calc(var(--i)*55ms)}
-@keyframes tpop{from{opacity:0;transform:translateY(30px) scale(.85)}}
+/* tiles drift up and fade in, one after another — calm, no bounce */
+.tiles.pop .tile{animation:tpop .8s cubic-bezier(.22,.7,.25,1) backwards;animation-delay:calc(var(--i)*75ms)}
+@keyframes tpop{from{opacity:0;transform:translateY(22px)}}
+.tiles.pop~.mfoot{animation:tfade .8s ease .8s backwards}
+@keyframes tfade{from{opacity:0}}
+@media (prefers-reduced-motion:reduce){.tiles.pop .tile{animation:tfade .4s ease backwards}}
 .plist .opt.sel{outline:3px solid #ffd166}
 .peekhint{position:absolute;left:0;right:0;bottom:calc(18px + env(safe-area-inset-bottom));text-align:center;font-size:12px;font-weight:800;opacity:0;transition:opacity .3s;pointer-events:none;text-shadow:0 2px 6px rgba(0,0,0,.7)}
 #menu.peek .peekhint{opacity:.8}
@@ -4130,12 +4136,12 @@ const Welcome=(()=>{
   function showTiles(){
     clearTimeout(timer);if(!menu.classList.contains('welcome'))return;
     menu.classList.remove('welcome');const t=$('#tiles');t.classList.remove('pop');void t.offsetWidth;t.classList.add('pop');
-    setTimeout(()=>t.classList.remove('pop'),1400);
+    setTimeout(()=>t.classList.remove('pop'),2200);
   }
   function setName(n){ // name the current player (creates the owner profile on first visit)
     const o=P();const m=o.list.find(p=>p.id===curPid);
     if(m)m.name=n;else o.list.push({id:curPid,name:n});
-    if(!players)o.cur=curPid;saveP(o);location.reload();
+    if(!players)o.cur=curPid;saveP(o);try{sessionStorage.setItem('tg_newname','1')}catch(e){}location.reload();
   }
   function welcome(first){
     menu.classList.add('welcome');const f=$('#welForm');
@@ -4143,7 +4149,9 @@ const Welcome=(()=>{
       $('#welH').textContent="Welcome to Tyler's Games!";$('#welP').textContent='What should we call you? (for your high scores)';
       f.hidden=false;$('#welName').value='';
     }else{
-      const m=me();$('#welH').textContent=m?`Welcome back, ${m.name}!`:'Welcome back!';$('#welP').textContent='';f.hidden=true;
+      // right after naming yourself it's a first hello, not "welcome back"
+      let fresh=false;try{fresh=sessionStorage.getItem('tg_newname')==='1';sessionStorage.removeItem('tg_newname')}catch(e){}
+      const m=me(),w=fresh?'Welcome':'Welcome back';$('#welH').textContent=m?`${w}, ${m.name}!`:`${w}!`;$('#welP').textContent='';f.hidden=true;
       timer=setTimeout(showTiles,1600);
     }
   }
