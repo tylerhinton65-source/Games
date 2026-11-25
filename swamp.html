@@ -685,7 +685,7 @@ function turretStep(dt){
   S.turrets.forEach((t,i)=>{
     if(!t)return; const sp=L.spots[i], st=tStat(t.type,t.lvl), d=TURRETS[t.type]; st.range*=sp.bonus||1;
     t.cool=(t.cool||0)-dt; t.anim=Math.max(0,(t.anim||0)-dt*5);
-    const ox=sp.x, oy=sp.y-15*TS;
+    const ox=sp.x, oy=sp.y-15*TS-spotRaise(i);
     let best=null,bs=-1e9;
     for(const z of Z){ if(z.dead||z.state==='sub'||z.x>W-4)continue; if(d.ground&&z.fly)continue; const c=zCenter(z); const dist=Math.hypot(c.x-ox,c.y-oy);
       if(dist>st.range)continue; if(d.minR&&dist<d.minR)continue;
@@ -696,6 +696,7 @@ function turretStep(dt){
     if(!best)return;
     const spd=t.type==='minigun'?900:t.type==='rocket'?420:0;
     const tp=lead(best,spd,{x:ox,y:oy});
+    if(spotRaise(i)&&!d.ground&&!best.fly){ const bx=zBox(best); tp.y=Math.min(tp.y,bx.y0+(bx.y1-bx.y0)*.3); }   // aim high so shots clear the fence
     const want=Math.atan2(tp.y-oy,tp.x-ox); t.a=t.a==null?want:t.a+Math.atan2(Math.sin(want-t.a),Math.cos(want-t.a))*clamp(dt*12,0,1);
     if(t.type==='laser'){ // continuous beam in 10 ticks a second; heats up while it holds one target
       if(t.tgt!==best){ t.tgt=best; t.lock=0; } t.lock=(t.lock||0)+dt;
@@ -713,7 +714,7 @@ function turretStep(dt){
     t.cool=1/(st.rate*(t.type==='minigun'?t.spin:1)); t.anim=1;
     if(t.type==='minigun'){ const a=t.a+rnd(-.035,.035); B.push({x:ox+Math.cos(t.a)*20*TS,y:oy+Math.sin(t.a)*20*TS,px:ox,py:oy,vx:Math.cos(a)*1000,vy:Math.sin(a)*1000,dmg:st.dmg,pierce:1,kb:2,hit:[],src:'t',life:st.range/1000+.1,kind:'bullet'}); if(Math.random()<.5)FX.push({k:'muzzle',x:ox+Math.cos(t.a)*31*TS,y:oy+Math.sin(t.a)*31*TS,a:t.a,t:0,life:.04}); }
     else if(t.type==='rocket'){ const n=1+Math.floor((t.lvl-1)/2);
-      for(let r=0;r<n;r++){ const a=t.a+(r-(n-1)/2)*.16, y0=oy+(r-(n-1)/2)*4; B.push({kind:'rocket',x:ox+Math.cos(t.a)*14*TS,y:y0+Math.sin(t.a)*14*TS,px:ox,py:oy,vx:Math.cos(a)*240,vy:Math.sin(a)*240,dmg:st.dmg,splash:st.splash,tg:best,life:2.6,age:0,hit:[],src:'t'}); }
+      for(let r=0;r<n;r++){ const a=t.a-(spotRaise(i)?.38:0)+(r-(n-1)/2)*.16, y0=oy+(r-(n-1)/2)*4; B.push({kind:'rocket',x:ox+Math.cos(t.a)*14*TS,y:y0+Math.sin(t.a)*14*TS,px:ox,py:oy,vx:Math.cos(a)*240,vy:Math.sin(a)*240,dmg:st.dmg,splash:st.splash,tg:best,life:2.6,age:0,hit:[],src:'t'}); }
       FX.push({k:'smoke',x:ox-Math.cos(t.a)*16*TS,y:oy-Math.sin(t.a)*16*TS,vx:-Math.cos(t.a)*40,vy:-20,t:0,life:.7,s:7}); }
     else if(t.type==='goo'||t.type==='mortar'){
       const T=t.type==='goo'?.75:1.15; const v=zVel(best); const p={x:best.x+v*T,y:best.y};
@@ -723,7 +724,7 @@ function turretStep(dt){
     else if(t.type==='tesla'){
       const hitL=[best]; let cur=best;
       for(let k=1;k<st.chain;k++){ let nb=null,nd=110; for(const z of Z){ if(z.dead||z.state==='sub'||hitL.includes(z))continue; const dd=Math.hypot(z.x-cur.x,z.y-cur.y); if(dd<nd){nd=dd;nb=z} } if(!nb)break; hitL.push(nb); cur=nb; }
-      const pts=[{x:ox,y:sp.y-44*TS}].concat(hitL.map(z=>zCenter(z)));
+      const pts=[{x:ox,y:sp.y-44*TS-spotRaise(i)}].concat(hitL.map(z=>zCenter(z)));
       FX.push({k:'zap',pts,t:0,life:.18});
       hitL.forEach((z,j)=>hurt(z,st.dmg*(j?0.8:1),{splash:true,col:'#9fdcff'}));
     }
@@ -2180,11 +2181,23 @@ function planeShape(s){ // B-2 style stealth flying wing, seen from slightly bel
   // blinking nav lights on the wingtips
   if(Math.sin(TIME*6)>.3){ ctx.fillStyle='#ff4040'; const [a,b]=P(-4,-52); circ(a,b,1.1); ctx.fillStyle='#40ff70'; const [c,d]=P(-4,52); circ(c,d,1.1); }
 }
+// Turrets by the fence stand on a little log lookout so their shots fly OVER the fence instead of through it.
+// Set RAISE_GROUND_TURRETS=false to put them back on the ground.
+const RAISE_GROUND_TURRETS=true, TOWER_H=22;
+function spotRaise(i){ return RAISE_GROUND_TURRETS&&i>=3?TOWER_H:0; }
+function drawTower(x,y,h){ // log legs, cross braces and a plank deck, same weathered wood as the porch
+  ctx.fillStyle='rgba(0,0,0,.3)'; ell(x,y+1,20,4);
+  for(const lx of[-15,13]){ const g=ctx.createLinearGradient(x+lx-2.4,0,x+lx+2.4,0); g.addColorStop(0,'#5a3a22'); g.addColorStop(.5,'#7a5232'); g.addColorStop(1,'#3d2a1a'); ctx.fillStyle=g; ctx.fillRect(x+lx-2.4,y-h,4.8,h+1); ctx.fillStyle='rgba(0,0,0,.25)'; ctx.fillRect(x+lx-2.4,y-4,4.8,1); }
+  ctx.strokeStyle='#4a2f1c'; ctx.lineWidth=2.2; ctx.beginPath(); ctx.moveTo(x-14,y-2); ctx.lineTo(x+12,y-h+5); ctx.moveTo(x+12,y-2); ctx.lineTo(x-14,y-h+5); ctx.stroke();
+  ctx.fillStyle='#4a2f1c'; ctx.fillRect(x-21,y-h-1,42,5);
+  for(let k=0;k<6;k++){ ctx.fillStyle=['#8a5a34','#946238','#7e5230'][k%3]; ctx.fillRect(x-21+k*7,y-h-3,6.4,3.6); }
+  ctx.fillStyle='rgba(255,220,170,.12)'; ctx.fillRect(x-21,y-h-3,42,.8);
+}
 function drawSpots(){
   if(!S)return;
   L.spots.forEach((sp,i)=>{
     const t=S.turrets[i];
-    if(t){ ctx.save(); ctx.translate(sp.x,sp.y); ctx.scale(TS,TS); drawTurret(ctx,t.type,t.lvl,t.a!=null?t.a:0,t.anim,t.rot||0); ctx.restore(); }
+    if(t){ const rz=spotRaise(i); if(rz)drawTower(sp.x,sp.y,rz); ctx.save(); ctx.translate(sp.x,sp.y-rz); ctx.scale(TS,TS); drawTurret(ctx,t.type,t.lvl,t.a!=null?t.a:0,t.anim,t.rot||0); ctx.restore(); }
     else if(phase==='build'){ const g=.5+.5*Math.sin(TIME*4+i); ctx.strokeStyle=`rgba(255,220,100,${.45+g*.45})`; ctx.lineWidth=2; ctx.setLineDash([4,3]); ctx.beginPath(); ctx.ellipse(sp.x,sp.y-2,15,5,0,0,TAU); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle=`rgba(255,220,100,${.12+g*.12})`; ell(sp.x,sp.y-2,15,5); ctx.fillStyle=`rgba(255,230,140,${.6+g*.4})`; ctx.font='900 15px system-ui'; ctx.textAlign='center'; ctx.fillText('+',sp.x,sp.y-10); }
   });
 }
@@ -2234,8 +2247,8 @@ function render(){
   const list=(phase==='title'?demoZ:Z);
   for(const z of list) if(z.state==='sub'){ ctx.strokeStyle='rgba(200,240,230,.4)'; ctx.lineWidth=1; for(let k=0;k<2;k++){ const r=((TIME*1.5+k*.5)%1)*16+3; ctx.beginPath(); ctx.ellipse(z.x,z.y,r,r*.3,0,0,TAU); ctx.stroke(); } }
   if(S||phase==='title'){ drawPorch(); drawDoorOpen(); drawBenji(); }
-  drawSpots();
   if(S)drawFence();
+  drawSpots();
   const sorted=list.filter(z=>!z.fly).sort((a,b)=>a.y-b.y);
   for(const z of sorted) drawZ(z);
   drawGator();
@@ -2466,7 +2479,7 @@ function toWorld(e){ const s=toStage(e); return {x:s.x/K, y:s.y/K-OY}; }
 let activePtr=null;
 cv.addEventListener('pointerdown',e=>{
   e.preventDefault(); const p=toWorld(e);
-  if(phase==='build'){ L.spots.forEach((sp,i)=>{ if(Math.hypot(p.x-sp.x,(p.y-sp.y+8)*1.1)<26) openTurret(i); }); return; }
+  if(phase==='build'){ L.spots.forEach((sp,i)=>{ const rz=S.turrets[i]?spotRaise(i):0; if(Math.hypot(p.x-sp.x,(p.y-sp.y+8)*1.1)<26||(rz&&Math.hypot(p.x-sp.x,(p.y-sp.y+8+rz)*1.1)<26)) openTurret(i); }); return; }
   if(phase!=='wave')return;
   activePtr=e.pointerId; try{cv.setPointerCapture(e.pointerId)}catch(_){}
   P.touch=true; P.tx=p.x; P.ty=p.y;
