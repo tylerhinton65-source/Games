@@ -527,9 +527,23 @@ function lobAngle(m,p){ // low-arc launch angle that lands a grenade on p (y is 
   if(disc<0) return -Math.PI/4;
   return -Math.atan((v2-Math.sqrt(disc))/(GG*dx));
 }
-function grenadePath(a){ // simulate the arc for the aiming guide
-  const m=muzzleAt(a), pts=[{x:m.x,y:m.y}]; let x=m.x,y=m.y,vx=Math.cos(a)*GV,vy=Math.sin(a)*GV;
-  for(let i=0;i<240;i++){ const dt=1/60; vy+=GG*dt; x+=vx*dt; y+=vy*dt; pts.push({x,y}); if((vy>0&&y>=GROUND_Y&&x>L.HX)||y>404||x>W+40)break; }
+// Grenades land right under the finger (or the auto-aim target): the launcher lobs to that exact point and bursts there.
+// Set AIM_AT_FINGER=false to go back to the old straight-line aim that dropped short of the finger.
+const AIM_AT_FINGER=true;
+function lobShot(p){ // angle + launch speed that put the grenade on p from the muzzle (speeds up a little for far taps)
+  let a=-Math.PI/4, v=GV;
+  for(let i=0;i<3;i++){ const m=muzzleAt(a), dx=Math.max(20,p.x-m.x), up=m.y-p.y, v2=v*v, disc=v2*v2-GG*(GG*dx*dx+2*up*v2);
+    if(disc>=0){ a=-Math.atan((v2-Math.sqrt(disc))/(GG*dx)); }
+    else { a=-Math.PI/4; v=Math.sqrt(GG*dx*dx/Math.max(1,dx-up))*1.001; } }
+  return {a,v};
+}
+function gBursts(x,y,vy,tg){ // true when a grenade at (x,y) should go off
+  if(tg) return x>=tg.x||(vy>0&&y>=Math.max(L.LANE0-6,tg.y+14)&&x>L.HX)||y>404;
+  return (vy>0&&y>=GROUND_Y&&x>L.HX)||y>404;
+}
+function grenadePath(a,v,tg){ // simulate the arc for the aiming guide (same rule the real grenade uses)
+  const m=muzzleAt(a), pts=[{x:m.x,y:m.y}]; v=v||GV; let x=m.x,y=m.y,vx=Math.cos(a)*v,vy=Math.sin(a)*v;
+  for(let i=0;i<240;i++){ const dt=1/60; x+=vx*dt; y+=vy*dt+.5*GG*dt*dt; vy+=GG*dt; if(tg&&x>=tg.x){ pts.push({x:tg.x,y:tg.y}); break; } pts.push({x,y}); if(gBursts(x,y,vy,tg)||x>W+40)break; }
   return pts;
 }
 let reloadT=0;
@@ -563,8 +577,9 @@ function playerStep(dt){
   const w=curW(), st=wStat(w,S.guns[w.id]), sh=shoulder();
   P.recoil=Math.max(0,P.recoil-dt*8);
   let firing=false, target=null;
-  if(P.touch){ firing=true; P.aimTo=aimThrough(P.tx,P.ty); }
-  else if(SET.auto){ target=autoTarget(); if(target){ const p=lead(target,w.grenade?GV*.75:w.spd,sh); P.aimTo=(w.grenade?lobAngle(muzzleFor(p),p):aimThrough(p.x,p.y))+(P.aimErr||0); const rng=w.flame?st.range+30:(w.range?st.range+15:0); firing=!rng||Math.hypot(p.x-sh.x,p.y-sh.y)<=rng; if(!firing)target=null; } }
+  P.gTgt=null; P.gV=GV;
+  if(P.touch){ firing=true; if(w.grenade&&AIM_AT_FINGER){ const tg={x:Math.max(L.HX+10,P.tx),y:Math.min(404,P.ty)}, ls=lobShot(tg); P.aimTo=ls.a; P.gV=ls.v; P.gTgt=tg; } else P.aimTo=aimThrough(P.tx,P.ty); }
+  else if(SET.auto){ target=autoTarget(); if(target){ const p=lead(target,w.grenade?GV*.75:w.spd,sh); if(w.grenade&&AIM_AT_FINGER){ const ls=lobShot(p); P.aimTo=ls.a+(P.aimErr||0); P.gV=ls.v; P.gTgt={x:p.x,y:p.y}; } else P.aimTo=(w.grenade?lobAngle(muzzleFor(p),p):aimThrough(p.x,p.y))+(P.aimErr||0); const rng=w.flame?st.range+30:(w.range?st.range+15:0); firing=!rng||Math.hypot(p.x-sh.x,p.y-sh.y)<=rng; if(!firing)target=null; } }
   if(P.aimTo!=null){ const a=clamp(P.aimTo,AMIN,AMAX); P.a=P.touch?a:lerp(P.a,a,clamp(dt*9,0,1)); }
   if(reloadT>0){ reloadT-=dt; if(reloadT<=0){reloadT=0; S.ammo[w.id]=st.clip; renderAmmo();} P.flameOn=false; return; }
   P.cool-=dt; P.flameOn=false;
@@ -588,7 +603,7 @@ function playerStep(dt){
   for(let i=0;i<n;i++){
     const a=P.a+(n>1?lerp(-w.spread/2,w.spread/2,(i+.5)/n)+rnd(-.03,.03):rnd(-w.spread,w.spread));
     const b={x:m.x,y:m.y,px:m.x,py:m.y,vx:Math.cos(a)*w.spd,vy:Math.sin(a)*w.spd,dmg:st.dmg,pierce:st.pierce,kb:w.kb,ap:!!w.ap,hit:[],src:'p',life:w.range?st.range/w.spd:1.8,kind:w.harpoon?'harpoon':(w.pellets?'pellet':(w.id==='sniper'?'rifle':'bullet')),head:w.id==='sniper'?2.2:1.6};
-    if(w.grenade){ b.kind='grenade'; b.vx=Math.cos(a)*GV; b.vy=Math.sin(a)*GV; b.splash=st.splash; b.life=4; b.spin=0; }
+    if(w.grenade){ b.kind='grenade'; const gv=P.gV||GV; b.vx=Math.cos(a)*gv; b.vy=Math.sin(a)*gv; b.splash=st.splash; b.life=4; b.spin=0; b.tg=P.gTgt; }
     B.push(b);
   }
   FX.push({k:'muzzle',x:m.x,y:m.y,a:P.a,t:0,life:.06,big:w.id==='shotgun'||w.harpoon||w.id==='sniper'});
@@ -617,11 +632,11 @@ function bulletStep(dt){
   for(const b of B){
     if(b.dead)continue;
     if(b.kind==='grenade'){
-      b.px=b.x; b.py=b.y; b.vy+=GG*dt; b.x+=b.vx*dt; b.y+=b.vy*dt; b.spin+=dt*14; b.life-=dt;
-      let boom=(b.vy>0&&b.y>=GROUND_Y&&b.x>L.HX)||b.y>404||b.life<=0;
+      b.px=b.x; b.py=b.y; b.x+=b.vx*dt; b.y+=b.vy*dt+.5*GG*dt*dt; b.vy+=GG*dt; b.spin+=dt*14; b.life-=dt;
+      let boom=gBursts(b.x,b.y,b.vy,b.tg)||b.life<=0; if(b.tg&&b.x>=b.tg.x){ b.x=b.tg.x; b.y=b.tg.y; }
       if(!boom) for(const z of Z){ if(z.dead||z.state==='sub')continue; if(segBox(b.px,b.py,b.x,b.y,zBox(z),2)){boom=true;break} }
       if(b.x>W+60)b.dead=true;
-      else if(boom){ b.dead=true; explode(b.x,Math.min(b.y,GROUND_Y),b.splash,b.dmg,{kb:26,ground:b.y>=GROUND_Y-30}); }
+      else if(boom){ b.dead=true; explode(b.x,b.tg?Math.min(b.y,404):Math.min(b.y,GROUND_Y),b.splash,b.dmg,{kb:26,ground:b.y>=(b.tg?L.LANE0:GROUND_Y)-30}); }
       continue;
     }
     if(b.kind==='rocket'){
@@ -2175,7 +2190,7 @@ function drawSpots(){
 }
 function drawAim(){
   if(phase==='wave'&&S&&curW().laser&&(P.touch||SET.auto)) drawLaser();
-  if(phase==='wave'&&S&&curW().grenade&&!P.touch&&SET.auto){ const pts=grenadePath(P.a); ctx.fillStyle='rgba(255,240,180,.35)'; for(let i=3;i<pts.length;i+=4)circ(pts[i].x,pts[i].y,1.3); }
+  if(phase==='wave'&&S&&curW().grenade&&!P.touch&&SET.auto){ const pts=grenadePath(P.a,P.gV,P.gTgt); ctx.fillStyle='rgba(255,240,180,.35)'; for(let i=3;i<pts.length;i+=4)circ(pts[i].x,pts[i].y,1.3); }
   if(phase!=='wave'||!P.touch)return;
   const m=muzzle();
   if(!curW().grenade&&!curW().laser){ ctx.strokeStyle='rgba(255,240,180,.4)'; ctx.lineWidth=1.5; ctx.setLineDash([3,7]);
@@ -2183,10 +2198,10 @@ function drawAim(){
   // finger marker
   ctx.strokeStyle='rgba(255,240,180,.35)'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(P.tx,P.ty,16,0,TAU); ctx.stroke();
   const w=curW();
-  if(w.grenade){ const pts=grenadePath(P.a), end=pts[pts.length-1];
+  if(w.grenade){ const pts=grenadePath(P.a,P.gV,P.gTgt), end=pts[pts.length-1], gy=P.gTgt?end.y:Math.min(end.y,GROUND_Y);
     ctx.fillStyle='rgba(255,240,180,.75)'; for(let i=3;i<pts.length;i+=3){ circ(pts[i].x,pts[i].y,1.6); }
-    ctx.strokeStyle='rgba(255,170,60,.8)'; ctx.lineWidth=2; ctx.beginPath(); ctx.ellipse(end.x,Math.min(end.y,GROUND_Y),w.splash,w.splash*.3,0,0,TAU); ctx.stroke();
-    ctx.fillStyle='rgba(255,170,60,.15)'; ell(end.x,Math.min(end.y,GROUND_Y),w.splash,w.splash*.3); }
+    ctx.strokeStyle='rgba(255,170,60,.8)'; ctx.lineWidth=2; ctx.beginPath(); ctx.ellipse(end.x,gy,w.splash,w.splash*.3,0,0,TAU); ctx.stroke();
+    ctx.fillStyle='rgba(255,170,60,.15)'; ell(end.x,gy,w.splash,w.splash*.3); }
   if(w.flame||w.range){ const st=wStat(w,S.guns[w.id]); ctx.strokeStyle='rgba(255,180,80,.25)'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(m.x,m.y,st.range,P.a-(w.cone||w.spread/2),P.a+(w.cone||w.spread/2)); ctx.stroke(); }
 }
 function drawLaser(){
