@@ -940,7 +940,7 @@ function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a
 
 /* ---- background (cached): sky, far trees, bayou water, bank ---- */
 function drawBG(){
-  bgCv=document.createElement('canvas'); bgCv.width=cv.width; bgCv.height=cv.height;
+  bgCv=document.createElement('canvas'); bgCv.width=cv.width; bgCv.height=cv.height; MOSS=[];
   const c=bgCv.getContext('2d'); c.setTransform(DPR*K,0,0,DPR*K,0,OY*DPR*K);
   const R=mulberry(11), top=-OY-2, Wd=W+4;
   // sky
@@ -1016,7 +1016,44 @@ function palmetto(c,x,y,s,R){
   for(let i=0;i<7;i++){ const a=-Math.PI/2+(i-3)*.32, l=12+R()*5; c.strokeStyle=i%2?'#3f6a2e':'#4d7a35'; c.lineWidth=2.2; c.beginPath(); c.moveTo(0,0); c.quadraticCurveTo(Math.cos(a)*l*.5,Math.sin(a)*l*.6-2,Math.cos(a)*l,Math.sin(a)*l); c.stroke(); }
   c.restore();
 }
+// Nicer bald cypress: flared, fluted trunk with moonlight on the right, knobby cypress knees,
+// flat feathery tiers with lit tops, and Spanish moss that sways gently (front trees only).
+// BETTER_CYPRESS=false brings back the old trees.
+const BETTER_CYPRESS=true; let MOSS=[];
 function cypress(c,x,y,s,R){
+  if(!BETTER_CYPRESS) return cypressOld(c,x,y,s,R);
+  const Q=mulberry((R()*1e9)|0); for(let i=0;i<85;i++)R();   // keep the rest of the scene's random layout unchanged
+  const front=c.globalAlpha>.95&&s>=.65;
+  c.save(); c.translate(x,y); c.scale(s,s);
+  c.fillStyle='rgba(0,0,0,.25)'; c.beginPath(); c.ellipse(0,2,38,5.5,0,0,TAU); c.fill();
+  // knees: knobby little stumps around the base
+  for(const [kx,kh] of [[-34,9],[-27,6],[25,8],[33,11],[40,5]]){ const h=kh*(.8+Q()*.5); c.fillStyle='#35261b'; c.beginPath(); c.moveTo(kx-4,3); c.quadraticCurveTo(kx-3.4,3-h,kx,3-h-1.4); c.quadraticCurveTo(kx+3.4,3-h,kx+4,3); c.fill(); c.fillStyle='rgba(255,225,180,.14)'; c.beginPath(); c.ellipse(kx+.8,3-h,1.6,1,0,0,TAU); c.fill(); }
+  // flared, fluted trunk
+  const tg=c.createLinearGradient(-20,0,20,0); tg.addColorStop(0,'#2a1d14'); tg.addColorStop(.55,'#3f2d20'); tg.addColorStop(1,'#56402c'); c.fillStyle=tg;
+  c.beginPath(); c.moveTo(-24,3); c.quadraticCurveTo(-12,-2,-9,-24); c.quadraticCurveTo(-6.5,-52,-5.5,-82); c.lineTo(5.5,-82); c.quadraticCurveTo(6.5,-52,9,-24); c.quadraticCurveTo(12,-2,24,3); c.closePath(); c.fill();
+  c.strokeStyle='rgba(20,12,8,.45)'; c.lineWidth=1; c.beginPath(); for(const fx of[-12,-5,3,11]){ c.moveTo(fx*1.5,3); c.quadraticCurveTo(fx*.7,-14,fx*.35,-40); } c.stroke();
+  c.strokeStyle='rgba(255,225,180,.13)'; c.lineWidth=1.4; c.beginPath(); c.moveTo(20,2); c.quadraticCurveTo(9,-6,7.6,-30); c.quadraticCurveTo(6,-56,5,-80); c.stroke();
+  // feathery flat tiers, darker underneath, moonlit on top
+  const cols=['#22402a','#2b4d30','#1c3523'];
+  for(let i=0;i<8;i++){ const ex=(Q()-.5)*36, ey=-80-i*8-Q()*6, rx=24+Q()*10, ry=11+Q()*5;
+    c.fillStyle=cols[i%3]; c.beginPath(); c.ellipse(ex,ey,rx,ry,0,0,TAU); c.fill();
+    c.fillStyle='rgba(150,200,140,.10)'; c.beginPath(); c.ellipse(ex+rx*.12,ey-ry*.35,rx*.8,ry*.45,0,Math.PI,0); c.fill();
+    c.fillStyle='rgba(0,0,0,.12)'; c.beginPath(); c.ellipse(ex,ey+ry*.45,rx*.85,ry*.4,0,0,Math.PI); c.fill(); }
+  // Spanish moss: drawn live (swaying) on front trees, baked in on far ones
+  const strands=[]; for(let i=0;i<18;i++) strands.push([(Q()-.5)*54,-74-Q()*40,10+Q()*26]);
+  if(front&&MOSS_SWAY) MOSS.push({x,y,s,strands,ph:Q()*TAU});
+  else { c.strokeStyle='rgba(165,175,145,.75)'; c.lineWidth=1.2; for(const [mx,my,ml] of strands){ c.beginPath(); c.moveTo(mx,my); c.quadraticCurveTo(mx+3,my+ml*.5,mx-1,my+ml); c.stroke(); } }
+  c.restore();
+}
+const MOSS_SWAY=true;
+function drawMoss(){ // front-tree moss swaying in a slow breeze
+  if(!BETTER_CYPRESS||!MOSS_SWAY||!MOSS.length)return;
+  ctx.strokeStyle='rgba(165,175,145,.75)'; ctx.lineWidth=1.2;
+  for(const t of MOSS){ ctx.save(); ctx.translate(t.x,t.y); ctx.scale(t.s,t.s); ctx.beginPath();
+    t.strands.forEach(([mx,my,ml],j)=>{ const sw=Math.sin(TIME*.9+t.ph+j*.7)*ml*.09; ctx.moveTo(mx,my); ctx.quadraticCurveTo(mx+3+sw*.4,my+ml*.5,mx-1+sw,my+ml); });
+    ctx.stroke(); ctx.restore(); }
+}
+function cypressOld(c,x,y,s,R){
   c.save(); c.translate(x,y); c.scale(s,s);
   c.fillStyle='rgba(0,0,0,.25)'; c.beginPath(); c.ellipse(0,2,34,5,0,0,TAU); c.fill();
   c.fillStyle='#3b2a1e'; c.beginPath(); c.moveTo(-20,2); c.quadraticCurveTo(-7,-14,-6,-80); c.lineTo(6,-80); c.quadraticCurveTo(7,-14,20,2); c.fill();
@@ -2371,6 +2408,7 @@ function render(){
   drawWaterShimmer();
   drawFlyers();
   drawFireworks();
+  drawMoss();
   drawWildlife();
   drawFlag();
   drawFX('ground');
