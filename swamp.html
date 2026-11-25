@@ -1501,7 +1501,7 @@ function girlBow(c){ // little bow at the back of the head
   c.fillStyle='#b8546d'; c.beginPath(); c.arc(0,0,1.5,0,TAU); c.fill(); c.restore();
 }
 function drawGator(){
-  const a=P.a, blink=(TIME%4)<.12||houseHitT>0;
+  const a=P.a, blink=blinkClosed()||houseHitT>0;
   const hop=party>0?Math.abs(Math.sin(party*9))*5:0;
   const bob=Math.sin(TIME*3)*.7-hop;
   const gunA=a+(reloadT>0?.75*Math.sin(Math.min(1,reloadT*4)*Math.PI/2):0)+(party>0?-.9:0);
@@ -1563,6 +1563,15 @@ function drawGator(){
   ctx.fillStyle=gGrad(ctx,4,0,9,G1,G2); rr(-2,-3.5,13,7,3.5); circ(11,1,3.8);
   ctx.restore();
   ctx.restore();
+}
+
+// Natural idle blinking: every 2.5-6 seconds at random, with an occasional double blink. NATURAL_BLINK=false = old steady 4s blink.
+const NATURAL_BLINK=true, BLK={next:2.5,t:-9,dbl:false};
+function blinkClosed(){
+  if(!NATURAL_BLINK) return (TIME%4)<.12;
+  if(BLK.next-TIME>7) BLK.next=TIME+2;   // the clock was reset
+  if(TIME>=BLK.next){ BLK.t=TIME; BLK.dbl=Math.random()<.22; BLK.next=TIME+rnd(2.5,6); }
+  const d=TIME-BLK.t; return d>=0&&(d<.11||(BLK.dbl&&d>.2&&d<.3));
 }
 
 /* ---- zombies (side view, walking left) ---- */
