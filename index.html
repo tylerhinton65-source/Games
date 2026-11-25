@@ -63,6 +63,7 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
 .tile .tn{font-size:13.5px;font-weight:900;line-height:1.1;max-width:100%;min-height:2.2em;display:flex;align-items:center;justify-content:center}
 .tile .ts{font-size:11px;font-weight:700;opacity:.8;white-space:nowrap}
 .tile.locked{opacity:.55}
+.tile .beta{position:absolute;top:5px;right:5px;font-size:8.5px;font-weight:900;letter-spacing:.5px;background:#ffc72c;color:#3a2405;border-radius:6px;padding:1px 4px;box-shadow:0 1px 3px rgba(0,0,0,.35)}
 .tile.locked .lk{width:62px;height:62px;display:flex;align-items:center;justify-content:center;font-size:26px;border-radius:16px;background:rgba(255,255,255,.08)}
 .hsbar{display:block;width:calc(100% - 32px);max-width:428px;margin:6px auto 0;border:1px solid rgba(255,209,102,.45);border-radius:18px;padding:13px;
   background:rgba(20,14,48,.66);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 6px 18px rgba(0,0,0,.28);font-weight:900;font-size:17px;color:#ffd166;flex:none}
@@ -625,6 +626,7 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
 
 <!-- HIGH SCORES -->
 <section id="gate" class="screen" style="background:#141a24"><iframe id="gateFrame" title="Gate Dash" style="flex:1;width:100%;border:0;display:block;background:#141a24"></iframe></section>
+<section id="swamp" class="screen" style="background:#0e1a14"><iframe id="swampFrame" title="Swamp Defense" style="flex:1;width:100%;border:0;display:block;background:#0e1a14"></iframe></section>
 <section id="hs" class="screen">
   <div class="shade"></div>
   <div class="topbar">
@@ -1571,7 +1573,11 @@ const GAMES=[
   {id:'words',name:'Trail Words',desc:'Guess the hidden 5-letter word',
    style:'background:linear-gradient(160deg,rgba(60,96,160,.9),rgba(26,70,54,.9))',
    icon:()=>Wd.icon(),
-   stats(){return Wd.stats()}}
+   stats(){return Wd.stats()}},
+  {id:'swamp',name:'Swamp Defense',desc:'Gator defends his bayou cabin from zombies',beta:true,
+   style:'background:linear-gradient(160deg,rgba(74,42,86,.92),rgba(30,64,38,.94))',
+   icon:()=>Swamp.icon(),
+   stats(){return Swamp.stats()}}
 ];
 const TAGS=['Offline arcade · Benji approved','No Wi-Fi? No problem.','Airplane-mode friendly','Campfire certified 🔥','Good boy edition 🐾'];
 function showMenu(){
@@ -1579,7 +1585,7 @@ function showMenu(){
   $('#menu').classList.add('on');
   $('#tiles').innerHTML=GAMES.map((g,i)=>g.locked
     ?`<div class="tile locked"><div class="lk">🔒</div><div class="tn">Soon</div><div class="ts">&nbsp;</div></div>`
-    :`<button class="tile" data-game="${g.id}" aria-label="${g.name}" style="--i:${i};${g.style||''}">${typeof g.icon==='function'?g.icon():g.icon}<div class="tn">${g.name}</div><div class="ts">${g.stats?g.stats():''}</div></button>`).join('');
+    :`<button class="tile" data-game="${g.id}" aria-label="${g.name}" style="--i:${i};${g.style||''}">${typeof g.icon==='function'?g.icon():g.icon}<div class="tn">${g.name}</div><div class="ts">${g.stats?g.stats():''}</div>${g.beta?'<span class="beta">BETA</span>':''}</button>`).join('');
   const standalone=window.navigator.standalone||matchMedia('(display-mode: standalone)').matches;
   $('#mfoot').textContent=standalone?'Works offline · saves automatically':'Tip: in Safari tap Share → Add to Home Screen to play offline';
   Welcome.chip();
@@ -1592,8 +1598,8 @@ function go(id){
 }
 function route(id){
   if(id===undefined)id=location.hash.slice(1);
-  Sol.close();Patch.close();Snake.close();Blocks.close();G48.close();Mines.close();Cabin.close();Sand.close();Bz.close();TTT.close();HS.close();Gate.close();Wd.close();
-  if(id==='solitaire')Sol.open();else if(id==='patch')Patch.open();else if(id==='snake')Snake.open();else if(id==='blocks')Blocks.open();else if(id==='2048')G48.open();else if(id==='mines')Mines.open();else if(id==='cabin')Cabin.open();else if(id==='sort')Sand.open();else if(id==='bounce')Bz.open();else if(id==='ttt')TTT.open();else if(id==='gate')Gate.open();else if(id==='words')Wd.open();else if(id==='scores')HS.open();else showMenu();
+  Sol.close();Patch.close();Snake.close();Blocks.close();G48.close();Mines.close();Cabin.close();Sand.close();Bz.close();TTT.close();HS.close();Gate.close();Wd.close();Swamp.close();
+  if(id==='solitaire')Sol.open();else if(id==='patch')Patch.open();else if(id==='snake')Snake.open();else if(id==='blocks')Blocks.open();else if(id==='2048')G48.open();else if(id==='mines')Mines.open();else if(id==='cabin')Cabin.open();else if(id==='sort')Sand.open();else if(id==='bounce')Bz.open();else if(id==='ttt')TTT.open();else if(id==='gate')Gate.open();else if(id==='words')Wd.open();else if(id==='swamp')Swamp.open();else if(id==='scores')HS.open();else showMenu();
 }
 window.addEventListener('hashchange',()=>route());
 
@@ -4655,6 +4661,19 @@ const Gate=(()=>{
   };
 })();
 
+/* ================= SWAMP DEFENSE (own file: swamp.html, BETA; saves swamp_run2 / swamp_best / swamp_set per player) ================= */
+const Swamp=(()=>{
+  const scr=$('#swamp'),fr=$('#swampFrame');let open=false;
+  return{
+    icon:()=>`<svg class="ico" viewBox="0 0 84 84"><rect x="6" y="50" width="72" height="26" rx="8" fill="#2a4a32"/><ellipse cx="60" cy="62" rx="16" ry="5" fill="#1d3a2c"/><ellipse cx="22" cy="66" rx="7" ry="2.4" fill="#4d8a3f"/><path d="M14 46 Q14 28 32 26 L58 28 Q74 30 74 40 Q74 48 60 48 L30 50 Q14 52 14 46Z" fill="#57a043"/><path d="M34 44 Q52 46 72 41" stroke="#2e5f24" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M44 44.6 l1.6 3 1.6-2.8 M52 44.4 l1.6 3 1.6-2.8 M60 43.4 l1.6 3 1.6-2.8" stroke="#fff" stroke-width="1.4" fill="none"/><circle cx="70" cy="36" r="1.6" fill="#2e5f24"/><circle cx="32" cy="26" r="8" fill="#57a043"/><circle cx="33" cy="25" r="5.4" fill="#fff7d6"/><circle cx="35" cy="25.5" r="2.8" fill="#1a1a1a"/><circle cx="36" cy="24" r="1" fill="#fff"/><ellipse cx="26" cy="19" rx="17" ry="4" fill="#c9a04e"/><path d="M15 19 Q15 6 26 6 Q37 6 37 19Z" fill="#e8c56e"/><rect x="15.4" y="13.6" width="21.2" height="3.6" fill="#b5382a"/><ellipse cx="25" cy="48" rx="5" ry="3" fill="#ff8c8c" opacity=".4"/></svg>`,
+    stats(){const b=store.get('swamp_best',null);return b&&b.score?`Best ${b.score.toLocaleString()}`:'New!'},
+    row(g){const b=g('swamp_best',null);return b&&b.score?{v:b.score,t:b.score.toLocaleString(),s:b.wave?`wave ${b.wave} best`:''}:null},
+    open(){document.querySelectorAll('.screen').forEach(x=>x.classList.remove('on'));scr.classList.add('on');open=true;
+      fr.src='swamp.html'+(curPid?'?p='+curPid:'');setTimeout(()=>{try{fr.focus()}catch(e){}},60)},
+    close(){if(!open)return;open=false;scr.classList.remove('on');fr.src='about:blank'}
+  };
+})();
+
 const HS=(()=>{
   const scr=$('#hs');let open=false;
   // read another player's saves without switching to them (player 0 uses the plain keys)
@@ -4675,6 +4694,7 @@ const HS=(()=>{
     sort:g=>lvl(g,'tg_sort_level'),
     bounce:g=>lvl(g,'tg_bz_best'),
     gate:g=>Gate.row(g),
+    swamp:g=>Swamp.row(g),
     words:g=>lvl(g,'tg_words_level'),
     ttt:g=>{const t=g('tg_ttt',null);if(!t||!t.sc)return null;const w=['easy','medium','hard'].reduce((a,k)=>a+((t.sc[k]||[0])[0]|0),0);
       const h=t.sc.hard||[0,0,0];if(!w&&!h[1])return null;return{v:w*1000+(h[1]|0),t:`${w} win${w===1?'':'s'}`,s:h[1]?`${h[1]} tie${h[1]>1?'s':''} vs Hard`:''}}
