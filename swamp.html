@@ -553,7 +553,7 @@ function autoTarget(){
     if(s>bs){bs=s;best=z} }
   return best;
 }
-function zVel(z){ if(z.fly) return z.state==='fly'?-z.spd*L.field/400:0; return z.state==='walk'?-z.spd*L.field/400*(z.slowT>0?z.slowF:1):0; }
+function zVel(z){ if(z.fly) return z.state==='fly'||z.state==='witchfly'?-z.spd*L.field/400:0; return z.state==='walk'?-z.spd*L.field/400*(z.slowT>0?z.slowF:1):0; }
 function lead(z,spd,from){
   const c=zCenter(z); if(!spd)return {x:c.x,y:c.y};
   const t=Math.hypot(c.x-from.x,c.y-from.y)/spd;
@@ -1871,7 +1871,7 @@ function drawTurret(c,type,lvl,a,anim,rot){
       c.restore();
       break; }
   }
-  if(lvl>=3&&(type==='minigun'||type==='rocket')){ const g=c.createLinearGradient(5,0,8,0); g.addColorStop(0,'#7d878f'); g.addColorStop(1,'#2f353a'); c.fillStyle=g; const h=type==='rocket'?9.5:8; c.beginPath(); c.moveTo(type==='rocket'?-12:5,-h); c.lineTo(type==='rocket'?-9:8,-h+1.5); c.lineTo(type==='rocket'?-9:8,h-1.5); c.lineTo(type==='rocket'?-12:5,h); c.closePath(); if(type==='minigun')c.fill(); }
+  if(lvl>=3&&type==='minigun'){ const g=c.createLinearGradient(5,0,8,0); g.addColorStop(0,'#7d878f'); g.addColorStop(1,'#2f353a'); c.fillStyle=g; c.beginPath(); c.moveTo(5,-8); c.lineTo(8,-6.5); c.lineTo(8,6.5); c.lineTo(5,8); c.closePath(); c.fill(); }
   c.restore();
 }
 
@@ -2350,7 +2350,7 @@ function renderSheet(){
       for(const k in TURRETS){ const d=TURRETS[k]; rows.push({icon:turretIcon(k,1),name:d.name,sub:d.desc+(d.ground?' (ground only)':''),btn:costBtn(d.cost,()=>{const ok=ACT.buildTurret(i,k); if(ok)closeSheet(); return ok;})}); }
     } else { const d=TURRETS[t.type]; $('#sheetTitle').textContent=d.name;
       const st=tStat(t.type,t.lvl);
-      rows.push({icon:turretIcon(t.type,t.lvl),name:'Level '+t.lvl+pips(t.lvl,TMAX),sub:'Damage '+Math.round(st.dmg)+(st.chain?' · chains '+st.chain:'')+(t.type==='scatter'?' · '+st.pellets+' pellets':'')+(t.type==='goo'?' · slows '+st.slowT.toFixed(1)+'s':''),btn:t.lvl<TMAX?costBtn(tUpCost(t.type,t.lvl),()=>ACT.upTurret(i),'Upgrade '+tUpCost(t.type,t.lvl).toLocaleString()):{done:true,label:'MAX'}});
+      rows.push({icon:turretIcon(t.type,t.lvl),name:'Level '+t.lvl+pips(t.lvl,TMAX),sub:tInfo(t.type,t.lvl)+(t.lvl<TMAX?'<br>Next level: '+tInfo(t.type,t.lvl+1):''),btn:t.lvl<TMAX?costBtn(tUpCost(t.type,t.lvl),()=>ACT.upTurret(i),'Upgrade '+tUpCost(t.type,t.lvl).toLocaleString()):{done:true,label:'MAX'}});
       let v=d.cost; for(let l=1;l<t.lvl;l++)v+=tUpCost(t.type,l);
       rows.push({icon:'💰',name:'Sell',sub:'Get back '+Math.round(v*.6).toLocaleString()+' coins',btn:{label:'Sell',sell:true,act:()=>{ACT.sellTurret(i);closeSheet();return true}}});
     }
@@ -2399,6 +2399,15 @@ function fenceIcon(t){ // little drawing of each fence type for the shop
   else { for(let x=3;x<49;x+=9.4){ metal(x,base-H,9,H); g.fillStyle='#3e464c'; g.beginPath(); g.arc(x+4.5,base-H+2.6,.8,0,TAU); g.arc(x+4.5,base-2.6,.8,0,TAU); g.fill(); }
     if(t===6){ g.strokeStyle='#ffe066'; g.lineWidth=1.2; g.beginPath(); for(let x=2;x<50;x+=4)g.lineTo(x,base-H-3+(x%8?1.4:-1.4)); g.stroke(); g.fillStyle='#ffe066'; g.beginPath(); g.moveTo(30,4); g.lineTo(25,12); g.lineTo(28.5,12); g.lineTo(26,19); g.lineTo(33,9.5); g.lineTo(29.4,9.5); g.closePath(); g.fill(); } }
   return c;
+}
+function tInfo(type,l){ // one-line stats for the turret sheet
+  const st=tStat(type,l), d=Math.round(st.dmg);
+  if(type==='rocket'){ const n=1+Math.floor((l-1)/2); return 'Damage '+d+' · '+n+' rocket'+(n>1?'s':'')+' per shot'; }
+  if(type==='tesla') return 'Damage '+d+' · jumps to '+st.chain+' zombies';
+  if(type==='laser') return 'Damage '+d+' per tick · burns through '+(2+l)+' in a line';
+  if(type==='goo') return 'Damage '+d+' · slows '+st.slowT.toFixed(1)+'s';
+  if(type==='minigun') return 'Damage '+d+' · '+Math.round(st.rate)+' shots a second';
+  return 'Damage '+d+' · big splash';
 }
 function turretIcon(type,l){ const c=document.createElement('canvas'); c.width=104; c.height=72; const g=c.getContext('2d'); const sc=type==='tesla'?1.5:1.9; g.translate(type==='tesla'?52:44,type==='tesla'?66:56); g.scale(sc,sc); drawTurret(g,type,l,-.3,0); return c; }
 
