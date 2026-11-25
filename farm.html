@@ -26,6 +26,7 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation;borde
 #hint{position:absolute;left:50%;top:12px;transform:translateX(-50%);background:rgba(0,0,0,.58);padding:10px 16px;border-radius:16px;
   font-weight:800;font-size:13px;pointer-events:none;transition:opacity .6s;text-align:center;line-height:1.35;white-space:nowrap}
 #hint.off{opacity:0}
+#pauseTag{position:absolute;left:50%;top:12px;transform:translateX(-50%);background:rgba(0,0,0,.6);padding:9px 16px;border-radius:999px;font-weight:800;font-size:13px;pointer-events:none;white-space:nowrap}
 .turn{position:absolute;bottom:18px;height:58px;padding:0 20px;border-radius:999px;background:rgba(255,214,102,.95);color:#3a2600;font-weight:900;font-size:18px;
   box-shadow:0 4px 14px rgba(0,0,0,.35);animation:tp 1.6s ease-in-out infinite}
 .turn:active{transform:scale(.95)}
@@ -59,7 +60,7 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation;borde
   </div>
   <div class="prog"><div class="pbar"><i id="pfill"></i></div><span id="ptxt">0%</span></div>
   <div id="stage"><canvas id="cv"></canvas>
-    <div id="hint">Hold anywhere to drive · slide left/right to steer<br>Center your finger and it straightens up on the row</div>
+    <div id="hint"></div><div id="pauseTag" hidden>⏸ Paused · swipe or tap to keep going</div>
     <button class="turn" id="tL" hidden>↶ Turn</button><button class="turn" id="tR" hidden>Turn ↷</button>
   </div>
 </div>
@@ -67,6 +68,7 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation;borde
 <div class="ov" id="sheet" hidden><div class="sheet">
   <h3>ASMR Farmer</h3><p>Hold to drive, slide to steer. Tap ↶ ↷ at the end of a row for a perfect turn.</p>
   <button class="opt" id="fastBtn">🚜 Speed <span class="tog" id="fastTog">Chill</span><small>Chill is slow and smooth · Quick gets fields done faster</small></button>
+  <button class="opt" id="ctlBtn">👆 Controls <span class="tog on" id="ctlTog">Swipe</span><small>Swipe: it drives itself, swipe back to turn · Hold: hold to drive, slide to steer</small></button>
   <button class="opt" id="asBtn">🧭 Steering help <span class="tog" id="asTog">On</span><small>Eases you straight and onto the row when your finger is centered</small></button>
   <button class="opt" id="sndBtn">🔊 Sound <span class="tog" id="sndTog">On</span><small>Engine rumble and crunchy wheat</small></button>
   <button class="opt" id="restart">↻ Start this field over</button>
@@ -93,6 +95,7 @@ const sv=(k,v)=>{try{localStorage.setItem(K(k),JSON.stringify(v))}catch(e){}};
 let P=ld('tg_farm',null);
 if(!P||!P.lvl)P={lvl:1,snd:true,fast:false,assist:true,cur:null};
 if(P.assist===undefined)P.assist=true;
+if(!P.ctrl)P.ctrl='swipe'; // 'swipe' (default) or 'hold'
 const saveP=()=>sv('tg_farm',P);
 
 /* ---------- helpers ---------- */
@@ -261,9 +264,12 @@ function build(){
       C.x=clamp(cur.x,F.bounds.x0,F.bounds.x1);C.y=clamp(cur.y,F.bounds.y0,F.bounds.y1);C.a=cur.a;time=cur.t||0}}
   C.tank=(done%2600)/2600;
   camY=camTarget();
-  hud();$('#hint').classList.toggle('off',done>0);$('#win').hidden=true;
+  hud();setHint(done===0);$('#win').hidden=true;C.go=false;C.pending=false;C.paused=false;C.trow=null;C.side=1;$('#pauseTag').hidden=true;
   if(done/F.reqTotal>=.992)startFinish();
 }
+function setHint(show,txt){const h=$('#hint');
+  h.innerHTML=txt||(P.ctrl==='hold'?'Hold anywhere to drive · slide left/right to steer<br>Center your finger and it straightens up on the row':'Swipe ↑ to drive · swipe back ↓ to turn into the next row<br>Swipe sideways to drift over a row · tap to pause');
+  h.classList.toggle('off',!show)}
 function hud(){
   $('#ttl').textContent=`Field ${F.lvl}`;$('#sub').textContent=`Wheat · ${F.rows} rows`;
   const p=won?100:Math.min(99,Math.floor(done/F.reqTotal*100));$('#pfill').style.width=p+'%';$('#ptxt').textContent=p+'%';
@@ -300,6 +306,43 @@ function drive(f){
       if(Math.abs(wrap(c-C.a))<.0015&&want===c)C.a=c;
     }
   }
+  move(C.v*f);
+}
+/* Swipe controls: the combine drives itself straight up/down a row. Swipe the opposite way = finish the row,
+   then the same smooth headland turn as the Turn buttons into the nearest unharvested row. Sideways swipe = drift one row. Tap = pause. */
+const facing=()=>Math.sin(C.a)<0?0:2;
+function wheatAhead(){const fx=Math.cos(C.a),fy=Math.sin(C.a),rx=-fy,ry=fx;
+  for(let w=HEAD_F;w<=HEAD_F+7;w+=1.5)for(let u=-F.HW/2+1;u<=F.HW/2-1;u+=2){const x=C.x+fx*w+rx*u,y=C.y+fy*w+ry*u,i=Math.floor(x),j=Math.floor(y);
+    if(i>=0&&j>=0&&i<GW&&j<F.GH){const k=j*GW+i;if(F.T[k]===1&&!cut[k])return true}}return false}
+function chooseSide(){const r0=rowOf(C.x),dist=[99,99];
+  [-1,1].forEach((sd,n)=>{for(let k=1;k<F.rows;k++){const r=r0+sd*k;if(r<0||r>=F.rows)break;if(rowLeft(r)>.02){dist[n]=k;break}}});
+  if(dist[0]===99&&dist[1]===99)return r0>0&&(r0>=F.rows-1||C.side<0)?-1:1;
+  if(dist[0]===dist[1])return C.side;return dist[0]<dist[1]?-1:1}
+function request(d){
+  if(!F||won||P.ctrl!=='swipe')return;audioUnlock();setHint(false);
+  if(C.paused){C.paused=false;$('#pauseTag').hidden=true}
+  if(C.ap)return;
+  if(d%2===0){
+    if(d===facing()){C.go=true;C.pending=false}
+    else{C.side=chooseSide();C.pending=true;C.go=true}
+  }else{C.trow=clamp(rowOf(C.trow!=null?rowX(C.trow):C.x)+(d===1?1:-1),0,F.rows-1);C.go=true}
+}
+function togglePause(){if(!F||won||P.ctrl!=='swipe')return;if(!C.go&&!C.ap){request(facing());return}C.paused=!C.paused;$('#pauseTag').hidden=!C.paused}
+function driveSwipe(f){
+  if(C.ap){if(C.paused)return;autopilot(f);if(!C.ap){C.go=true;C.trow=rowOf(C.x)}return}
+  const vm=vmax(),run=C.go&&!C.paused;
+  C.v=run?Math.min(vm,C.v+.005*f):Math.max(0,C.v-.012*f);
+  const c=facing()===0?-Math.PI/2:Math.PI/2;let want=c;
+  if(C.y>F.CY0-12&&C.y<F.CY1+12){const tr=C.trow!=null?C.trow:rowOf(C.x),tx=rowX(tr),el=(tx-C.x)*(-Math.sin(c));
+    want=c+clamp(el*.09,-.32,.32);if(Math.abs(tx-C.x)<.04&&Math.abs(wrap(c-C.a))<.004){C.x=tx;want=c}}
+  const mv=clamp(C.v/vm,0,1),rate=.03*f*(.3+.7*mv);C.a+=clamp(wrap(want-C.a),-rate,rate);
+  if(Math.abs(wrap(c-C.a))<.0015&&want===c)C.a=c;
+  if(C.go&&!C.paused&&!wheatAhead()){
+    const fy=Math.sin(c),ahead=(C.y-(fy<0?F.CY0:F.CY1))*(fy<0?1:-1);
+    if(C.pending){const p=planTurn(C.side)||planTurn(-C.side);C.pending=false;if(p){C.a=c;C.ap=p;return}}
+    else if(ahead<=HEAD_F-HEAD_D-1.2&&C.y>F.CY0-HL&&C.y<F.CY1+HL){C.go=false;if(done<F.reqTotal*.99)setHint(true,`Swipe ${fy<0?'↓':'↑'} to turn into the next row`)}
+  }
+  const wall=facing()===0?F.bounds.y0:F.bounds.y1;if(Math.abs(C.y-wall)<.05&&C.go&&!C.ap){C.go=false}
   move(C.v*f);
 }
 function move(dist){
@@ -349,7 +392,7 @@ function startTurn(side){
 }
 function updTurnButtons(){
   let show=[false,false];
-  if(!C.ap&&!won){
+  if(!C.ap&&!won&&P.ctrl==='hold'){
     const{c,d}=cardinal(C.a);
     if(Math.abs(Math.sin(c))>.5&&Math.abs(d)<.3){
       // end of a row: nothing standing just ahead of the header
@@ -430,7 +473,7 @@ function frame(t){
   const f=Math.min(2.5,lastT?(t-lastT)/16.667:1);lastT=t;
   if(!F||!cv.width)return;
   tick++;
-  if(!won)drive(f);else C.v=Math.max(0,C.v-.01*f);
+  if(!won)(P.ctrl==='hold'?drive:driveSwipe)(f);else C.v=Math.max(0,C.v-.01*f);
   stepFinish(f);updParts(f);
   if(tick%20===0)updMarkers();if(tick%6===0)updTurnButtons();
   camY+=(camTarget()-camY)*Math.min(1,.045*f);
@@ -445,12 +488,12 @@ function frame(t){
   ctx.fillStyle=gr;ctx.fillRect(FX0,F.CY0,FX1-FX0,F.CL);
   if(markers.length){const pu=.5+.5*Math.sin(t/260);for(const[x,y]of markers){ctx.globalAlpha=.35+.35*pu;circ(ctx,x,y,1.1+.4*pu,'#fff3b0')}ctx.globalAlpha=1}
   // steering help guide: faint line along the row you're settling onto
-  if(P.assist&&hold&&C.steer===0&&!C.ap&&!won){const{c,d}=cardinal(C.a);if(Math.abs(Math.sin(c))>.5&&Math.abs(d)<.62&&C.y>F.CY0-10&&C.y<F.CY1+10){
+  if(P.ctrl==='hold'&&P.assist&&hold&&C.steer===0&&!C.ap&&!won){const{c,d}=cardinal(C.a);if(Math.abs(Math.sin(c))>.5&&Math.abs(d)<.62&&C.y>F.CY0-10&&C.y<F.CY1+10){
     const tx=rowX(rowOf(C.x)),fy=Math.sin(c),y2=fy<0?F.CY0:F.CY1;ctx.strokeStyle='rgba(255,255,255,.28)';ctx.lineWidth=.35;ctx.setLineDash([1.6,1.6]);
     ctx.beginPath();ctx.moveTo(tx,C.y+fy*(HEAD_F+1));ctx.lineTo(tx,y2);ctx.stroke();ctx.setLineDash([])}}
   drawParts(ctx);drawCombine(ctx);
   // steering wheel under your finger
-  if(hold){ctx.setTransform(dpr,0,0,dpr,0,0);const r=stage.getBoundingClientRect(),x0=hold.x0-r.left,y0=hold.y-r.top,off=clamp(hold.x-hold.x0,-60,60);
+  if(hold&&P.ctrl==='hold'){ctx.setTransform(dpr,0,0,dpr,0,0);const r=stage.getBoundingClientRect(),x0=hold.x0-r.left,y0=hold.y-r.top,off=clamp(hold.x-hold.x0,-60,60);
     ctx.globalAlpha=.5;ctx.strokeStyle='#fff';ctx.lineWidth=3;ctx.beginPath();ctx.arc(x0,y0,30,0,TAU);ctx.stroke();
     ctx.fillStyle='rgba(255,255,255,.18)';ctx.beginPath();ctx.moveTo(x0-60,y0);ctx.lineTo(x0+60,y0);ctx.lineWidth=2;ctx.stroke();
     circ(ctx,x0+off,y0,12,C.steer===0?'#fff3b0':'#ffffff');ctx.globalAlpha=1}
@@ -495,19 +538,27 @@ function chime(){
 }
 
 /* ---------- input ---------- */
+let sw=null;
 stage.addEventListener('pointerdown',e=>{if(!F||won||e.target.closest('.turn'))return;audioUnlock();
+  if(P.ctrl==='swipe'){sw={id:e.pointerId,x0:e.clientX,y0:e.clientY,fired:false};try{stage.setPointerCapture(e.pointerId)}catch(_){}e.preventDefault();return}
   hold={id:e.pointerId,x0:e.clientX,x:e.clientX,y:e.clientY};try{stage.setPointerCapture(e.pointerId)}catch(_){}$('#hint').classList.add('off');e.preventDefault()});
-stage.addEventListener('pointermove',e=>{if(!hold||e.pointerId!==hold.id)return;hold.x=e.clientX;hold.y=e.clientY;
+stage.addEventListener('pointermove',e=>{
+  if(sw&&e.pointerId===sw.id){const dx=e.clientX-sw.x0,dy=e.clientY-sw.y0;
+    if(!sw.fired&&Math.hypot(dx,dy)>18){sw.fired=true;request(Math.abs(dy)>=Math.abs(dx)?(dy<0?0:2):(dx>0?1:3))}e.preventDefault();return}
+  if(!hold||e.pointerId!==hold.id)return;hold.x=e.clientX;hold.y=e.clientY;
   const off=hold.x-hold.x0;if(Math.abs(off)>78)hold.x0=hold.x-Math.sign(off)*78; // wheel never runs out of room
   e.preventDefault()});
-const up=e=>{if(hold&&e.pointerId===hold.id)hold=null};
+const up=e=>{if(sw&&e.pointerId===sw.id){if(!sw.fired&&Math.hypot(e.clientX-sw.x0,e.clientY-sw.y0)<10)togglePause();sw=null}
+  if(hold&&e.pointerId===hold.id)hold=null};
 stage.addEventListener('pointerup',up);stage.addEventListener('pointercancel',up);
 $('#tL').addEventListener('pointerdown',e=>{e.stopPropagation();e.preventDefault();startTurn(-1)});
 $('#tR').addEventListener('pointerdown',e=>{e.stopPropagation();e.preventDefault();startTurn(1)});
 // keyboard for desktop: ↑/W drive, ←/→ steer, Q/E turn
 const keys={};
-addEventListener('keydown',e=>{keys[e.key]=1;if(e.key==='q')startTurn(-1);if(e.key==='e')startTurn(1);syncKeys()});
-addEventListener('keyup',e=>{keys[e.key]=0;syncKeys()});
+const KD={ArrowUp:0,w:0,ArrowRight:1,d:1,ArrowDown:2,s:2,ArrowLeft:3,a:3};
+addEventListener('keydown',e=>{if(P.ctrl==='swipe'){if(e.repeat)return;if(e.key in KD){request(KD[e.key]);e.preventDefault()}else if(e.key===' '){togglePause();e.preventDefault()}return}
+  keys[e.key]=1;if(e.key==='q')startTurn(-1);if(e.key==='e')startTurn(1);syncKeys()});
+addEventListener('keyup',e=>{if(P.ctrl==='swipe')return;keys[e.key]=0;syncKeys()});
 function syncKeys(){const go=keys.ArrowUp||keys.w,st=(keys.ArrowRight||keys.d?1:0)-(keys.ArrowLeft||keys.a?1:0);
   if(go){audioUnlock();const r=stage.getBoundingClientRect();hold={id:'k',x0:r.left+r.width/2,x:r.left+r.width/2+st*50,y:r.top+r.height*.75};$('#hint').classList.add('off')}
   else if(hold&&hold.id==='k')hold=null}
@@ -517,10 +568,11 @@ function goHome(){saveCur();try{if(window.parent!==window&&window.parent.tgGoHom
 $('#back').onclick=goHome;$('#wMenu').onclick=goHome;
 $('#wNext').onclick=()=>{$('#win').hidden=true;build()};
 const tog=(id,on,a,b)=>{$(id).textContent=on?a:b;$(id).classList.toggle('on',on)};
-function sheet(){tog('#fastTog',P.fast,'Quick','Chill');tog('#asTog',P.assist,'On','Off');tog('#sndTog',P.snd,'On','Off');$('#sheet').hidden=false}
+function sheet(){$('#ctlTog').textContent=P.ctrl==='hold'?'Hold & steer':'Swipe';$('#asBtn').hidden=P.ctrl!=='hold';tog('#fastTog',P.fast,'Quick','Chill');tog('#asTog',P.assist,'On','Off');tog('#sndTog',P.snd,'On','Off');$('#sheet').hidden=false}
 $('#setBtn').onclick=sheet;$('#sClose').onclick=()=>{$('#sheet').hidden=true};
 $('#sheet').addEventListener('click',e=>{if(e.target.id==='sheet')$('#sheet').hidden=true});
 $('#fastBtn').onclick=()=>{P.fast=!P.fast;saveP();tog('#fastTog',P.fast,'Quick','Chill')};
+$('#ctlBtn').onclick=()=>{P.ctrl=P.ctrl==='hold'?'swipe':'hold';saveP();hold=null;C.go=false;C.pending=false;sheet();setHint(true)};
 $('#asBtn').onclick=()=>{P.assist=!P.assist;saveP();tog('#asTog',P.assist,'On','Off')};
 $('#sndBtn').onclick=()=>{P.snd=!P.snd;saveP();if(P.snd)audioUnlock();tog('#sndTog',P.snd,'On','Off')};
 $('#restart').onclick=()=>{$('#sheet').hidden=true;P.cur=null;saveP();build()};
@@ -530,7 +582,7 @@ let rzT=0;addEventListener('resize',()=>{clearTimeout(rzT);rzT=setTimeout(()=>{i
 
 const ICON=`<svg viewBox="0 0 84 84"><rect width="84" height="84" fill="#d9ab4c"/><g fill="#c49235"><rect x="0" width="4" height="84"/><rect x="12" width="4" height="84"/><rect x="24" width="4" height="84"/><rect x="60" width="4" height="84"/><rect x="72" width="4" height="84"/></g><rect x="30" y="34" width="26" height="50" fill="#c8ad78"/><rect x="40" y="34" width="6" height="50" fill="#e6cc8e"/><g transform="translate(43 44)"><rect x="-17" y="-20" width="34" height="7" rx="2" fill="#3c3e44"/><rect x="-15.5" y="-19" width="31" height="4" rx="2" fill="#f0c232"/><rect x="-9" y="-12" width="18" height="30" rx="4" fill="#c8322b"/><rect x="-7" y="2" width="14" height="13" rx="2" fill="#9e271f"/><rect x="-5" y="-11" width="10" height="8" rx="2" fill="#eae6dc"/><rect x="-12" y="-11" width="4" height="9" rx="2" fill="#1d1d21"/><rect x="8" y="-11" width="4" height="9" rx="2" fill="#1d1d21"/></g></svg>`;
 
-window.__farm={get F(){return F},C:()=>C,get cut(){return cut},harvest,startTurn,planTurn,get done(){return done}}; // test hook
+window.__farm={request,get F(){return F},C:()=>C,get cut(){return cut},harvest,startTurn,planTurn,get done(){return done}}; // test hook
 requestAnimationFrame(()=>{build();requestAnimationFrame(frame)});
 })();
 </script>
