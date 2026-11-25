@@ -28,6 +28,10 @@ body.snow .pbar i{background:linear-gradient(90deg,#9fd0ff,#eef7ff)}
 #hint{position:absolute;left:50%;top:14px;transform:translateX(-50%);background:rgba(0,0,0,.58);padding:10px 16px;border-radius:999px;
   font-weight:800;font-size:14px;pointer-events:none;transition:opacity .6s;white-space:nowrap}
 #hint.off{opacity:0}
+#pauseTag{position:absolute;left:50%;top:14px;transform:translateX(-50%);background:rgba(0,0,0,.6);padding:9px 16px;border-radius:999px;font-weight:800;font-size:14px;pointer-events:none;white-space:nowrap}
+#pad{position:absolute;right:14px;bottom:16px;display:grid;grid-template-areas:". u ." "l . r" ". d .";grid-template-columns:repeat(3,54px);grid-template-rows:repeat(3,54px);gap:4px;opacity:.85}
+#pad button{border-radius:14px;background:rgba(10,30,14,.55);font-size:22px;font-weight:900;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+#pad button:active{background:rgba(255,255,255,.35)}
 .ov{position:fixed;inset:0;z-index:10;background:rgba(6,14,8,.55);display:flex;align-items:flex-end;justify-content:center;animation:fi .25s}
 .ov.mid{align-items:center}
 @keyframes fi{from{opacity:0}}
@@ -57,7 +61,8 @@ body.snow .sheet,body.snow .card{background:#24395a}
     <button class="tb" id="modeBtn" aria-label="Mode and settings">☀️</button>
   </div>
   <div class="prog"><div class="pbar"><i id="pfill"></i></div><span id="ptxt">0%</span></div>
-  <div id="stage"><canvas id="cv"></canvas><div id="hint">Drag anywhere to steer</div></div>
+  <div id="stage"><canvas id="cv"></canvas><div id="hint">Drag anywhere to steer</div><div id="pauseTag" hidden>⏸ Paused · tap to keep mowing</div>
+    <div id="pad" hidden><button data-d="0" style="grid-area:u">▲</button><button data-d="3" style="grid-area:l">◀</button><button data-d="2" style="grid-area:d">▼</button><button data-d="1" style="grid-area:r">▶</button></div></div>
 </div>
 
 <div class="ov" id="msheet" hidden><div class="sheet">
@@ -65,6 +70,8 @@ body.snow .sheet,body.snow .card{background:#24395a}
   <button class="opt" data-m="mow">☀️ Mow lawns<small id="mMow">Yard 1</small></button>
   <button class="opt" data-m="snow">❄️ Shovel snow<small id="mSnow">Yard 1</small></button>
   <button class="opt" id="sndBtn">🔊 Sound <span class="tog" id="sndTog">On</span><small>Soft mower hum, grass swish, shovel scrape</small></button>
+  <button class="opt" id="fastBtn">🚜 Mower speed <span class="tog" id="fastTog">Chill</span><small>Chill is slow and smooth · Quick gets yards done faster</small></button>
+  <button class="opt" id="arrBtn">🕹️ Arrow buttons <span class="tog" id="arrTog">Off</span><small>Tap arrows instead of swiping</small></button>
   <button class="opt" id="restart">↻ Start this yard over</button>
   <button class="opt ghost" id="mClose">Close</button>
 </div></div>
@@ -104,6 +111,9 @@ const TAU=Math.PI*2;
 const GW=90;          // yard is 90 cells wide; height follows the screen
 const RC=3.6;         // mower / shovel body radius (cells) for bumping into things
 const RCUT=4.3;       // how far the blade reaches
+// riding mower (mow mode): drives in straight lanes exactly one deck-width apart
+const RCR=4.6,RCUTR=5.0,LW=9;
+const DV=[[0,-1],[1,0],[0,1],[-1,0]]; // up, right, down, left
 const B=3;            // border (hedge / fence) thickness
 const THEMES={
   mow:[['front','Front yard'],['back','Backyard'],['park','Park'],['cabin','Cabin meadow']],
@@ -111,7 +121,7 @@ const THEMES={
 
 /* ---------- yard generator (same level number + screen height = same yard) ---------- */
 function gen(mode,lvl,GH){
-  const snow=mode==='snow';
+  const snow=mode==='snow',rc=snow?RC:RCR,rcut=snow?RCUT:RCUTR;
   const R=rng(lvl*9973+(snow?55511:0)+12345);
   const ri=(a,b)=>a+Math.floor(R()*(b-a+1)),rf=(a,b)=>a+R()*(b-a);
   const th=THEMES[mode][(lvl-1)%4],theme=th[0];
@@ -122,7 +132,7 @@ function gen(mode,lvl,GH){
   const disc=(cx,cy,r,t,pv)=>{for(let j=Math.floor(cy-r-1);j<=cy+r+1;j++)for(let i=Math.floor(cx-r-1);i<=cx+r+1;i++){const dx=i+.5-cx,dy=j+.5-cy;if(dx*dx+dy*dy<=r*r)put(i,j,t,pv)}};
   const bez=(p0,p1,p2,p3)=>{const o=[];for(let s=0;s<=1.0001;s+=.01){const u=1-s;o.push([u*u*u*p0[0]+3*u*u*s*p1[0]+3*u*s*s*p2[0]+s*s*s*p3[0],u*u*u*p0[1]+3*u*u*s*p1[1]+3*u*s*s*p2[1]+s*s*s*p3[1]])}return o};
   const path=(pts,w,pv)=>{for(let a=0;a<pts.length-1;a++){const[x0,y0]=pts[a],[x1,y1]=pts[a+1],n=Math.max(1,Math.ceil(Math.hypot(x1-x0,y1-y0)/.5));for(let s=0;s<=n;s++)disc(x0+(x1-x0)*s/n,y0+(y1-y0)*s/n,w/2,1,pv)}};
-  const CLR=2*RC+1.2; // leave room for the mower between things
+  const CLR=2*rc+1.2; // leave room for the mower between things
   const fits=(cx,cy,r,clr,pave)=>{
     if(cx-r<B+1||cy-r<B+1||cx+r>GW-B-1||cy+r>GH-B-1)return false;
     const RR=r+clr;
@@ -208,24 +218,46 @@ function gen(mode,lvl,GH){
   }
 
   // where the mower's center may go
-  const freeC=new Uint8Array(N).fill(1),off=[],rr=RC+.5,cr=Math.ceil(rr);
+  const freeC=new Uint8Array(N).fill(1),off=[],rr=rc+.5,cr=Math.ceil(rr);
   for(let dj=-cr;dj<=cr;dj++)for(let di=-cr;di<=cr;di++)if(di*di+dj*dj<=rr*rr)off.push(di,dj);
   for(let j=0;j<GH;j++)for(let i=0;i<GW;i++){const k=j*GW+i;if(T[k]!==2)continue;freeC[k]=0;
     if(!((i>0&&T[k-1]!==2)||(i<GW-1&&T[k+1]!==2)||(j>0&&T[k-GW]!==2)||(j<GH-1&&T[k+GW]!==2)))continue;
     for(let a=0;a<off.length;a+=2){const ii=i+off[a],jj=j+off[a+1];if(inb(ii,jj))freeC[jj*GW+ii]=0}}
-  // start: nearest free spot to the theme's starting point
-  let sk=-1,bd=1e9;for(let k=0;k<N;k++)if(freeC[k]){const d=Math.hypot(k%GW+.5-pref[0],Math.floor(k/GW)+.5-pref[1]);if(d<bd){bd=d;sk=k}}
-  // everything connected to the start
-  const comp=new Uint8Array(N),q=[sk];comp[sk]=1;
-  for(let h=0;h<q.length;h++){const k=q[h],i=k%GW;
-    for(const n of[i>0?k-1:-1,i<GW-1?k+1:-1,k-GW,k+GW])if(n>=0&&n<N&&freeC[n]&&!comp[n]){comp[n]=1;q.push(n)}}
-  // cells the blade can actually reach
-  const reach=new Uint8Array(N),o2=[],rc2=RCUT-.35,c2=Math.ceil(rc2);
+  const pf=(x,y)=>{const i=Math.floor(x),j=Math.floor(y);return i>=0&&j>=0&&i<GW&&j<GH&&freeC[j*GW+i]===1};
+  const reach=new Uint8Array(N),o2=[],rc2=rcut-.35,c2=Math.ceil(rc2);
   for(let dj=-c2;dj<=c2;dj++)for(let di=-c2;di<=c2;di++)if(di*di+dj*dj<=rc2*rc2)o2.push(di,dj);
-  for(const k of q){const i=k%GW,j=(k-i)/GW;for(let a=0;a<o2.length;a+=2){const ii=i+o2[a],jj=j+o2[a+1];if(inb(ii,jj))reach[jj*GW+ii]=1}}
+  const stamp=(x,y)=>{const i=Math.floor(x),j=Math.floor(y);for(let a=0;a<o2.length;a+=2){const ii=i+o2[a],jj=j+o2[a+1];if(inb(ii,jj))reach[jj*GW+ii]=1}};
+  let start,lanes=null;
+  if(snow){
+    // start: nearest free spot to the theme's starting point, then everything connected to it
+    let sk=-1,bd=1e9;for(let k=0;k<N;k++)if(freeC[k]){const d=Math.hypot(k%GW+.5-pref[0],Math.floor(k/GW)+.5-pref[1]);if(d<bd){bd=d;sk=k}}
+    const comp=new Uint8Array(N),q=[sk];comp[sk]=1;
+    for(let h=0;h<q.length;h++){const k=q[h],i=k%GW;
+      for(const n of[i>0?k-1:-1,i<GW-1?k+1:-1,k-GW,k+GW])if(n>=0&&n<N&&freeC[n]&&!comp[n]){comp[n]=1;q.push(n)}}
+    for(const k of q){const i=k%GW;stamp(i+.5,(k-i)/GW+.5)}
+    start=[sk%GW+.5,Math.floor(sk/GW)+.5];
+  }else{
+    // lanes spread evenly so the outside passes hug the edges
+    const lane=(a,b)=>{const n=Math.max(2,Math.ceil((b-a)/LW)+1);return{o:a,s:(b-a)/(n-1),n}};
+    const lx=lane(B+rc+.6,GW-B-rc-.6),ly=lane(B+rc+.6,GH-B-rc-.6);lanes={lx,ly};
+    // start at the free lane crossing nearest the theme's starting point
+    let best=null,bd=1e9;
+    for(let a=0;a<lx.n;a++)for(let b=0;b<ly.n;b++){const x=lx.o+a*lx.s,y=ly.o+b*ly.s;if(!pf(x,y))continue;const d=Math.hypot(x-pref[0],y-pref[1]);if(d<bd){bd=d;best=[a,b]}}
+    start=[lx.o+best[0]*lx.s,ly.o+best[1]*ly.s];
+    // walk every lane the mower can get to (points every half cell; crossings link vertical and horizontal lanes)
+    const NV=Math.ceil(GH*2)+1,NH=Math.ceil(GW*2)+1,vis=new Set(),q=[];
+    const push=(t,a,u)=>{const key=t+','+a+','+u;if(vis.has(key))return;const x=t?u/2:lx.o+a*lx.s,y=t?ly.o+a*ly.s:u/2;if(!pf(x,y))return;vis.add(key);q.push([t,a,u,x,y])};
+    const both=(t,a,v)=>{push(t,a,Math.floor(v*2));push(t,a,Math.ceil(v*2))}; // nearest half-cell points on each side of a crossing
+    both(0,best[0],start[1]);both(1,best[1],start[0]);
+    for(let h=0;h<q.length;h++){const[t,a,u,x,y]=q[h];
+      stamp(x,y);
+      if(u>0)push(t,a,u-1);if(u<(t?NH:NV)-1)push(t,a,u+1);
+      if(t===0){const b=Math.round((y-ly.o)/ly.s);if(b>=0&&b<ly.n&&Math.abs(ly.o+b*ly.s-y)<.5&&pf(x,ly.o+b*ly.s))both(1,b,x)}
+      else{const b=Math.round((x-lx.o)/lx.s);if(b>=0&&b<lx.n&&Math.abs(lx.o+b*lx.s-x)<.5&&pf(lx.o+b*lx.s,y))both(0,b,y)}}
+  }
   const req=new Uint8Array(N),reqIdx=[];
   for(let k=0;k<N;k++)if(reach[k]&&T[k]===(snow?1:0)){req[k]=1;reqIdx.push(k)}
-  return{mode,snow,lvl,theme,name:th[1],GH,N,T,PV,objs,freeC,req,reqIdx,reqTotal:reqIdx.length,start:[sk%GW+.5,Math.floor(sk/GW)+.5]};
+  return{mode,snow,lvl,theme,name:th[1],GH,N,T,PV,objs,freeC,req,reqIdx,reqTotal:reqIdx.length,start,lanes,rc,rcut};
 }
 
 /* ---------- colors ---------- */
@@ -427,6 +459,23 @@ const ART={
 function drawTool(c){
   c.save();c.translate(M.x,M.y);c.rotate(M.a);
   if(!L.snow){
+    // riding mower, facing +x
+    ell(c,.6,.8,6,5.4,'rgba(0,0,0,.25)');
+    rr(c,-1.2,-5.1,4.6,10.2,1.4,'#45474d');rr(c,-1,-4.9,4.2,9.8,1.2,'#56585f');                 // mower deck
+    rr(c,-.4,4.7,2.6,1.1,.3,'#2a2a2e');                                                         // side chute
+    for(const y of[-4,4])rr(c,-6,y-1.1,3.4,2.2,.7,'#1b1b1f');                                   // big rear wheels
+    for(const y of[-2.9,2.9])rr(c,3.6,y-.6,2,1.2,.4,'#1b1b1f');                                 // front wheels
+    rr(c,-6.2,-3,7.6,6,1.5,'#d93a2b');                                                          // body
+    rr(c,1,-2.3,5.2,4.6,1.4,'#e04434');                                                         // hood
+    c.fillStyle='rgba(0,0,0,.25)';for(let x=2.6;x<5.8;x+=.9)c.fillRect(x,-1.4,.25,2.8);         // grille vents
+    rr(c,5.7,-1.6,.6,3.2,.3,'#f6e7a8');                                                         // headlights
+    rr(c,-4.9,-2.4,3,4.8,1,'#26262b');                                                          // seat
+    circ(c,.2,0,1.05,'#26262b');circ(c,.2,0,.6,'#3a3b40');                                       // steering wheel
+    // driver: arms to the wheel, shoulders, cap
+    c.strokeStyle='#c99a74';c.lineWidth=.55;c.lineCap='round';c.beginPath();c.moveTo(-2.6,-1.7);c.lineTo(-.2,-.9);c.moveTo(-2.6,1.7);c.lineTo(-.2,.9);c.stroke();
+    ell(c,-3.2,0,1.3,2.2,'#3f6fb3');circ(c,-3.1,0,1.15,'#2b5a99');rr(c,-2.4,-.9,1.1,1.8,.5,'#22477a');
+    c.strokeStyle='rgba(255,255,255,.3)';c.lineWidth=.3;c.beginPath();c.arc(2.4,0,2,-1.2,-.3);c.stroke();
+  }else if(false){
     ell(c,.5,.7,4.1,3.9,'rgba(0,0,0,.25)');
     c.lineCap='round';c.strokeStyle='#2c2c31';c.lineWidth=.55;
     c.beginPath();c.moveTo(-2.6,-2.2);c.lineTo(-7.6,-2.5);c.moveTo(-2.6,2.2);c.lineTo(-7.6,2.5);c.stroke();
@@ -467,20 +516,23 @@ function build(){
   won=false;finishQ=null;parts=[];markers=[];cutRate=0;
   document.body.classList.toggle('snow',L.snow);
   paintGround();drawObjects();
-  M={x:L.start[0],y:L.start[1],tx:L.start[0],ty:L.start[1],a:-Math.PI/2,sx:0,sy:-1,v:0,load:0};
+  M={x:L.start[0],y:L.start[1],tx:L.start[0],ty:L.start[1],a:-Math.PI/2,sx:0,sy:-1,v:0,load:0,dir:-1,face:0,q:[],paused:false,side:1};
   const cur=P.cur[mode];
   if(cur&&cur.lvl===lvl&&cur.gw===GW&&cur.gh===gh){
     const u=unb64(cur.c,L.N);
     if(u){for(let k=0;k<L.N;k++)if(u[k]){L.cut[k]=u[k];paintCut(k,u[k]);if(L.req[k])L.done++}
-      if(L.freeC[Math.floor(cur.y)*GW+Math.floor(cur.x)]){M.x=M.tx=cur.x;M.y=M.ty=cur.y;M.a=cur.a||M.a}
+      const okPos=L.freeC[Math.floor(cur.y)*GW+Math.floor(cur.x)]&&(L.snow||onLaneAny(cur.x,cur.y));
+      if(okPos){M.x=M.tx=cur.x;M.y=M.ty=cur.y;M.a=cur.a||M.a;if(!L.snow&&cur.f>=0){M.face=cur.f;M.a=Math.atan2(DV[M.face][1],DV[M.face][0])}}
       L.time=cur.t||0}
   }
   hud();
-  $('#hint').textContent=L.snow?'Drag anywhere to push the shovel':'Drag anywhere to steer the mower';
+  $('#hint').textContent=L.snow?'Drag anywhere to push the shovel':'Swipe to drive · swipe back to turn around';
+  $('#pad').hidden=L.snow||!P.arrows;$('#pauseTag').hidden=true;
   $('#hint').classList.toggle('off',L.done>0);
   $('#win').hidden=true;
   if(L.done/L.reqTotal>=.985)startFinish();
 }
+function onLaneAny(x,y){return onLane(x,0)||onLane(y,1)}
 function hud(){
   $('#ttl').textContent=`Yard ${L.lvl}`;
   $('#sub').textContent=`${L.name} · ${L.snow?'Shoveling':'Mowing'}`;
@@ -490,14 +542,75 @@ function hud(){
 }
 function saveCur(){
   if(!L||won)return;
-  P.cur[L.mode]={lvl:L.lvl,gw:GW,gh:L.GH,c:b64(L.cut),x:+M.x.toFixed(2),y:+M.y.toFixed(2),a:+M.a.toFixed(3),t:Math.round(L.time)};
+  P.cur[L.mode]={lvl:L.lvl,gw:GW,gh:L.GH,c:b64(L.cut),x:+M.x.toFixed(3),y:+M.y.toFixed(3),a:+M.a.toFixed(3),f:M.face,t:Math.round(L.time)};
   saveP();dirty=false;lastSave=performance.now();
 }
 
 /* ---------- moving & cutting ---------- */
 let drag=null;
 const free=(x,y)=>{const i=Math.floor(x),j=Math.floor(y);return i>=0&&j>=0&&i<GW&&j<L.GH&&L.freeC[j*GW+i]===1};
+/* Riding mower: drives itself along lanes. Swipe = which way to go; it turns at the next lane crossing.
+   Swipe the opposite way = finish this row, hop one lane over (toward uncut grass) and come back. Tap = pause. */
+const opp=d=>(d+2)%4,perp=(a,b)=>(a%2)!==(b%2);
+const onLane=(v,ax)=>{const l=ax?L.lanes.ly:L.lanes.lx,t=(v-l.o)/l.s,r=Math.round(t);return r>=0&&r<l.n&&Math.abs(t-r)*l.s<.06};
+const atCross=()=>onLane(M.x,0)&&onLane(M.y,1);
+function pickSide(f){ // which side to hop to for a U-turn, or -1
+  const sides=f%2===0?[1,3]:[0,2],l=f%2===0?L.lanes.lx:L.lanes.ly,sc=[];
+  for(const sd of sides){const dx=DV[sd][0],dy=DV[sd][1],tx=M.x+dx*l.s,ty=M.y+dy*l.s;let ok=true;
+    for(let a=1;a<=10;a++)if(!free(M.x+dx*l.s*a/10,M.y+dy*l.s*a/10)){ok=false;break}
+    if(!ok){sc.push(-1);continue}
+    let n=0;for(let a=-60;a<=60;a+=2){const x=f%2===0?tx:tx+a,y=f%2===0?ty+a:ty,i=Math.floor(x),j=Math.floor(y);if(i>=0&&j>=0&&i<GW&&j<L.GH){const k=j*GW+i;if(L.T[k]===0&&!L.cut[k])n++}}
+    sc.push(n)}
+  if(sc[0]<0&&sc[1]<0)return -1;
+  if(sc[0]===sc[1])return sides.includes(M.side)?M.side:sides[0];
+  return sc[0]>sc[1]?sides[0]:sides[1];
+}
+function request(d){
+  if(!L||won||L.snow)return;
+  M.paused=false;$('#hint').classList.add('off');
+  if(M.dir>=0){
+    if(d===M.dir){M.q=[];return}
+    if(d===opp(M.dir)){const sd=pickSide(M.dir);if(sd<0){M.dir=d;M.face=d;M.q=[]}else{M.side=sd;M.q=[sd,d]}return}
+    M.q=[d];return;
+  }
+  const f=M.face,fwd=dd=>free(M.x+DV[dd][0]*.8,M.y+DV[dd][1]*.8);
+  if(d===f){if(fwd(d)){M.dir=d;M.q=[]}return}
+  if(d===opp(f)){const sd=pickSide(f);
+    if(sd<0){if(fwd(d)){M.dir=d;M.face=d;M.q=[]}return}
+    M.side=sd;
+    if(onLane(f%2===0?M.y:M.x,f%2===0?1:0)){M.dir=sd;M.face=sd;M.q=[d]}
+    else{M.dir=d;M.face=d;M.q=[sd,d]}
+    return}
+  // sideways while stopped
+  if(atCross()){if(fwd(d)){M.dir=d;M.face=d;M.q=[]}}
+  else if(fwd(opp(f))){M.dir=opp(f);M.face=M.dir;M.q=[d]}
+}
+function crossing(a,b,l){ // first lane line strictly after a, up to b
+  const t0=(a-l.o)/l.s,t1=(b-l.o)/l.s;
+  if(b>a){const k=Math.floor(t0+1e-6)+1;return k<l.n&&k<=t1+1e-9&&k>=0?l.o+k*l.s:null}
+  const k=Math.ceil(t0-1e-6)-1;return k>=0&&k>=t1-1e-9&&k<l.n?l.o+k*l.s:null;
+}
+function ride(f){
+  const ox0=M.x,oy0=M.y;
+  if(M.dir>=0&&!M.paused){
+    const sp=(P.fast?.5:.3)*f,dx=DV[M.dir][0],dy=DV[M.dir][1];let nx=M.x+dx*sp,ny=M.y+dy*sp,turned=false;
+    if(M.q.length&&perp(M.q[0],M.dir)){
+      const vert=dy!==0,c=crossing(vert?M.y:M.x,vert?ny:nx,vert?L.lanes.ly:L.lanes.lx);
+      if(c!==null){const px=vert?M.x:c,py=vert?c:M.y,d2=M.q[0];
+        if(free(px+DV[d2][0]*.8,py+DV[d2][1]*.8)){M.x=px;M.y=py;M.dir=M.q.shift();M.face=M.dir;turned=true}}}
+    if(!turned){
+      if(free(nx,ny)){M.x=nx;M.y=ny}
+      else{const last=M.q.length?M.q[M.q.length-1]:null;M.q=[];M.dir=-1;if(last!==null&&last!==M.face)request(last)}}
+  }
+  const moved=Math.hypot(M.x-ox0,M.y-oy0)/f;
+  M.v=M.v*.85+(moved>.01?1:0)*.15;
+  let da=Math.atan2(DV[M.face][1],DV[M.face][0])-M.a;da=(da+Math.PI*3)%TAU-Math.PI;M.a+=clamp(da,-.16*f,.16*f);
+  M.sx=DV[M.face][0];M.sy=DV[M.face][1];
+  if(moved>.01)L.time+=f/60;
+  cutAround(moved>.01);
+}
 function step(f){
+  if(!L.snow){ride(f);return}
   const ox0=M.x,oy0=M.y;
   let dx=M.tx-M.x,dy=M.ty-M.y;const d=Math.hypot(dx,dy);
   if(d>.001){
@@ -522,12 +635,15 @@ function cutAround(moving){
   const{T,cut,req}=L,snow=L.snow;
   // stripe shade: light when heading up the screen, dark heading down (like real lawn stripes)
   let s=.5-.5*(M.sy*.85-M.sx*.3);s=sst(clamp((s-.12)/.76,0,1));
+  if(!snow)s=[1,.62,0,.38][M.face];
+  const RCUT=L.rcut;
   const v=snow?1+Math.round(((Math.atan2(M.sy,M.sx)+Math.PI)/TAU)*254):1+Math.round(s*254);
   const x0=Math.max(0,Math.floor(M.x-RCUT)),x1=Math.min(GW-1,Math.floor(M.x+RCUT)),y0=Math.max(0,Math.floor(M.y-RCUT)),y1=Math.min(L.GH-1,Math.floor(M.y+RCUT));
   let fresh=0;
   for(let j=y0;j<=y1;j++)for(let i=x0;i<=x1;i++){
     const ddx=i+.5-M.x,ddy=j+.5-M.y;if(ddx*ddx+ddy*ddy>RCUT*RCUT)continue;
-    const k=j*GW+i,t=T[k];if(t===2)continue;
+    const k=j*GW+i,t=T[k];
+    if(t===2){if(!snow&&!cut[k]){cut[k]=v;paintCut(k,v)}continue} // trim right up to trees and beds
     if(!snow){if(t!==0)continue;
       if(!cut[k]){cut[k]=v;paintCut(k,v);fresh++;if(req[k])L.done++}
       else if(moving&&Math.abs(cut[k]-v)>36){cut[k]=v;paintCut(k,v)}}
@@ -570,15 +686,23 @@ function updMarkers(){
 function startFinish(){
   if(won)return;won=true;
   finishQ=L.reqIdx.filter(k=>!L.cut[k]);finishWait=0;markers=[];
+  if(!L.snow){for(let k=0;k<L.N;k++)if(L.T[k]!==1&&!L.cut[k]&&!L.req[k])finishQ.push(k);
+    // trim the edges first (near obstacles), then any leftover strips
+    finishQ.sort((a,b)=>L.req[b]-L.req[a])}
   const v=L.snow?1+Math.round(((Math.atan2(M.sy,M.sx)+Math.PI)/TAU)*254):1+Math.round(.5*254);
   finishQ.v=v;
   P.lvl[L.mode]=L.lvl+1;P.cur[L.mode]=null;saveP();
   hud();
 }
+function laneShade(k){ // edge trimming copies the stripe of the nearest lane
+  const i=k%GW,j=(k-i)/GW,lx=L.lanes.lx,a=Math.round((i+.5-lx.o)/lx.s);
+  let near=-1,bd=99;for(let r=1;r<=6&&near<0;r++)for(const[di,dj]of[[r,0],[-r,0],[0,r],[0,-r]]){const ii=i+di,jj=j+dj;if(ii>=0&&jj>=0&&ii<GW&&jj<L.GH){const m=jj*GW+ii;if(L.T[m]===0&&L.cut[m]&&L.req[m]){near=L.cut[m];break}}}
+  return near>0?near:1+Math.round((a%2?.0:1)*254);
+}
 function stepFinish(f){
   if(!finishQ)return;
   if(finishQ.length){const n=Math.max(4,Math.ceil(finishQ.length/14));for(let a=0;a<n&&finishQ.length;a++){const k=finishQ.pop();
-    const v=L.snow?finishQ.v:1+Math.round(((Math.floor(k/GW)>>2)%2?.25:.75)*254);L.cut[k]=v;paintCut(k,v);L.done++}return}
+    const v=L.snow?finishQ.v:laneShade(k);L.cut[k]=v;paintCut(k,v);if(L.req[k])L.done++}return}
   finishWait+=f;if(finishWait>40){finishQ=null;showWin()}
 }
 function showWin(){
@@ -614,8 +738,8 @@ function audioTick(){
   const live=P.snd&&!document.hidden&&L&&$('#win').hidden;
   let mot=0,cut=0;
   if(live){
-    if(!L.snow){mot=drag?.045+Math.min(.03,M.v*.03):0;cut=Math.min(.16,cutRate*.022);A.bp.frequency.setTargetAtTime(2600,now,.1);A.bp.Q.setTargetAtTime(.8,now,.1);
-      A.o1.frequency.setTargetAtTime(88+M.v*18,now,.15);A.o2.frequency.setTargetAtTime(176+M.v*36,now,.15)}
+    if(!L.snow){mot=.012+M.v*.04;cut=Math.min(.14,cutRate*.016);A.bp.frequency.setTargetAtTime(2600,now,.1);A.bp.Q.setTargetAtTime(.8,now,.1);
+      A.o1.frequency.setTargetAtTime(78+M.v*14,now,.25);A.o2.frequency.setTargetAtTime(156+M.v*28,now,.25)}
     else{cut=drag?Math.min(.24,M.v*.07+cutRate*.03):0;A.bp.frequency.setTargetAtTime(1000+M.v*300,now,.1);A.bp.Q.setTargetAtTime(1.4,now,.1)}
   }
   A.mot.gain.setTargetAtTime(mot,now,.08);A.cut.gain.setTargetAtTime(cut,now,.06);
@@ -644,16 +768,27 @@ function frame(t){
 
 /* ---------- input ---------- */
 const SENS=1.15;
-stage.addEventListener('pointerdown',e=>{if(!L||won)return;audioUnlock();drag={id:e.pointerId,x:e.clientX,y:e.clientY};try{stage.setPointerCapture(e.pointerId)}catch(_){}$('#hint').classList.add('off');e.preventDefault()});
+stage.addEventListener('pointerdown',e=>{if(!L||won)return;audioUnlock();drag={id:e.pointerId,x:e.clientX,y:e.clientY,x0:e.clientX,y0:e.clientY,fired:false};try{stage.setPointerCapture(e.pointerId)}catch(_){}$('#hint').classList.add('off');e.preventDefault()});
 stage.addEventListener('pointermove',e=>{if(!drag||e.pointerId!==drag.id)return;
+  if(!L.snow){ // one direction per swipe
+    const dx=e.clientX-drag.x0,dy=e.clientY-drag.y0;
+    if(!drag.fired&&Math.hypot(dx,dy)>16){drag.fired=true;request(Math.abs(dx)>Math.abs(dy)?(dx>0?1:3):(dy>0?2:0))}
+    e.preventDefault();return}
   M.tx+=(e.clientX-drag.x)/cs*SENS;M.ty+=(e.clientY-drag.y)/cs*SENS;drag.x=e.clientX;drag.y=e.clientY;
   const px=M.tx-M.x,py=M.ty-M.y,pl=Math.hypot(px,py);if(pl>6){M.tx=M.x+px/pl*6;M.ty=M.y+py/pl*6}e.preventDefault()});
-const up=e=>{if(drag&&e.pointerId===drag.id)drag=null};
+const up=e=>{if(drag&&e.pointerId===drag.id){
+  if(L&&!L.snow&&!won&&!drag.fired&&Math.hypot(e.clientX-drag.x0,e.clientY-drag.y0)<10)togglePause();
+  drag=null}};
+function togglePause(){if(M.dir<0&&!M.paused){request(M.face);return}M.paused=!M.paused;$('#pauseTag').hidden=!M.paused}
 stage.addEventListener('pointerup',up);stage.addEventListener('pointercancel',up);
 // keyboard (desktop testing)
-const keys={};addEventListener('keydown',e=>{keys[e.key]=1});addEventListener('keyup',e=>{keys[e.key]=0});
-setInterval(()=>{if(!L||won)return;const kx=(keys.ArrowRight||keys.d?1:0)-(keys.ArrowLeft||keys.a?1:0),ky=(keys.ArrowDown||keys.s?1:0)-(keys.ArrowUp||keys.w?1:0);
+const KD={ArrowUp:0,w:0,ArrowRight:1,d:1,ArrowDown:2,s:2,ArrowLeft:3,a:3};
+const keys={};addEventListener('keydown',e=>{keys[e.key]=1;if(L&&!L.snow&&!e.repeat){if(e.key in KD){request(KD[e.key]);e.preventDefault()}else if(e.key===' '){togglePause();e.preventDefault()}}});addEventListener('keyup',e=>{keys[e.key]=0});
+setInterval(()=>{if(!L||won||!L.snow)return;const kx=(keys.ArrowRight||keys.d?1:0)-(keys.ArrowLeft||keys.a?1:0),ky=(keys.ArrowDown||keys.s?1:0)-(keys.ArrowUp||keys.w?1:0);
   if(kx||ky){M.tx=M.x+kx*1.2;M.ty=M.y+ky*1.2;$('#hint').classList.add('off')}},16);
+
+document.querySelectorAll('#pad [data-d]').forEach(b=>b.addEventListener('pointerdown',e=>{e.stopPropagation();e.preventDefault();audioUnlock();request(+b.dataset.d)}));
+$('#pad').addEventListener('pointerdown',e=>e.stopPropagation());
 
 /* ---------- buttons ---------- */
 function goHome(){saveCur();try{if(window.parent!==window&&window.parent.tgGoHome){window.parent.tgGoHome();return}}catch(e){}history.back()}
@@ -664,12 +799,17 @@ function sheet(){
   $('#mSnow').textContent=`Yard ${P.lvl.snow}${P.lvl.snow>1?` · ${P.lvl.snow-1} shoveled`:''}`;
   document.querySelectorAll('[data-m]').forEach(b=>b.classList.toggle('sel',b.dataset.m===P.mode));
   $('#sndTog').textContent=P.snd?'On':'Off';$('#sndTog').classList.toggle('on',P.snd);
+  $('#fastTog').textContent=P.fast?'Quick':'Chill';$('#fastTog').classList.toggle('on',!!P.fast);
+  $('#arrTog').textContent=P.arrows?'On':'Off';$('#arrTog').classList.toggle('on',!!P.arrows);
+  $('#fastBtn').hidden=$('#arrBtn').hidden=L&&L.snow;
   $('#msheet').hidden=false;
 }
 $('#modeBtn').onclick=sheet;$('#mClose').onclick=()=>{$('#msheet').hidden=true};
 $('#msheet').addEventListener('click',e=>{if(e.target.id==='msheet')$('#msheet').hidden=true});
 document.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{$('#msheet').hidden=true;if(b.dataset.m===P.mode)return;saveCur();P.mode=b.dataset.m;saveP();build()});
 $('#sndBtn').onclick=()=>{P.snd=!P.snd;saveP();if(P.snd)audioUnlock();$('#sndTog').textContent=P.snd?'On':'Off';$('#sndTog').classList.toggle('on',P.snd)};
+$('#fastBtn').onclick=()=>{P.fast=!P.fast;saveP();$('#fastTog').textContent=P.fast?'Quick':'Chill';$('#fastTog').classList.toggle('on',P.fast)};
+$('#arrBtn').onclick=()=>{P.arrows=!P.arrows;saveP();$('#arrTog').textContent=P.arrows?'On':'Off';$('#arrTog').classList.toggle('on',P.arrows);$('#pad').hidden=!P.arrows||!L||L.snow};
 $('#restart').onclick=()=>{$('#msheet').hidden=true;P.cur[P.mode]=null;saveP();build()};
 document.addEventListener('visibilitychange',()=>{if(document.hidden){drag=null;saveCur()}});
 addEventListener('pagehide',saveCur);
@@ -678,7 +818,7 @@ let rzT=0;addEventListener('resize',()=>{clearTimeout(rzT);rzT=setTimeout(()=>{i
 
 const ICON=`<svg viewBox="0 0 84 84"><rect width="84" height="84" fill="#3f8a33"/><rect x="0" y="30" width="17" height="54" fill="#76c255"/><rect x="34" y="30" width="17" height="54" fill="#76c255"/><rect x="68" y="30" width="16" height="54" fill="#76c255"/><rect width="84" height="30" fill="#2c6a26"/><g stroke="#4f9a3c" stroke-width="2" stroke-linecap="round"><path d="M6 28l-1-7M13 29l2-8M22 28l-1-6M30 29l1-8M40 28l-2-7M48 29l2-7M57 28l-1-8M66 29l1-6M75 28l2-7"/></g><g transform="translate(42 34)"><path d="M-6 8L-9 30M6 8L9 30" stroke="#2c2c31" stroke-width="2.4" stroke-linecap="round"/><path d="M-10 30H10" stroke="#111" stroke-width="3.2" stroke-linecap="round"/><rect x="-14" y="-12" width="5" height="9" rx="2" fill="#1b1b1f"/><rect x="9" y="-12" width="5" height="9" rx="2" fill="#1b1b1f"/><rect x="-14" y="3" width="5" height="9" rx="2" fill="#1b1b1f"/><rect x="9" y="3" width="5" height="9" rx="2" fill="#1b1b1f"/><rect x="-12" y="-14" width="24" height="24" rx="6" fill="#d93a2b"/><circle r="6.5" cy="-2" fill="#3a3b40"/><circle r="4" cy="-2" fill="#55565c"/><circle cx="2" cy="-4" r="1.6" fill="#f1c232"/></g></svg>`;
 
-window.__lawn={get L(){return L},M:()=>M,cutAround}; // test hook
+window.__lawn={get L(){return L},M:()=>M,cutAround,request}; // test hook
 requestAnimationFrame(()=>{build();requestAnimationFrame(frame)});
 })();
 </script>
