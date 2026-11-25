@@ -977,9 +977,11 @@ function drawBG(){
   for(const t of [{x:L.FX+fw*.17,s:.9},{x:L.FX+fw*.36,s:.7},{x:L.FX+fw*.55,s:1.1},{x:L.FX+fw*.72,s:.65},{x:L.FX+fw*.84,s:.8},{x:W-8,s:1.3}]) cypress(c,t.x,t.s<.75?268:262,t.s,R);
   // cypress trees crowding in around the cabin
   c.globalAlpha=.6; cypress(c,L.FX+122,232,.45,R); cypress(c,L.FX+148,234,.4,R); c.globalAlpha=1;
-  cypress(c,L.FX+2,262,.9,R); cypress(c,L.FX+156,266,.72,R);
-  // a young cypress right at the water's edge near the fence
-  cypress(c,L.FX+12,288,.5,R);
+  // SPACE_TREES: the big cypress that crowded the stairs now stands behind the cabin (its crown shows over the roof),
+  // and the young one moved off the fence line into an open patch of water. false = the old crowded spots.
+  if(SPACE_TREES) cypress(c,168,250,.82,R); else cypress(c,L.FX+2,262,.9,R);
+  cypress(c,L.FX+156,266,.72,R);
+  if(SPACE_TREES) cypress(c,L.FX+fw*.47,284,.42,R); else cypress(c,L.FX+12,288,.5,R);
   // stumps and cypress knees poking out of the water
   for(let i=0;i<7;i++){ const x=L.FX+R()*fw, y=244+R()*36, h=4+R()*8; c.fillStyle='#3b2a1e'; c.beginPath(); c.moveTo(x-3,y); c.quadraticCurveTo(x,y-h*1.4,x+3,y); c.fill(); c.strokeStyle='rgba(190,230,210,.18)'; c.lineWidth=.8; c.beginPath(); c.ellipse(x,y+.5,6,1.2,0,0,TAU); c.stroke(); }
   // palmettos and ferns along the water's edge
@@ -1003,6 +1005,7 @@ function drawBG(){
   drawCabin(c,R);
   return bgCv;
 }
+const SPACE_TREES=true;
 function snag(c,x,y,s,R){ // dead bare tree
   c.save(); c.translate(x,y); c.scale(s,s); c.strokeStyle='#4a3a30'; c.lineCap='round';
   c.lineWidth=7; c.beginPath(); c.moveTo(0,0); c.quadraticCurveTo(-4,-40,2,-90); c.stroke();
@@ -2114,7 +2117,7 @@ function wlInit(){
   WL.frogs=[{p:1,hop:0,from:1,puff:0,next:4},{p:4,hop:0,from:4,puff:0,next:7}];
   WL.log={x:f+fw*.645,y:252};
   if(!WL.gus)WL.gus={x:f+90,y:276,dir:1,t:0,cd:rnd(6,10),aim:0,wave:0,catchT:rnd(15,25),fish:0,face:1}; WL.heron={x:Math.min(W-30,f+fw*.93),y:283}; WL.eyes={x:f+fw*.58,y:246,dir:1};
-  WL.trunks=[f+2,f+12,f+156,f+fw*.17,f+fw*.36,f+fw*.44,f+fw*.55,f+fw*.72,f+fw*.84,W-8];
+  WL.trunks=(SPACE_TREES?[f+fw*.47]:[f+2,f+12]).concat([f+156,f+fw*.17,f+fw*.36,f+fw*.44,f+fw*.55,f+fw*.72,f+fw*.84,W-8]);
 }
 function stepWildlife(dt){
   if(!WL.frogs||WL.w!==W){ wlInit(); WL.w=W; }
