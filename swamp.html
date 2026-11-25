@@ -317,7 +317,7 @@ const ECON=.75;   // overall coin income (Tyler: economy still too fast)
 /* ---------------- state ---------------- */
 let S=null;
 const SET=Object.assign({flag:'gator',mute:false,auto:false,rot:90,hat:'straw',shades:'none'},store.get('swamp_set',{}));
-let BEST=Object.assign({score:0,wave:0},store.get('swamp_best',{}));
+let BEST=Object.assign({score:0,wave:0},store.get('swamp_best',{})); BEST.reach=Math.max(BEST.reach||0,BEST.wave||0); // reach = furthest wave in any run (DEV runs too) — unlocks style items
 const P={a:.25,touch:false,tx:0,ty:0,cool:0,recoil:0,flameOn:false,aimTo:null};
 let Z=[],B=[],FX=[],C=[],EP=[],BOMBS=[],PLANE=null,FIRE=[];
 let DBG=false, FROZEN=false, TIME=0, shake=0, phase='title';
@@ -456,15 +456,15 @@ function hurt(z,dmg,o={}){
   if(z.dead||z.state==='sub')return false;
   if(z.shield>0&&!o.splash){
     const take=o.ap?dmg*.5:dmg;
-    z.shield-=take; z.flash=.07;
+    z.shield-=take; if(!(z.flashCD>0)){ z.flash=.07; z.flashCD=.22; }
     if(z.shield<=0){ dmg=-z.shield; z.shield=0; FX.push({k:'door',x:z.x-12,y:z.y,t:0,life:.9,vx:rnd(30,70)}); }
     else { num(z.x,zBox(z).y0-10,Math.round(take),'#d9b38c'); return true; }
   }
   if(!o.ap&&!o.splash&&z.armor>0) dmg*=1-z.armor;          // helmet + plate: 40% less from normal bullets
   if(o.splash&&z.armor>0) dmg*=1-z.armor*.5;
-  z.hp-=dmg; z.flash=.08;
+  z.hp-=dmg; if(!(z.flashCD>0)){ z.flash=.07; z.flashCD=.22; }
   if(o.kb) z.kbv=Math.min(260,z.kbv+o.kb*z.kbRes);
-  if(!o.quiet) num(z.x+rnd(-6,6),zBox(z).y0-10,Math.round(dmg)+(o.head?'!':''),o.head?'#ffb02e':(o.col||'#fff'),o.head);
+  if(!o.quiet){ const nf=z.numFx; if(!o.head&&nf&&nf.t<.35&&!nf.big&&typeof nf.v==='number'){ nf.v+=Math.round(dmg); nf.t=Math.min(nf.t,.12); nf.x=z.x; nf.y=zBox(z).y0-14; } else { const f=num(z.x+rnd(-6,6),zBox(z).y0-10,o.head?Math.round(dmg)+'!':Math.round(dmg),o.head?'#ffb02e':(o.col||'#fff'),o.head); if(!o.head)z.numFx=f; } }
   if(o.head){ S.heads=(S.heads||0)+1; FX.push({k:'headpop',x:z.x,y:zBox(z).y0-20,t:0,life:.6}); }
   if(z.hp<=0) kill(z,o);
   return true;
@@ -502,7 +502,7 @@ function explode(x,y,r,dmg,o={}){
 let houseHitT=0;
 function damageFence(d){ if(S.fence.hp<=0)return; S.fence.hp=Math.max(0,S.fence.hp-d); if(S.fence.hp===0){FX.push({k:'boom',x:L.FX,y:340,t:0,life:.4,r:30}); toast('Fence is down!'); for(let i=0;i<18;i++)FX.push({k:'chip',x:L.FX+rnd(-6,6),y:rnd(L.LANE0-40,L.LANE1),vx:rnd(-60,90),vy:rnd(-150,-40),t:0,life:1})}}
 function damageHouse(d,src){ d*=1-.07*S.house.armor; if(S.dmgLog){S.dmgLog[src||'?']=(S.dmgLog[src||'?']||0)+d;} S.house.hp-=d; S.dmgTaken+=d; houseHitT=.15; if(S.house.hp<=0){S.house.hp=0; gameOver();} }
-function num(x,y,v,col,big){ if(FX.length>420)return; FX.push({k:'num',x,y,v,col,big,t:0,life:.7}); }
+function num(x,y,v,col,big){ if(FX.length>420)return null; const f={k:'num',x,y,v,col,big,t:0,life:.7}; FX.push(f); return f; }
 
 /* ---------------- player weapons ---------------- */
 function curW(){return WEAPONS.find(w=>w.id===S.cur)||WEAPONS[0]}
@@ -688,7 +688,7 @@ function zombieStep(dt){
   const scale=L.field/400;
   for(const z of Z){
     if(z.dead)continue;
-    z.flash-=dt; if(z.slowT>0)z.slowT-=dt;
+    z.flash-=dt; if(z.flashCD>0)z.flashCD-=dt; if(z.slowT>0)z.slowT-=dt;
     if(z.burnT>0){ z.burnT-=dt; hurt(z,z.burnD*dt,{splash:true,quiet:true}); const c=zCenter(z); if(Math.random()<dt*14)FX.push({k:'flame',x:c.x+rnd(-6,6),y:c.y+rnd(-10,10),vx:rnd(-10,10),vy:rnd(-60,-30),t:0,life:.4,s:rnd(3,6)}); if(z.dead)continue; }
     const slow=z.slowT>0?z.slowF:1;
     let sp=z.spd*scale*slow;
@@ -817,9 +817,11 @@ function waveClear(){
   for(const id in S.guns) S.ammo[id]=wStat(WEAPONS.find(w=>w.id===id),S.guns[id]).clip; reloadT=0;
   S.wave++; phase='build'; EP=[]; FIRE=[]; P.touch=false; party=2.6; launchFireworks(S.wave%5===1?9:6);
   if(BJ.state==='inside'){BJ.state='back'; BJ.dir=1; BJ.door=1.2;}
-  if(n>BEST.wave&&!S.devUsed){BEST.wave=n; store.set('swamp_best',BEST)}
+  if(n>BEST.wave&&!S.devUsed){BEST.wave=n;}
+  let unl=''; if(n>BEST.reach){ const was=BEST.reach; BEST.reach=n; for(const h of HATS.concat(SHADES)) if(h.w>was&&h.w<=n) unl+=' · 🎩 '+h.name+' unlocked!'; }
+  store.set('swamp_best',BEST);
   save(); showUI();
-  toast('WAVE '+n+' CLEARED!', '+'+bonus+' coins'+(perfect?' · Perfect! +'+50*n:''));
+  toast('WAVE '+n+' CLEARED!', '+'+bonus+' coins'+(perfect?' · Perfect! +'+50*n:'')+unl);
 }
 let overFlag=false;
 function gameOver(){
@@ -879,7 +881,11 @@ function drawBG(){
   c.fillStyle='#fff'; for(let i=0;i<60;i++){c.globalAlpha=R()*.6+.2; c.fillRect(R()*W,top+R()*(150-top),1.3,1.3)} c.globalAlpha=1;
   // moon
   const mx=W*.62, my=78; let mg=c.createRadialGradient(mx,my,10,mx,my,70); mg.addColorStop(0,'rgba(255,240,200,.35)'); mg.addColorStop(1,'rgba(255,240,200,0)'); c.fillStyle=mg; c.fillRect(mx-70,my-70,140,140);
-  c.fillStyle='#fff1c9'; c.beginPath(); c.arc(mx,my,22,0,TAU); c.fill(); c.fillStyle='#e8d6a6'; c.beginPath(); c.arc(mx-7,my-5,4.5,0,TAU); c.arc(mx+8,my+6,3.2,0,TAU); c.arc(mx+4,my-9,2,0,TAU); c.fill();
+  { const mgr=c.createRadialGradient(mx+6,my-6,2,mx,my,23); mgr.addColorStop(0,'#fffbe8'); mgr.addColorStop(.7,'#fff1c9'); mgr.addColorStop(1,'#e9d3a0'); c.fillStyle=mgr; c.beginPath(); c.arc(mx,my,22,0,TAU); c.fill();
+    c.save(); c.beginPath(); c.arc(mx,my,22,0,TAU); c.clip();
+    c.fillStyle='rgba(205,186,140,.28)'; c.beginPath(); c.ellipse(mx-5,my+3,10,6.5,.5,0,TAU); c.fill(); c.beginPath(); c.ellipse(mx+7,my-2,5.5,4.5,-.3,0,TAU); c.fill();
+    for(const [cx,cy,r] of [[-7,-5,4.5],[8,6,3.2],[4,-9,2],[-12,8,1.6],[13,-4,1.4],[-2,15,1.2]]){ c.fillStyle='rgba(205,184,138,.7)'; c.beginPath(); c.arc(mx+cx,my+cy,r,0,TAU); c.fill(); c.strokeStyle='rgba(255,250,228,.55)'; c.lineWidth=.7; c.beginPath(); c.arc(mx+cx,my+cy,r,.2,1.9); c.stroke(); }
+    c.restore(); }
   // far treeline layers
   const ridge=(y0,amp,col,step)=>{ c.fillStyle=col; c.beginPath(); c.moveTo(-10,230); for(let x=-10;x<=W+10;x+=step){ const h=amp*(.4+R()*.6)+(R()<.15?amp*.7:0); c.lineTo(x,y0-h); c.lineTo(x+step*.5,y0-h*.6-R()*4);} c.lineTo(W+10,230); c.fill(); };
   ridge(205,40,'#3a2440',9); ridge(212,30,'#2a1f33',7);
@@ -893,16 +899,19 @@ function drawBG(){
   // back row (smaller, hazier) then front row
   for(const t of [{x:L.FX+fw*.08,s:.55},{x:L.FX+fw*.36,s:.6},{x:L.FX+fw*.7,s:.5},{x:L.FX+fw*.97,s:.62}]){ c.globalAlpha=.7; cypress(c,t.x,236,t.s,R); c.globalAlpha=1; }
   // a distant neighbor's stilt shack with a lit window
-  { const x=L.FX+fw*.68, y=236; c.save(); c.translate(x,y); c.globalAlpha=.85;
+  { const x=L.FX+64, y=240; c.save(); c.translate(x,y); c.scale(1.2,1.2); c.globalAlpha=.9;
     c.fillStyle='#2a2030'; for(const sx of[-12,-2,8,16])c.fillRect(sx,-4,2,10); c.fillRect(-15,-6,34,3);
-    c.fillStyle='#3a2c38'; c.fillRect(-13,-20,30,14); c.fillStyle='#2a2030'; c.beginPath(); c.moveTo(-16,-19); c.lineTo(2,-29); c.lineTo(20,-19); c.fill();
+    c.fillStyle='#4a3838'; c.fillRect(-13,-20,30,14); c.fillStyle='#2a2030'; c.beginPath(); c.moveTo(-16,-19); c.lineTo(2,-29); c.lineTo(20,-19); c.fill();
     c.fillStyle='#ffcf6a'; c.fillRect(-7,-16,6,5); c.fillStyle='rgba(255,200,100,.18)'; c.beginPath(); c.arc(-4,-13,10,0,TAU); c.fill();
     c.fillStyle='rgba(255,207,106,.35)'; for(let i=0;i<4;i++)c.fillRect(-8+R()*4,8+i*2.4,5-i,1); c.restore(); }
   for(const t of [{x:L.FX+fw*.27,s:.42},{x:L.FX+fw*.6,s:.48},{x:L.FX+fw*.79,s:.4}]){ c.globalAlpha=.6; cypress(c,t.x,232,t.s,R); c.globalAlpha=1; }
   snag(c,L.FX+fw*.44,250,.8,R);
   for(const t of [{x:L.FX+fw*.17,s:.9},{x:L.FX+fw*.36,s:.7},{x:L.FX+fw*.55,s:1.1},{x:L.FX+fw*.72,s:.65},{x:L.FX+fw*.84,s:.8},{x:W-8,s:1.3}]) cypress(c,t.x,t.s<.75?268:262,t.s,R);
+  // cypress trees crowding in around the cabin
+  c.globalAlpha=.6; cypress(c,L.FX+122,232,.45,R); cypress(c,L.FX+148,234,.4,R); c.globalAlpha=1;
+  cypress(c,L.FX+2,262,.9,R); cypress(c,L.FX+156,266,.72,R);
   // a young cypress right at the water's edge near the fence
-  cypress(c,L.FX+26,286,.55,R);
+  cypress(c,L.FX+12,288,.5,R);
   // stumps and cypress knees poking out of the water
   for(let i=0;i<7;i++){ const x=L.FX+R()*fw, y=244+R()*36, h=4+R()*8; c.fillStyle='#3b2a1e'; c.beginPath(); c.moveTo(x-3,y); c.quadraticCurveTo(x,y-h*1.4,x+3,y); c.fill(); c.strokeStyle='rgba(190,230,210,.18)'; c.lineWidth=.8; c.beginPath(); c.ellipse(x,y+.5,6,1.2,0,0,TAU); c.stroke(); }
   // palmettos and ferns along the water's edge
@@ -1673,7 +1682,7 @@ function drawTurret(c,type,lvl,a,anim,rot){
     gMetal(c,4,-10,4.4,3.2,.8,'dark'); c.fillStyle='#9fe36b'; c.fillRect(7.2,-9.4,.8,1.2);
     c.restore(); return;
   }
-  c.save(); c.translate(0,-15); if(a!=null)c.rotate(a);
+  c.save(); c.translate(0,-15); if(a!=null){ c.rotate(a); if(Math.cos(a)<0)c.scale(1,-1); }
   switch(type){
     case 'nail': // pneumatic nail cannon
       gMetal(c,-15,-4,7,8,3.4,'red'); c.fillStyle='#ddd'; c.fillRect(-13.6,-5,1.4,1.4);
@@ -1777,8 +1786,8 @@ function wlInit(){
   const f=L.FX, fw=W-L.FX;
   WL.pads=[{x:f+fw*.12,y:279},{x:f+fw*.3,y:271},{x:f+fw*.47,y:282},{x:f+fw*.66,y:266},{x:f+fw*.83,y:277}];
   WL.frogs=[{p:1,hop:0,from:1,puff:0,next:4},{p:3,hop:0,from:3,puff:0,next:7}];
-  WL.log={x:f+fw*.22,y:252};
-  if(!WL.gus)WL.gus={x:f+fw*.5,y:274,dir:1,t:0,cd:rnd(6,10),aim:0,wave:0,catchT:rnd(15,25),fish:0,face:1}; WL.heron={x:Math.min(W-30,f+fw*.93),y:283}; WL.eyes={x:f+fw*.58,y:246,dir:1};
+  WL.log={x:f+fw*.645,y:252};
+  if(!WL.gus)WL.gus={x:f+90,y:276,dir:1,t:0,cd:rnd(6,10),aim:0,wave:0,catchT:rnd(15,25),fish:0,face:1}; WL.heron={x:Math.min(W-30,f+fw*.93),y:283}; WL.eyes={x:f+fw*.58,y:246,dir:1};
 }
 function stepWildlife(dt){
   if(!WL.frogs||WL.w!==W){ wlInit(); WL.w=W; }
@@ -1807,7 +1816,7 @@ function stepWildlife(dt){
 /* Cousin Gus: a laid-back gator fishing from a red canoe. Now and then during a wave he plinks a zombie with his slingshot. */
 function stepGus(dt){
   const g=WL.gus; if(!g)return; g.t+=dt; if(g.aim>0)g.aim-=dt; if(g.wave>0)g.wave-=dt; if(g.fish>0)g.fish-=dt;
-  if(g.aim<=0){ g.x+=g.dir*7*dt; if(g.x>W-70){g.dir=-1;} if(g.x<L.FX+80){g.dir=1;} g.face=g.dir; }
+  if(g.aim<=0){ g.x+=g.dir*4*dt; if(g.x>L.FX+135){g.dir=-1;} if(g.x<L.FX+48){g.dir=1;} g.face=g.dir; }
   if(party>1.5&&g.wave<=0)g.wave=2.2;
   g.catchT-=dt; if(g.catchT<=0&&g.aim<=0){ g.catchT=rnd(18,30); g.fish=1.6; }
   if(phase!=='wave'||!S)return;
@@ -2198,7 +2207,7 @@ function styleIcon(kind,id){ const c=document.createElement('canvas'); c.width=1
   g.fillStyle='#fff7d6'; g.beginPath(); g.arc(3,-9.5,5,0,TAU); g.fill(); g.fillStyle='#1a1a1a'; g.beginPath(); g.arc(4.6,-9.5,2.2,0,TAU); g.fill();
   if(kind==='hat')drawHat(g,id); else { drawShades(g,id); drawHat(g,'straw'); } return c; }
 function styleRows(rows){
-  const best=BEST.wave||0;
+  const best=Math.max(BEST.wave||0,BEST.reach||0);
   rows.push({icon:'🎩',name:'Hats',sub:'Unlock more by reaching new waves (your best: wave '+best+')',hdr:true});
   HATS.forEach(h=>{ const ok=best>=h.w; rows.push({icon:styleIcon('hat',h.id),name:h.name,sub:ok?(h.w?'Unlocked at wave '+h.w:'The classic'):'Reach wave '+h.w+' to unlock',cur:(SET.hat||'straw')===h.id,
     btn:ok?{pick:true,on:(SET.hat||'straw')===h.id,label:(SET.hat||'straw')===h.id?'Wearing':'Wear',act:()=>{SET.hat=h.id; store.set('swamp_set',SET); renderSheet();}}:{locked:true,label:'🔒'}}); });
