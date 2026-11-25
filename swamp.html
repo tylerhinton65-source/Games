@@ -2044,6 +2044,19 @@ function drawAmbient(){
   for(let i=0;i<14;i++){ const y=220+i*4.6; const x=((i*97+TIME*8*(i%3+1))%(W+60))-30; const w=14+i%5*6; ctx.beginPath(); ctx.moveTo(x,y); ctx.quadraticCurveTo(x+w/2,y-1.2,x+w,y); ctx.stroke(); }
   for(let i=0;i<3;i++){ const y=230+i*40, x=((TIME*(6+i*3)+i*270)%(W+400))-200; const g=ctx.createRadialGradient(x,y,4,x,y,180); g.addColorStop(0,'rgba(200,215,205,.10)'); g.addColorStop(1,'rgba(200,215,205,0)'); ctx.fillStyle=g; ctx.save(); ctx.translate(x,y); ctx.scale(1,.25); ctx.translate(-x,-y); ctx.fillRect(x-180,y-180,360,360); ctx.restore(); }
 }
+// Slow, soft shimmer on the still water (the swamp pool in the lane and the water under the porch).
+// A dozen faint glints that fade in and out and drift a little: cheap, and quiet enough not to distract.
+const WATER_SHIMMER=true;
+let SHIM=null;
+function drawWaterShimmer(){
+  if(!WATER_SHIMMER)return;
+  if(!SHIM||SHIM.w!==W){ const R=mulberry(77), pc=(L.POOL0+L.POOL1)/2, pw=(L.POOL1-L.POOL0)/2; SHIM={w:W,g:[]};
+    for(let i=0;i<9;i++){ const a=R()*TAU, r=Math.sqrt(R())*.8; SHIM.g.push({x:pc+Math.cos(a)*pw*r,y:342+Math.sin(a)*24*r,w:5+R()*9,p:R()*TAU,sp:.8+R()*.7}); }
+    for(let i=0;i<6;i++) SHIM.g.push({x:96+R()*118,y:291+R()*26,w:4+R()*8,p:R()*TAU,sp:.8+R()*.7}); }
+  ctx.lineWidth=.9;
+  for(const g of SHIM.g){ const k=Math.sin(TIME*g.sp+g.p); if(k<.15)continue; const a=(k-.15)*.2, dx=Math.sin(TIME*.35+g.p)*3;
+    ctx.strokeStyle=`rgba(215,240,228,${a.toFixed(3)})`; ctx.beginPath(); ctx.ellipse(g.x+dx,g.y,g.w*(.8+.2*k),1.1,0,0,TAU); ctx.stroke(); }
+}
 function drawFlies(){
   for(const f of flies){ const x=(f.x*W+Math.sin(TIME*f.s+f.p)*24)%W, y=120+f.y*240+Math.cos(TIME*f.s*1.3+f.p)*10; const a=Math.max(0,Math.sin(TIME*2*f.s+f.p)); if(a<.1)continue;
     ctx.fillStyle=`rgba(240,255,140,${a*.25})`; circ(x,y,4); ctx.fillStyle=`rgba(250,255,190,${a})`; circ(x,y,1.2); }
@@ -2355,6 +2368,7 @@ function render(){
   ctx.setTransform(1,0,0,1,sx*DPR*K,sy*DPR*K); ctx.drawImage(bgCv,0,0);
   ctx.setTransform(DPR*K,0,0,DPR*K,sx*DPR*K,(OY+sy)*DPR*K);
   drawAmbient();
+  drawWaterShimmer();
   drawFlyers();
   drawFireworks();
   drawWildlife();
