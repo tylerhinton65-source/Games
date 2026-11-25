@@ -2377,8 +2377,42 @@ function drawBullets(){
   }
   for(const p of EP){ if(p.col){ ctx.save(); ctx.globalCompositeOperation='lighter'; ctx.fillStyle='rgba(180,100,255,.35)'; circ(p.x,p.y,8); ctx.fillStyle=p.col; circ(p.x,p.y,4.4); ctx.fillStyle='#fff'; circ(p.x,p.y,1.8); ctx.restore(); if(Math.random()<.5)FX.push({k:'goo',x:p.x,y:p.y,vx:rnd(-20,20),vy:rnd(-20,20),t:0,life:.3,s:1.6,col:'#d9a8ff'}); continue; } ctx.fillStyle='#a6e34a'; circ(p.x,p.y,4); ctx.fillStyle='#e0ff9a'; circ(p.x-1,p.y-1,1.5); }
 }
+/* ---- napalm: layered licking flames (red edge -> orange -> yellow-white core), flicker, rising embers, dark smoke ----
+   Embers and smoke come from small fixed pools (capped), so a big napalm run stays cheap. NAPALM_FX=false = old fire. */
+const NAPALM_FX=true, EMB=[], SMK=[], EMB_MAX=70, SMK_MAX=28; let napT=0;
+function napalmParticles(){
+  const dt=clamp(TIME-napT,0,.05); napT=TIME;
+  for(const f of FIRE){ const a=napA(f); if(a<=0)continue;
+    if(EMB.length<EMB_MAX&&Math.random()<dt*14*a) EMB.push({x:f.x+rnd(-f.r*.6,f.r*.6),y:f.y-rnd(4,14),vx:rnd(-8,8),vy:rnd(-55,-30),t:0,life:rnd(.7,1.4),s:rnd(.7,1.4)});
+    if(SMK.length<SMK_MAX&&Math.random()<dt*3.2*a) SMK.push({x:f.x+rnd(-f.r*.4,f.r*.4),y:f.y-rnd(18,26),vx:rnd(-4,6),vy:rnd(-24,-14),t:0,life:rnd(1.4,2.2),s:rnd(5,8)}); }
+  for(const e of EMB){ e.t+=dt; e.x+=(e.vx+Math.sin(TIME*6+e.s*9)*10)*dt; e.y+=e.vy*dt; }
+  for(const m of SMK){ m.t+=dt; m.x+=m.vx*dt; m.y+=m.vy*dt; }
+  for(let i=EMB.length-1;i>=0;i--) if(EMB[i].t>=EMB[i].life) EMB.splice(i,1);
+  for(let i=SMK.length-1;i>=0;i--) if(SMK[i].t>=SMK[i].life) SMK.splice(i,1);
+}
+function napA(f){ const p=f.t/f.life; return Math.min(1,f.t*4)*Math.min(1,(1-p)*2.2); }
+function flameTongue(x,y,w,h,lean){ // one teardrop flame licking upward
+  ctx.beginPath(); ctx.moveTo(x-w,y); ctx.quadraticCurveTo(x-w*1.05,y-h*.45,x+lean,y-h); ctx.quadraticCurveTo(x+w*1.05,y-h*.45,x+w,y); ctx.quadraticCurveTo(x,y+w*.35,x-w,y); ctx.fill(); }
+function drawNapalm(f){
+  const a=napA(f); if(a<=0)return; const seed=f.x*.37+f.y*.11, n=4+Math.min(3,Math.round(f.r/20));
+  ctx.fillStyle=`rgba(30,16,8,${.45*Math.min(1,f.t*3)*Math.min(1,(1-f.t/f.life)*3)})`; ell(f.x,f.y,f.r,f.r*.26);   // scorched ground
+  ctx.fillStyle=`rgba(255,140,50,${.1*a})`; ell(f.x,f.y-6,f.r*1.15,f.r*.55); ell(f.x,f.y-6,f.r*.8,f.r*.38);   // warm glow
+  const layers=[['#c8361e',1,1],['#f07a24',.72,.78],['#ffc94a',.46,.56],['#fff3c4',.22,.34]];
+  for(const [col,ws,hs] of layers){ ctx.fillStyle=col; ctx.globalAlpha=a*(col==='#c8361e'?.85:.95);
+    ell(f.x,f.y-1-3*hs,f.r*.66*ws,(2.5+4.5*hs)*(.6+.4*a));   // low burning body that joins the tongues
+    for(let i=0;i<n;i++){ const u=(i+.5)/n-.5, ph=seed+i*2.3, fl=.72+.18*Math.sin(TIME*11+ph)+.1*Math.sin(TIME*17.3+ph*1.7);
+      const x=f.x+u*f.r*1.45, y=f.y+Math.cos(i*1.9)*f.r*.08, h=(16+14*(1-Math.abs(u)*1.7))*fl*(.55+.45*a), w=(7.6+2*Math.sin(ph))*(.7+.3*a);
+      flameTongue(x,y,w*ws,h*hs,Math.sin(TIME*7+ph)*3*hs); } }
+  ctx.globalAlpha=1;
+}
+function drawNapalmParticles(){
+  for(const m of SMK){ const p=m.t/m.life; ctx.fillStyle=`rgba(45,38,36,${(p<.2?p*5:1-p)*.24})`; circ(m.x,m.y,m.s*(.7+p*1.3)); }
+  for(const e of EMB){ const p=e.t/e.life; ctx.fillStyle=p<.5?'#ffe08a':'#ff8a3c'; ctx.globalAlpha=1-p; circ(e.x,e.y,e.s); }
+  ctx.globalAlpha=1;
+}
 function drawAir(){
-  for(const f of FIRE){ const p=f.t/f.life; const a=Math.min(1,(1-p)*2); ctx.fillStyle=`rgba(40,20,10,${.35*a})`; ell(f.x,f.y,f.r,f.r*.25); for(let i=0;i<5;i++){ const ox=Math.sin(i*2.1+TIME*3)*f.r*.6, oy=Math.cos(i*1.7+TIME*2.5)*f.r*.12; const r=(7+Math.sin(TIME*12+i)*2)*(.7+.3*a); ctx.fillStyle=`rgba(255,${120+i*20},40,${.6*a})`; circ(f.x+ox,f.y+oy-r*.7,r);} }
+  if(NAPALM_FX){ napalmParticles(); for(const f of FIRE) drawNapalm(f); drawNapalmParticles(); }
+  else for(const f of FIRE){ const p=f.t/f.life; const a=Math.min(1,(1-p)*2); ctx.fillStyle=`rgba(40,20,10,${.35*a})`; ell(f.x,f.y,f.r,f.r*.25); for(let i=0;i<5;i++){ const ox=Math.sin(i*2.1+TIME*3)*f.r*.6, oy=Math.cos(i*1.7+TIME*2.5)*f.r*.12; const r=(7+Math.sin(TIME*12+i)*2)*(.7+.3*a); ctx.fillStyle=`rgba(255,${120+i*20},40,${.6*a})`; circ(f.x+ox,f.y+oy-r*.7,r);} }
   for(const b of BOMBS){ if(b.t<0)continue; const p=b.t/b.T; const yy=lerp(b.fromY,b.y,p*p);
     ctx.fillStyle=`rgba(0,0,0,${.15+.3*p})`; ell(b.x,b.y,(b.finale?16:6)*(.4+.6*p),(b.finale?4:1.8)*(.4+.6*p));
     ctx.save(); ctx.translate(b.x,yy); const s=b.finale?2.2:b.mini?.6:1; ctx.scale(s,s); ctx.fillStyle='#3a3f3a'; ell(0,0,3.2,6); ctx.fillStyle='#a33'; ctx.fillRect(-3,-7,6,2.5); ctx.restore(); }
