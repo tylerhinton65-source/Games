@@ -47,12 +47,12 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
 /* logo + tiles scroll; High Scores bar and tip stay pinned at the bottom */
 .mscroll{flex:1 1 auto!important;min-height:0;width:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;display:flex;flex-direction:column;align-items:center;padding-bottom:16px;-webkit-mask-image:linear-gradient(180deg,#000 calc(100% - 22px),transparent);mask-image:linear-gradient(180deg,#000 calc(100% - 22px),transparent)}
 .mscroll>*{flex-shrink:0}
-.mhead{text-align:center;margin-top:4vh;padding:0 16px}
-.logo{display:flex;flex-direction:column;align-items:center;line-height:.86;font-weight:900;letter-spacing:.01em;
+.mhead{text-align:center;margin-top:max(4vh,40px);padding:0 16px}
+.logo{display:flex;flex-direction:row;flex-wrap:nowrap;justify-content:center;align-items:baseline;gap:.1em;line-height:1;font-weight:900;letter-spacing:.01em;
   filter:drop-shadow(0 5px 0 #0a2466) drop-shadow(0 0 22px rgba(70,160,255,.55))}
 .logo span{display:block;background:linear-gradient(180deg,#bff1ff 0%,#5cc4ff 38%,#2a7bff 62%,#1b4fd6 100%);
   -webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-stroke:2.5px #0a2466;padding:0 6px}
-.logo .l1{font-size:64px}.logo .l2{font-size:46px}
+.logo .l1,.logo .l2{font-size:clamp(30px,9.6vw,48px);padding:0 2px;white-space:nowrap}
 .tag{margin-top:8px;font-size:14px;font-weight:700;opacity:.85;letter-spacing:.02em}
 .tiles{width:100%;max-width:460px;padding:20px 16px 0;display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
 .tile{position:relative;border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:12px 6px 10px;text-align:center;
@@ -98,6 +98,26 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
 @keyframes tfade{from{opacity:0}}
 @media (prefers-reduced-motion:reduce){.tiles.pop .tile{animation:tfade .4s ease backwards}}
 .plist .opt.sel{outline:3px solid #ffd166}
+/* Jump back in (last 3 played, per player) + favorites */
+.mshelf{width:100%;max-width:460px;padding:0 16px;transition:transform .55s cubic-bezier(.2,.8,.3,1),opacity .4s}
+.mlab{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin:18px 2px 8px;font-size:13px;font-weight:900;letter-spacing:.02em;text-shadow:0 2px 6px rgba(0,0,0,.6)}
+.mlab small{font-size:11.5px;font-weight:700;opacity:.7}
+.mlab span,.mlab small{white-space:nowrap}
+.jbi{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.jbc{display:flex;align-items:center;gap:7px;min-width:0;border:1px solid rgba(255,209,102,.35);border-radius:16px;padding:7px 8px;text-align:left;
+  background:rgba(20,14,48,.66);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 5px 14px rgba(0,0,0,.28)}
+.jbc:active{transform:scale(.95)}
+.jbc .ico,.jbc .ico img{width:34px;height:34px;flex:none;display:block}
+.jbc b{font-size:12px;font-weight:900;line-height:1.1;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+#menu .tiles{padding-top:0}
+@media (max-width:390px){.jbc{flex-direction:column;justify-content:center;text-align:center;gap:4px;padding:7px 4px}.jbc .ico,.jbc .ico img{width:30px;height:30px}.jbc b{font-size:11.5px;display:block;white-space:nowrap;text-overflow:ellipsis;max-width:100%}}
+.tile .fav{position:absolute;top:6px;right:7px;font-size:15px;line-height:1;filter:drop-shadow(0 1px 2px rgba(0,0,0,.5))}
+.tile.holding{transform:scale(.93);transition:transform .45s}
+.mtoast{position:absolute;left:50%;bottom:calc(120px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:5;background:#fff7e8;color:#2a1a00;font-weight:900;font-size:14px;
+  padding:9px 14px;border-radius:14px;box-shadow:0 8px 20px rgba(0,0,0,.45);white-space:nowrap;pointer-events:none}
+#menu.peek .mshelf{transform:translateY(105vh);pointer-events:none}
+#menu.welcome .mshelf{opacity:0;pointer-events:none}
+#menu:has(.tiles.pop) .mshelf{animation:tfade .7s ease .15s backwards}
 .peekhint{position:absolute;left:0;right:0;bottom:calc(18px + env(safe-area-inset-bottom));text-align:center;font-size:12px;font-weight:800;opacity:0;transition:opacity .3s;pointer-events:none;text-shadow:0 2px 6px rgba(0,0,0,.7)}
 #menu.peek .peekhint{opacity:.8}
 /* ---------- high scores ---------- */
@@ -610,8 +630,10 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
     <div class="logo"><span class="l1">TYLER'S</span><span class="l2">GAMES</span></div>
     <button class="pchip" id="pChip">👤 Add your name</button>
   </header>
+  <div class="mshelf" id="mShelf"></div>
   <div class="tiles" id="tiles"></div>
   </div>
+  <div class="mtoast" id="mToast" hidden></div>
   <div class="mbtns"><button id="peekBtn" aria-label="See the campsite">🏕️</button><span class="r"></span></div>
   <div class="wel" id="wel"><h2 id="welH">Welcome back!</h2><p id="welP"></p>
     <form id="welForm" hidden><input id="welName" maxlength="16" placeholder="Your name" autocomplete="off" autocapitalize="words"><button class="go" type="submit">Let's play</button><button class="skip" type="button" id="welSkip">Skip for now</button></form></div>
@@ -1583,14 +1605,39 @@ const TAGS=['Offline arcade · Benji approved','No Wi-Fi? No problem.','Airplane
 function showMenu(){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
   $('#menu').classList.add('on');
-  $('#tiles').innerHTML=GAMES.map((g,i)=>g.locked
-    ?`<div class="tile locked"><div class="lk">🔒</div><div class="tn">Soon</div><div class="ts">&nbsp;</div></div>`
-    :`<button class="tile" data-game="${g.id}" aria-label="${g.name}" style="--i:${i};${g.style||''}">${typeof g.icon==='function'?g.icon():g.icon}<div class="tn">${g.name}</div><div class="ts">${g.stats?g.stats():''}</div>${g.beta?'<span class="beta">BETA</span>':''}</button>`).join('');
+  renderTiles();
   const standalone=window.navigator.standalone||matchMedia('(display-mode: standalone)').matches;
   $('#mfoot').textContent=standalone?'Works offline · saves automatically':'Tip: in Safari tap Share → Add to Home Screen to play offline';
   Welcome.chip();
 }
-$('#tiles').addEventListener('click',e=>{const b=e.target.closest('[data-game]');if(b)go(b.dataset.game)});
+/* favorites (hold a tile to star it) + Jump back in (last 3 played) — both per player */
+const favs=()=>{const f=store.get('tg_favs',[]);return Array.isArray(f)?f:[]};
+const recents=()=>{const r=store.get('tg_recent',[]);return Array.isArray(r)?r.filter(id=>GAMES.some(g=>g.id===id&&!g.locked)):[]};
+function noteRecent(id){if(!GAMES.some(g=>g.id===id))return;store.set('tg_recent',[id,...recents().filter(x=>x!==id)].slice(0,3))}
+const icoOf=g=>typeof g.icon==='function'?g.icon():g.icon;
+function renderTiles(){
+  const f=favs(),list=[...GAMES.filter(g=>f.includes(g.id)),...GAMES.filter(g=>!f.includes(g.id))];
+  $('#tiles').innerHTML=list.map((g,i)=>g.locked
+    ?`<div class="tile locked"><div class="lk">🔒</div><div class="tn">Soon</div><div class="ts">&nbsp;</div></div>`
+    :`<button class="tile" data-game="${g.id}" aria-label="${g.name}" style="--i:${i};${g.style||''}">${f.includes(g.id)?'<span class="fav">⭐</span>':''}${icoOf(g)}<div class="tn">${g.name}</div><div class="ts">${g.stats?g.stats():''}</div>${g.beta?'<span class="beta">BETA</span>':''}</button>`).join('');
+  const r=recents().map(id=>GAMES.find(g=>g.id===id));
+  $('#mShelf').innerHTML=(r.length?`<div class="mlab"><span>▶ Jump back in</span></div><div class="jbi">${r.map(g=>
+    `<button class="jbc" data-game="${g.id}" aria-label="${g.name}"><div class="ico" style="${g.style||''};border-radius:10px;padding:2px">${icoOf(g)}</div><b>${g.name}</b></button>`).join('')}</div>`:'')+
+    `<div class="mlab"><span>${f.length?'⭐ Favorites':'All games'}</span><small>${f.length?'Hold to star or unstar':'Hold a game to ⭐ it'}</small></div>`;
+}
+let mtT=0;function mToast(m){const t=$('#mToast');t.textContent=m;t.hidden=false;clearTimeout(mtT);mtT=setTimeout(()=>t.hidden=true,1800)}
+function toggleFav(id){const f=favs(),on=!f.includes(id);store.set('tg_favs',on?[...f,id]:f.filter(x=>x!==id));
+  const g=GAMES.find(x=>x.id===id);renderTiles();mToast(on?`⭐ ${g.name} moved to the top`:`${g.name} unstarred`);try{navigator.vibrate&&navigator.vibrate(15)}catch(e){}}
+let hold=null;
+$('#tiles').addEventListener('pointerdown',e=>{const b=e.target.closest('[data-game]');if(!b)return;
+  hold={b,x:e.clientX,y:e.clientY,fired:false,t:setTimeout(()=>{hold.fired=true;b.classList.remove('holding');toggleFav(b.dataset.game)},550)};b.classList.add('holding')});
+const endHold=()=>{if(hold&&!hold.fired){clearTimeout(hold.t);hold.b.classList.remove('holding')}};
+$('#tiles').addEventListener('pointermove',e=>{if(hold&&!hold.fired&&Math.hypot(e.clientX-hold.x,e.clientY-hold.y)>10){endHold();hold=null}});
+$('#tiles').addEventListener('pointerup',endHold);$('#tiles').addEventListener('pointercancel',()=>{endHold();hold=null});
+$('#tiles').addEventListener('contextmenu',e=>e.preventDefault());
+$('#tiles').addEventListener('click',e=>{const b=e.target.closest('[data-game]');if(!b)return;
+  if(hold&&hold.fired){hold=null;return} hold=null;go(b.dataset.game)});
+$('#mShelf').addEventListener('click',e=>{const b=e.target.closest('[data-game]');if(b)go(b.dataset.game)});
 function go(id){
   // replaceState (not location.hash=) so opening a game adds no back-history: an accidental edge swipe can't back out of a game
   try{ history.replaceState(null,'',location.pathname+location.search+(id?'#'+id:'')) }catch(e){}
@@ -1598,6 +1645,7 @@ function go(id){
 }
 function route(id){
   if(id===undefined)id=location.hash.slice(1);
+  if(id)noteRecent(id);
   Sol.close();Patch.close();Snake.close();Blocks.close();G48.close();Mines.close();Cabin.close();Sand.close();Bz.close();TTT.close();HS.close();Gate.close();Wd.close();Swamp.close();
   if(id==='solitaire')Sol.open();else if(id==='patch')Patch.open();else if(id==='snake')Snake.open();else if(id==='blocks')Blocks.open();else if(id==='2048')G48.open();else if(id==='mines')Mines.open();else if(id==='cabin')Cabin.open();else if(id==='sort')Sand.open();else if(id==='bounce')Bz.open();else if(id==='ttt')TTT.open();else if(id==='gate')Gate.open();else if(id==='words')Wd.open();else if(id==='swamp')Swamp.open();else if(id==='scores')HS.open();else showMenu();
 }
