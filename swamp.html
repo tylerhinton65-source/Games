@@ -325,7 +325,7 @@ const ECON=.75;   // overall coin income (Tyler: economy still too fast)
 
 /* ---------------- state ---------------- */
 let S=null;
-const SET=Object.assign({flag:'gator',mute:false,auto:false,rot:90,hat:'straw',shades:'none'},store.get('swamp_set',{}));
+const SET=Object.assign({flag:'gator',mute:false,auto:false,rot:90,hat:'straw',shades:'none',kid:'boy'},store.get('swamp_set',{}));
 let BEST=Object.assign({score:0,wave:0},store.get('swamp_best',{})); BEST.reach=Math.max(BEST.reach||0,BEST.wave||0); // reach = furthest wave in any run (DEV runs too) — unlocks style items
 const P={a:.25,touch:false,tx:0,ty:0,cool:0,recoil:0,flameOn:false,aimTo:null};
 let Z=[],B=[],FX=[],C=[],EP=[],BOMBS=[],PLANE=null,FIRE=[];
@@ -1484,6 +1484,22 @@ function drawShades(c,id){
   if(id==='aviator'){ const g=c.createLinearGradient(0,-13,0,-6); g.addColorStop(0,'#3a2a14'); g.addColorStop(1,'#c9952e'); c.fillStyle=g; c.beginPath(); c.ellipse(4,-9,5.6,4.2,.1,0,TAU); c.fill(); c.strokeStyle='#d9b04a'; c.lineWidth=.8; c.stroke(); c.strokeStyle='#d9b04a'; c.beginPath(); c.moveTo(-1.6,-10); c.lineTo(-8,-9); c.stroke(); c.fillStyle='rgba(255,255,255,.55)'; c.fillRect(1.6,-11.6,3,1); }
   else if(id==='star'){ c.fillStyle='#e0407a'; c.beginPath(); for(let i=0;i<10;i++){ const r=i%2?2.6:6, a=-Math.PI/2+i*Math.PI/5; c.lineTo(4+Math.cos(a)*r,-9.5+Math.sin(a)*r); } c.closePath(); c.fill(); c.fillStyle='rgba(255,255,255,.5)'; c.fillRect(2.6,-11.6,2,.9); c.strokeStyle='#e0407a'; c.lineWidth=.8; c.beginPath(); c.moveTo(-1.6,-10); c.lineTo(-8,-9); c.stroke(); }
 }
+// Boy or girl gator (chosen in Style). Same body, so every hat and flag fits both.
+// The girl has eyelashes, rosy cheeks, a hair bow behind her hat, and dusty-rose overalls.
+const GIRL_OPTION=true, GIRL_OVERALLS=['#d9788c','#a84f66','#c4637a'];
+function isGirl(){ return GIRL_OPTION&&SET.kid==='girl'; }
+function girlFace(c,closed){ // lashes flick up off the top-front of the eye; extra blush
+  c.strokeStyle='#1f3d1a'; c.lineWidth=.9; c.lineCap='round'; c.beginPath();
+  for(const [a,l] of [[-1.25,2.6],[-.85,2.9],[-.45,2.6]]){ const x=3+Math.cos(a)*5.1, y=(closed?-9:-9.5)+Math.sin(a)*(closed?2.2:5.1); c.moveTo(x,y); c.lineTo(x+Math.cos(a-.25)*l,y+Math.sin(a-.25)*l); }
+  c.stroke(); c.lineCap='butt';
+  c.fillStyle='rgba(255,120,140,.35)'; c.beginPath(); c.ellipse(5,3.2,3.2,1.9,0,0,TAU); c.fill();
+}
+function girlBow(c){ // little bow at the back of the head
+  c.save(); c.translate(-10.5,-6); c.rotate(-.35);
+  c.fillStyle='#e07a92'; c.beginPath(); c.moveTo(0,0); c.quadraticCurveTo(-5,-5.5,-6.4,.4); c.quadraticCurveTo(-3.4,2.6,0,0); c.quadraticCurveTo(5,-5.5,6.4,.4); c.quadraticCurveTo(3.4,2.6,0,0); c.fill();
+  c.fillStyle='rgba(255,255,255,.35)'; c.beginPath(); c.ellipse(-3.6,-1.6,1.4,.7,-.5,0,TAU); c.fill();
+  c.fillStyle='#b8546d'; c.beginPath(); c.arc(0,0,1.5,0,TAU); c.fill(); c.restore();
+}
 function drawGator(){
   const a=P.a, blink=(TIME%4)<.12||houseHitT>0;
   const hop=party>0?Math.abs(Math.sin(party*9))*5:0;
@@ -1506,12 +1522,13 @@ function drawGator(){
   const bg=ctx.createLinearGradient(1,0,13,0); bg.addColorStop(0,'#f4eed4'); bg.addColorStop(1,'#d9cfa6'); ctx.fillStyle=bg; ell(6,-22,7,13);
   ctx.strokeStyle='rgba(160,140,90,.55)'; ctx.lineWidth=.6; for(let i=0;i<5;i++){ ctx.beginPath(); ctx.moveTo(1.4,-32+i*5); ctx.quadraticCurveTo(6,-31+i*5,11.6,-32.6+i*5); ctx.stroke(); }
   // overalls with stitching + pocket
-  const og=ctx.createLinearGradient(0,-18,0,-2); og.addColorStop(0,'#4a88c8'); og.addColorStop(1,'#2e5c8f'); ctx.fillStyle=og;
+  const GIRL=isGirl(), OV=GIRL?GIRL_OVERALLS:['#4a88c8','#2e5c8f','#3e78b8'];
+  const og=ctx.createLinearGradient(0,-18,0,-2); og.addColorStop(0,OV[0]); og.addColorStop(1,OV[1]); ctx.fillStyle=og;
   ctx.beginPath(); ctx.moveTo(-13,-17); ctx.lineTo(13,-17); ctx.quadraticCurveTo(15,-2,0,-3); ctx.quadraticCurveTo(-15,-2,-13,-17); ctx.fill();
-  ctx.fillRect(1,-24,10,8); ctx.strokeStyle='#3e78b8'; ctx.lineWidth=2.6; ctx.beginPath(); ctx.moveTo(10,-23); ctx.lineTo(4,-36); ctx.stroke();
+  ctx.fillRect(1,-24,10,8); ctx.strokeStyle=OV[2]; ctx.lineWidth=2.6; ctx.beginPath(); ctx.moveTo(10,-23); ctx.lineTo(4,-36); ctx.stroke();
   ctx.strokeStyle='rgba(255,220,150,.6)'; ctx.lineWidth=.45; ctx.setLineDash([1,1]); ctx.strokeRect(2,-23,8,6); ctx.beginPath(); ctx.moveTo(-12,-15.6); ctx.lineTo(12.6,-15.6); ctx.stroke(); ctx.setLineDash([]);
   ctx.fillStyle='#ffd04a'; circ(9,-22,1.6); ctx.fillStyle='#fff6c0'; circ(8.6,-22.4,.5);
-  ctx.fillStyle='#2e5c8f'; ctx.fillRect(-6,-12,6,4); ctx.fillStyle='#b5382a'; ctx.fillRect(-5.2,-14.4,1.6,3); // little red rag in the pocket
+  ctx.fillStyle=OV[1]; ctx.fillRect(-6,-12,6,4); ctx.fillStyle=GIRL?'#f4e6b0':'#b5382a'; ctx.fillRect(-5.2,-14.4,1.6,3); // little red rag in the pocket
   // front leg
   ctx.translate(0,-bob);
   ctx.fillStyle=gGrad(ctx,5,-6,8,G1,G2); rr(1,-10-hop*.6,9,10,4); ctx.fillStyle='#e9e2c4'; circ(9,-hop*.6,1.4); circ(6,.5-hop*.6,1.4);
@@ -1535,7 +1552,9 @@ function drawGator(){
   if(blink||party>0){ ctx.fillStyle='#57a043'; ell(3,-9.5,5.4,5.2); ctx.strokeStyle='#2e5f24'; ctx.lineWidth=1; ctx.beginPath(); if(party>0){ ctx.moveTo(-1,-8.4); ctx.quadraticCurveTo(3,-12.4,7.5,-8.4); } else { ctx.moveTo(-1,-9); ctx.quadraticCurveTo(3,-6.5,7.5,-9); } ctx.stroke(); }
   else { const px=4.6+Math.cos(a)*.8, py=-9.5+Math.sin(a)*1.2; ctx.fillStyle='#c98a12'; circ(px,py,3); ctx.fillStyle='#1a1a1a'; circ(px+.2,py,1.9); ctx.fillStyle='#fff'; circ(px+1.2,py-1.3,1); circ(px-.9,py+1,.5); }
   ctx.strokeStyle='#2e6a22'; ctx.lineWidth=1.2; ctx.beginPath(); ctx.moveTo(-2.4,-15.4); ctx.quadraticCurveTo(2.4,-17.2,7,-15); ctx.stroke();
+  if(GIRL) girlFace(ctx,blink||party>0);
   drawShades(ctx,SET.shades||'none');
+  if(GIRL) girlBow(ctx);
   ctx.save(); if(party>0){ ctx.translate(0,-Math.abs(Math.sin(party*9))*4); ctx.rotate(Math.sin(party*9)*.15); } drawHat(ctx,SET.hat||'straw'); ctx.restore();
   ctx.restore();
   // gun + front arm (dips down while reloading, raised up when celebrating)
@@ -2405,9 +2424,13 @@ function renderSheet(){
 function styleIcon(kind,id){ const c=document.createElement('canvas'); c.width=104; c.height=72; const g=c.getContext('2d'); g.translate(48,58); g.scale(1.9,1.9);
   g.fillStyle='#57a043'; g.beginPath(); g.ellipse(0,0,12,11,0,0,TAU); g.fill(); g.beginPath(); g.moveTo(4,-6); g.quadraticCurveTo(22,-8,26,-2); g.quadraticCurveTo(27,4,22,6); g.lineTo(4,7); g.fill();
   g.fillStyle='#fff7d6'; g.beginPath(); g.arc(3,-9.5,5,0,TAU); g.fill(); g.fillStyle='#1a1a1a'; g.beginPath(); g.arc(4.6,-9.5,2.2,0,TAU); g.fill();
+  if(kind==='kid'){ if(id==='girl'){ girlFace(g,false); girlBow(g); } drawHat(g,'straw'); return c; }
   if(kind==='hat')drawHat(g,id); else { drawShades(g,id); drawHat(g,'straw'); } return c; }
 function styleRows(rows){
   const best=Math.max(BEST.wave||0,BEST.reach||0);
+  if(GIRL_OPTION){ rows.push({icon:'🐊',name:'Your gator',sub:'Every hat and flag fits both',hdr:true});
+    for(const [k,n,d] of [['boy','Boy gator','Blue overalls'],['girl','Girl gator','Lashes, a bow and rosy overalls']]){ const on=(SET.kid||'boy')===k;
+      rows.push({icon:styleIcon('kid',k),name:n,sub:d,cur:on,btn:{pick:true,on,label:on?'Playing':'Pick',act:()=>{SET.kid=k; store.set('swamp_set',SET); refreshPortrait(); renderSheet();}}}); } }
   rows.push({icon:'🎩',name:'Hats',sub:'Unlock more by reaching new waves (your best: wave '+best+')',hdr:true});
   HATS.forEach(h=>{ const ok=best>=h.w; rows.push({icon:styleIcon('hat',h.id),name:h.name,sub:ok?(h.w?'Unlocked at wave '+h.w:'The classic'):'Reach wave '+h.w+' to unlock',cur:(SET.hat||'straw')===h.id,
     btn:ok?{pick:true,on:(SET.hat||'straw')===h.id,label:(SET.hat||'straw')===h.id?'Wearing':'Wear',act:()=>{SET.hat=h.id; store.set('swamp_set',SET); renderSheet();}}:{locked:true,label:'🔒'}}); });
@@ -2444,18 +2467,18 @@ function tInfo(type,l){ // one-line stats for the turret sheet
 function turretIcon(type,l){ const c=document.createElement('canvas'); c.width=104; c.height=72; const g=c.getContext('2d'); const sc=type==='tesla'?1.5:1.9; g.translate(type==='tesla'?52:44,type==='tesla'?66:56); g.scale(sc,sc); drawTurret(g,type,l,-.3,0); return c; }
 
 /* ---- title portrait (front-facing, cute) ---- */
-$('#gatorPortrait').innerHTML=`<svg viewBox="0 0 220 230" xmlns="http://www.w3.org/2000/svg">
+function portraitSVG(girl){ return `<svg viewBox="0 0 220 230" xmlns="http://www.w3.org/2000/svg">
  <defs><radialGradient id="tpG" cx="38%" cy="30%" r="75%"><stop offset="0" stop-color="#7cc95c"/><stop offset="1" stop-color="#3a7a2c"/></radialGradient>
- <linearGradient id="tpO" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a88c8"/><stop offset="1" stop-color="#2e5c8f"/></linearGradient>
+ <linearGradient id="tpO" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${girl?GIRL_OVERALLS[0]:'#4a88c8'}"/><stop offset="1" stop-color="${girl?GIRL_OVERALLS[1]:'#2e5c8f'}"/></linearGradient>
  <radialGradient id="tpH" cx="40%" cy="30%" r="80%"><stop offset="0" stop-color="#f6dc8a"/><stop offset="1" stop-color="#d9a94e"/></radialGradient></defs>
  <ellipse cx="110" cy="222" rx="74" ry="7" fill="rgba(0,0,0,.35)"/>
  <path d="M150 200 Q200 196 214 170 Q206 196 160 212Z" fill="#4c8f39"/>
  <path d="M46 222 Q46 150 110 140 Q174 150 174 222Z" fill="url(#tpG)"/>
  <path d="M82 222 Q82 170 110 166 Q138 170 138 222Z" fill="#e9e2c4"/>
  <path d="M62 222 Q64 184 110 182 Q156 184 158 222Z" fill="url(#tpO)"/>
- <rect x="76" y="150" width="9" height="42" rx="4" fill="#3e78b8" transform="rotate(-10 80 170)"/><rect x="135" y="150" width="9" height="42" rx="4" fill="#3e78b8" transform="rotate(10 140 170)"/>
+ <rect x="76" y="150" width="9" height="42" rx="4" fill="${girl?GIRL_OVERALLS[2]:'#3e78b8'}" transform="rotate(-10 80 170)"/><rect x="135" y="150" width="9" height="42" rx="4" fill="${girl?GIRL_OVERALLS[2]:'#3e78b8'}" transform="rotate(10 140 170)"/>
  <circle cx="86" cy="190" r="4" fill="#ffd04a"/><circle cx="134" cy="190" r="4" fill="#ffd04a"/>
- <rect x="98" y="196" width="24" height="12" rx="3" fill="#2e5c8f"/>
+ <rect x="98" y="196" width="24" height="12" rx="3" fill="${girl?GIRL_OVERALLS[1]:'#2e5c8f'}"/>
  <path d="M84 160 Q110 176 136 160 L132 151 Q110 162 88 151Z" fill="#c0392b"/>
  <path d="M38 104 Q38 70 72 64 L148 64 Q182 70 182 104 Q182 138 148 146 L72 146 Q38 138 38 104Z" fill="url(#tpG)"/>
  <path d="M56 108 Q110 130 164 108 Q160 140 110 142 Q60 140 56 108Z" fill="#e9e2c4"/>
@@ -2471,7 +2494,12 @@ $('#gatorPortrait').innerHTML=`<svg viewBox="0 0 220 230" xmlns="http://www.w3.o
  <path d="M76 40 Q78 10 110 10 Q142 10 144 40Z" fill="url(#tpH)"/>
  <rect x="77" y="29" width="66" height="8" fill="#b5382a"/>
  <path d="M86 20 Q110 16 134 20" stroke="#c9a04e" stroke-width="2" fill="none"/>
-</svg>`;
+ ${girl?`<path d="M57.5 54.1 L50.2 55.3 M59.7 49.4 L52.4 48.0 M63.4 45.7 L57.0 41.9 M162.5 54.1 L169.8 55.3 M160.3 49.4 L167.6 48.0 M156.6 45.7 L163.0 41.9" stroke="#1f3d1a" stroke-width="2.6" stroke-linecap="round" fill="none"/>
+ <ellipse cx="62" cy="112" rx="11" ry="6" fill="#ff7a90" opacity=".4"/><ellipse cx="158" cy="112" rx="11" ry="6" fill="#ff7a90" opacity=".4"/>
+ <g transform="translate(160 44) rotate(18)"><path d="M0 0 Q-15 -16 -19 2 Q-10 8 0 0 Q15 -16 19 2 Q10 8 0 0Z" fill="#e07a92"/><ellipse cx="-10" cy="-4" rx="4" ry="2" fill="rgba(255,255,255,.35)" transform="rotate(-25 -10 -4)"/><circle r="4.5" fill="#b8546d"/></g>`:''}
+</svg>`; }
+function refreshPortrait(){ $('#gatorPortrait').innerHTML=portraitSVG(isGirl()); }
+refreshPortrait();
 
 /* ---- input ---- */
 function toStage(e){
