@@ -4545,7 +4545,7 @@ const Wd=(()=>{
   function submit(){
     const g=st.cur;
     if(g.length<5){shake();toast('Type 5 letters first');return}
-    if(!isValid(g)){shake();toast(`${g.toUpperCase()} isn’t in the word list`,2000);return}
+    if(!isValid(g)){shake();toast(`${g.toUpperCase()} isn’t a word`,2000);return}
     st.rows.push(g);st.cur='';
     const r=st.rows.length-1,res=score(g,st.ans),win=g===st.ans,lose=!win&&st.rows.length>=6;
     if(win||lose){st.pend=win?'won':'lost';st.played++;
