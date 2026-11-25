@@ -4415,16 +4415,26 @@ const TTT=(()=>{
   function bestMoves(b,me){let top=-99,out=[];
     for(const i of free(b)){b[i]=me;const v=minimax(b,me,me==='X'?'O':'X',1);b[i]='';if(v>top){top=v;out=[i]}else if(v===top)out.push(i)}
     return out}
+  // moves that throw away the computer's best result (lets a sharp player win)
+  function slipMoves(b,me){const best=bestMoves(b,me);return free(b).filter(i=>!best.includes(i))}
   function aiMove(){
     const b=S.b.slice(),me='O',you='X',f=free(b);
-    if(S.mode==='hard')return pick(bestMoves(b,me));
     const win=finishing(b,me),block=finishing(b,you);
-    if(S.mode==='medium'){if(win>=0)return win;if(block>=0)return block;
-      if(Math.random()<.5)return pick(bestMoves(b,me));
-      if(!b[4]&&Math.random()<.6)return 4;return pick(f)}
+    if(S.mode==='hard'){
+      // perfect, except about 1 round in 10 it makes ONE slip somewhere in the round
+      if(S.slip&&!S.slipped){const bad=slipMoves(b,me),left=f.length;
+        if(bad.length&&(Math.random()<.45||left<=4)){S.slipped=true;return pick(bad)}}
+      return pick(bestMoves(b,me))}
+    if(S.mode==='medium'){
+      if(win>=0&&Math.random()<.8)return win;
+      if(block>=0&&Math.random()<.6)return block;
+      if(win<0&&block<0){const bad=slipMoves(b,me);if(bad.length&&Math.random()<.45)return pick(bad)}
+      return pick(bestMoves(b,me))}
     // easy: sometimes spots a win, rarely blocks
-    if(win>=0&&Math.random()<.6)return win;if(block>=0&&Math.random()<.3)return block;return pick(f);
+    if(win>=0&&Math.random()<.5)return win;if(block>=0&&Math.random()<.25)return block;
+    if(!b[4]&&Math.random()<.3)return 4;return pick(f);
   }
+  const newSlip=()=>{S.slip=S.mode==='hard'&&Math.random()<.1;S.slipped=false};
 
   // ---- drawing ----
   function render(anim){
@@ -4452,7 +4462,7 @@ const TTT=(()=>{
       else t=empty?`${S.turn} goes first!`:`${S.turn}’s turn`}
     if(st.textContent!==t){st.textContent=t;st.classList.toggle('win',win);if(win&&anim){st.style.animation='none';void st.offsetWidth;st.style.animation=''}}
     $('#tNext').hidden=!S.done;
-    $('#tHint').textContent=S.done?'Tap the board or Play again for the next round.':(S.mode==='hard'?'Hard never loses — a tie is a win here!':'First move swaps every round.');
+    $('#tHint').textContent=S.done?'Tap the board or Play again for the next round.':(S.mode==='hard'?'Hard almost never loses — a tie is a win here!':'First move swaps every round.');
   }
   // stable random line per finished round (so re-renders don't flip the text)
   let tieLine='';function pick0(a){if(!tieLine)tieLine=pick(a);return tieLine}
@@ -4471,12 +4481,12 @@ const TTT=(()=>{
     aiT=setTimeout(()=>{busy=false;if(!open||S.done)return;place(aiMove(),'O')},380+Math.random()*320)}
   function next(){
     clearTimeout(aiT);busy=false;tieLine='';
-    S.first=S.first==='X'?'O':'X';S.b=Array(9).fill('');S.turn=S.first;S.done=false;save();
+    S.first=S.first==='X'?'O':'X';S.b=Array(9).fill('');S.turn=S.first;S.done=false;newSlip();save();
     cells.forEach(c=>{c.dataset.v='';c.innerHTML=''});render(true);
     if(cpu()&&S.turn==='O')think();
   }
   function setMode(m){if(!MODES[m])return;$('#tMode').hidden=true;
-    if(m===S.mode)return;clearTimeout(aiT);busy=false;tieLine='';S.mode=m;S.b=Array(9).fill('');S.first='X';S.turn='X';S.done=false;save();
+    if(m===S.mode)return;clearTimeout(aiT);busy=false;tieLine='';S.mode=m;S.b=Array(9).fill('');S.first='X';S.turn='X';S.done=false;newSlip();save();
     cells.forEach(c=>{c.dataset.v='';c.innerHTML=''});render(true)}
 
   bd.addEventListener('click',e=>{
