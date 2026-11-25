@@ -1972,10 +1972,21 @@ function gatorHead(c,x,y,s,col,bg){
   c.fillStyle=bg; for(let i=0;i<6;i++){ c.beginPath(); c.moveTo(0+i*5,3); c.lineTo(2+i*5,7); c.lineTo(4+i*5,3); c.fill(); }
   c.restore();
 }
+const SMOOTH_FLAG=true;   // smoother, gustier flag wave (false = the original wave)
 function drawFlag(){
   const x=L.flagX, y=L.flagY, h=88;
   ctx.fillStyle='#c9ccd0'; ctx.fillRect(x-1.5,y-h,3,h); ctx.fillStyle='#ffd04a'; circ(x,y-h-2,3);
-  const img=flagImg(SET.flag||'gator'), fw=52, fh=33, N=16;
+  const img=flagImg(SET.flag||'gator'), fw=52, fh=33;
+  if(SMOOTH_FLAG){ // finer strips, a second small ripple and slow gusts, so the wave rolls instead of stepping
+    const N=28, gust=.82+.22*Math.sin(TIME*.7)+.08*Math.sin(TIME*1.9);
+    for(let i=0;i<N;i++){
+      const u=i/N, p1=TIME*5-u*6, p2=TIME*8.3-u*11, wav=(Math.sin(p1)*3.6+Math.sin(p2)*.6)*u*gust, sl=Math.cos(p1)*u*gust;
+      ctx.drawImage(img,img.width*u,0,img.width/N+1,img.height,x+1.5+u*fw,y-h+2+wav,fw/N+.5,fh);
+      ctx.fillStyle=sl<0?`rgba(0,0,0,${-sl*.16})`:`rgba(255,250,230,${sl*.07})`; ctx.fillRect(x+1.5+u*fw,y-h+2+wav,fw/N+.5,fh);
+    }
+    return;
+  }
+  const N=16;
   for(let i=0;i<N;i++){
     const u=i/N, wav=Math.sin(TIME*5-u*6)*4*u, sh=.85+.15*Math.cos(TIME*5-u*6);
     ctx.drawImage(img,img.width*u,0,img.width/N+1,img.height,x+1.5+u*fw,y-h+2+wav,fw/N+.6,fh);
