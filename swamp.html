@@ -415,6 +415,60 @@ function snd(type){
   }catch(e){}
 }
 
+/* ---- more sound effects (all made in code with Web Audio, so the game stays offline with nothing to download) ----
+   They listen for things happening (a rocket launched, a zombie hit, a boss arriving...) instead of being wired into
+   the game code, so this whole block can be switched off with MORE_SOUNDS=false. Pitch varies a little each time,
+   each sound has a minimum gap so nothing machine-guns, and the Sound on/off setting mutes them all. */
+const MORE_SOUNDS=true, SND_LAST={};
+let SFX_OUT=null;
+function sfxOut(){ // shared output with a gentle limiter so stacked explosions never get harsh
+  if(SFX_OUT)return SFX_OUT; const comp=AC.createDynamicsCompressor(); comp.threshold.value=-14; comp.ratio.value=6; comp.attack.value=.004; comp.release.value=.2;
+  const g=AC.createGain(); g.gain.value=.9; g.connect(comp); comp.connect(AC.destination); return SFX_OUT=g; }
+function noiseBuf(len){ const b=AC.createBuffer(1,Math.max(1,AC.sampleRate*len|0),AC.sampleRate), d=b.getChannelData(0); for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1; return b; }
+function sfx(type,gap){
+  if(SET.mute||!MORE_SOUNDS)return; const now=performance.now()/1000; if(now-(SND_LAST[type]||0)<(gap||0))return; SND_LAST[type]=now;
+  try{ if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)(); if(AC.state==='suspended')AC.resume();
+    const t=AC.currentTime, out=sfxOut(), v=1+(Math.random()-.5)*.16;   // +-8% pitch
+    const env=(g,peak,a,d)=>{ g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(peak,t+a); g.gain.exponentialRampToValueAtTime(.0001,t+a+d); };
+    const noise=(len,ftype,f0,f1,peak,a,d,q)=>{ const n=AC.createBufferSource(); n.buffer=noiseBuf(len); const f=AC.createBiquadFilter(); f.type=ftype; f.Q.value=q||1; f.frequency.setValueAtTime(f0*v,t); f.frequency.exponentialRampToValueAtTime(f1*v,t+len); const g=AC.createGain(); env(g,peak,a,d); n.connect(f); f.connect(g); g.connect(out); n.start(t); n.stop(t+len+.05); };
+    const tone=(wave,f0,f1,peak,a,d)=>{ const o=AC.createOscillator(); o.type=wave; o.frequency.setValueAtTime(f0*v,t); o.frequency.exponentialRampToValueAtTime(f1*v,t+a+d); const g=AC.createGain(); env(g,peak,a,d); o.connect(g); g.connect(out); o.start(t); o.stop(t+a+d+.05); };
+    switch(type){
+      case 'rocket': noise(.45,'bandpass',500,2600,.12,.03,.38,1.4); tone('sawtooth',90,60,.03,.02,.2); break;          // whoosh as it leaves the tube
+      case 'thunk':  tone('sine',190,70,.18,.005,.16); noise(.08,'lowpass',900,300,.08,.003,.07); break;                // grenade / mortar launch
+      case 'goo':    tone('sine',300,120,.09,.01,.14); tone('sine',520,260,.04,.02,.1); break;                           // blorp
+      case 'zap':    tone('square',900,1500,.025,.003,.09); noise(.1,'highpass',3000,5000,.05,.002,.08); break;          // Tesla crackle
+      case 'laser':  tone('sine',1250,1150,.025,.02,.22); tone('triangle',625,600,.02,.02,.2); break;                    // soft beam hum
+      case 'napalm': noise(1.1,'lowpass',300,1400,.16,.15,.9,.7); noise(.9,'bandpass',1800,700,.05,.1,.75,2); break;       // fire whoosh + crackle
+      case 'bigboom':noise(1.4,'lowpass',420,90,.5,.01,1.3); tone('sine',70,32,.35,.01,1); break;                        // the Big One
+      case 'plane':  tone('sawtooth',62,48,.05,.6,1.6); noise(2.2,'lowpass',260,180,.06,.6,1.5); break;                  // B-2 rumble
+      case 'hit':    noise(.06,'bandpass',700,350,.06,.002,.05,1.2); break;                                              // bullet thwack
+      case 'splat':  noise(.18,'lowpass',1300,250,.07,.004,.16); tone('sine',160,60,.045,.004,.14); break;                 // zombie goes down
+      case 'roar':   { const o=AC.createOscillator(), lfo=AC.createOscillator(), lg=AC.createGain(), f=AC.createBiquadFilter(), g=AC.createGain();
+                       o.type='sawtooth'; o.frequency.setValueAtTime(95*v,t); o.frequency.linearRampToValueAtTime(70*v,t+1.1); lfo.frequency.value=7; lg.gain.value=6; lfo.connect(lg); lg.connect(o.frequency);
+                       f.type='lowpass'; f.frequency.value=650; env(g,.18,.12,1); o.connect(f); f.connect(g); g.connect(out); o.start(t); lfo.start(t); o.stop(t+1.2); lfo.stop(t+1.2); break; }
+      case 'cackle': for(let i=0;i<4;i++){ const o=AC.createOscillator(), g=AC.createGain(), st=t+i*.13; o.type='triangle'; o.frequency.setValueAtTime(720*v-i*40,st); o.frequency.exponentialRampToValueAtTime(480*v,st+.1); g.gain.setValueAtTime(.0001,st); g.gain.exponentialRampToValueAtTime(.05,st+.015); g.gain.exponentialRampToValueAtTime(.0001,st+.11); o.connect(g); g.connect(out); o.start(st); o.stop(st+.13); } break;
+      case 'reload': tone('square',1800,1700,.02,.002,.03); setTimeout(()=>sfx('click2'),180); break;
+      case 'click2': tone('square',1300,1250,.025,.002,.04); break;
+      case 'chomp':  noise(.12,'bandpass',500,250,.07,.003,.1,2); break;                                                  // chewing on the fence
+    }
+  }catch(e){}
+}
+let SND_SEEN={kills:0,hits:0,reload:false,plane:false,fence:-1};
+function soundStep(){
+  if(!MORE_SOUNDS||SET.mute||!S||(phase!=='wave'&&phase!=='build'))return;
+  for(const b of B){ if(b._s)continue; b._s=1;
+    if(b.kind==='rocket')sfx('rocket',.12); else if(b.kind==='grenade'||b.kind==='shell')sfx('thunk',.08); else if(b.kind==='goo')sfx('goo',.1); }
+  for(const f of FX){ if(f._s||f.t>.05)continue; f._s=1;
+    if(f.k==='zap')sfx('zap',.14); else if(f.k==='laser')sfx('laser',.3); else if(f.k==='flash')sfx('bigboom',.5); }
+  for(const f of FIRE){ if(!f._s){ f._s=1; sfx('napalm',.35); } }
+  for(const z of Z){ if(z._s)continue; z._s=1; if(z.boss) sfx(z.type==='witch'?'cackle':'roar',1); }
+  if(S.kills>SND_SEEN.kills) sfx('splat',.12); SND_SEEN.kills=S.kills;
+  if(S.hits>SND_SEEN.hits) sfx('hit',.07); SND_SEEN.hits=S.hits;
+  const rl=reloadT>0; if(rl&&!SND_SEEN.reload) sfx('reload',.2); SND_SEEN.reload=rl;
+  const pl=!!PLANE; if(pl&&!SND_SEEN.plane) sfx('plane',2); SND_SEEN.plane=pl;
+  if(phase==='wave'&&S.fence.hp>0&&S.fence.hp<SND_SEEN.fence-6) sfx('chomp',.6); SND_SEEN.fence=S.fence.hp;
+}
+
 /* ---------------- waves ---------------- */
 let WAVE=null;
 const BOSSES=['brute','bossgator','witch','leech','mamagator'];   // one every 5 waves, in this order, then repeat
@@ -2726,6 +2780,7 @@ function frame(now){
   if(phase==='title'){ TIME+=dt; titleStep(dt); fxStep(dt); stepBenji(dt); stepGus(dt); }
   else if(phase!=='paused'&&!FROZEN){ step(dt); }
   render();
+  soundStep();
   if(S&&phase!=='title'){ hudTick(); if(sheet)$('#sheetCoinTxt').textContent=S.dev?'∞':S.coins.toLocaleString(); }
   requestAnimationFrame(frame);
 }
