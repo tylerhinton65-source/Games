@@ -278,17 +278,21 @@ const ZT={
  leechling:{name:'Leechling',hp:22, spd:30, dps:5,  coin:2, score:8,  r:9,  from:999, cost:1},
  babygator:{name:'Baby Gator',hp:26, spd:46, dps:6,  coin:3, score:10, r:7,  from:999, cost:1},
 };
+/* ===== TURRET PRICES & STATS (all in one place) =====
+   cost = price to build · up = price of the first upgrade (each later upgrade costs 1.66x the one before)
+   dmg/rate/range/splash = damage per hit, shots per second, reach, blast radius.
+   Prices balanced Nov 2026 so damage-per-coin is about even: stronger turrets cost proportionally more. */
 const TURRETS={
- rocket: {name:'Rocket Launcher',cost:140, dmg:21, rate:.55, range:420, splash:36, desc:'Homing rockets that blow up groups — and swat birds out of the sky.'},
- goo:    {name:'Goo Lobber', cost:210, dmg:9,  rate:.9,  range:380, splash:42, slow:.45, slowT:2.4, ground:true, desc:'Sticky swamp goo slows a group.'},
- tesla:  {name:'Tesla Coil', cost:560, dmg:24, rate:1,   range:270, chain:3, desc:'Lightning that jumps between zombies.'},
- mortar: {name:'Mortar',     cost:720, dmg:60, rate:.36, range:9999,minR:110,splash:64, ground:true, desc:'Lobs shells anywhere in the swamp.'},
- laser:  {name:'Laser Turret',cost:950, dmg:4.2,rate:10,  range:420, desc:'A searing beam that cuts through a whole line and burns hotter the longer it holds on.'},
- minigun:{name:'Minigun',    cost:1600,dmg:7,  rate:15,  range:360, spin:true, desc:'Six spinning barrels. Takes a second to spin up, then shreds.'},
+ goo:    {name:'Goo Lobber', cost:180, up:162, dmg:9,  rate:.9,  range:380, splash:42, slow:.45, slowT:2.4, ground:true, desc:'Sticky swamp goo slows a group.'},
+ rocket: {name:'Rocket Launcher',cost:300, up:450, dmg:21, rate:.55, range:420, splash:36, desc:'Homing rockets that blow up groups — and swat birds out of the sky.'},
+ tesla:  {name:'Tesla Coil', cost:450, up:405, dmg:24, rate:1,   range:270, chain:3, desc:'Lightning that jumps between zombies.'},
+ mortar: {name:'Mortar',     cost:1000,up:650, dmg:60, rate:.36, range:9999,minR:110,splash:64, ground:true, desc:'Lobs shells anywhere in the swamp.'},
+ minigun:{name:'Minigun',    cost:1100,up:550, dmg:7,  rate:15,  range:360, spin:true, desc:'Six spinning barrels. Takes a second to spin up, then shreds.'},
+ laser:  {name:'Laser Turret',cost:1200,up:720, dmg:4.2,rate:10,  range:420, desc:'A searing beam that cuts through a whole line and burns hotter the longer it holds on.'},
 };
 const TMAX=5, TS=1.3;   // turrets draw 30% bigger than their art units
 function tStat(t,l){const d=TURRETS[t],k=l-1;return{dmg:d.dmg*(1+.5*k),rate:d.rate*(1+.1*k),range:d.range*(1+.07*k),chain:(d.chain||0)+k,splash:(d.splash||0)*(1+.08*k),pellets:(d.pellets||0)+k,slowT:(d.slowT||0)+.3*k}}
-const tUpCost=(t,l)=>Math.round(TURRETS[t].cost*.9*Math.pow(1.66,l-1));
+const tUpCost=(t,l)=>Math.round((TURRETS[t].up??TURRETS[t].cost*.9)*Math.pow(1.66,l-1));
 const FENCES=[
  {name:'No fence',hp:0},
  {name:'Wood Fence',hp:180,cost:100,thorns:0},
