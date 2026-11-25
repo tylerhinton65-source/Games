@@ -657,6 +657,7 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
 <!-- HIGH SCORES -->
 <section id="gate" class="screen" style="background:#141a24"><iframe id="gateFrame" title="Gate Dash" style="flex:1;width:100%;border:0;display:block;background:#141a24"></iframe></section>
 <section id="swamp" class="screen" style="background:#0e1a14;padding:0"><iframe id="swampFrame" title="Swamp Defense" allow="fullscreen" allowfullscreen style="flex:1;width:100%;border:0;display:block;background:#0e1a14"></iframe></section>
+<section id="lawn" class="screen" style="background:#173a1f"><iframe id="lawnFrame" title="Lawn Day" style="flex:1;width:100%;border:0;display:block;background:#173a1f"></iframe></section>
 <section id="hs" class="screen">
   <div class="shade"></div>
   <div class="topbar">
@@ -1619,7 +1620,11 @@ const GAMES=[
   {id:'swamp',name:'Swamp Defense',desc:'Gator defends his bayou cabin from zombies',
    style:'background:linear-gradient(160deg,rgba(74,42,86,.92),rgba(30,64,38,.94))',
    icon:()=>Swamp.icon(),
-   stats(){return Swamp.stats()}}
+   stats(){return Swamp.stats()}},
+  {id:'lawn',name:'Lawn Day',desc:'Mow stripes or shovel snow — endless, relaxing yards',
+   style:'background:linear-gradient(160deg,rgba(150,206,84,.92),rgba(36,110,62,.92))',
+   icon:()=>Lawn.icon(),
+   stats(){return Lawn.stats()}}
 ];
 const TAGS=['Offline arcade · Benji approved','No Wi-Fi? No problem.','Airplane-mode friendly','Campfire certified 🔥','Good boy edition 🐾'];
 function showMenu(){
@@ -1663,8 +1668,8 @@ function go(id){
 function route(id){
   if(id===undefined)id=location.hash.slice(1);
   if(id)noteRecent(id);
-  Sol.close();Patch.close();Snake.close();Blocks.close();G48.close();Mines.close();Cabin.close();Sand.close();Bz.close();TTT.close();HS.close();Gate.close();Wd.close();Swamp.close();
-  if(id==='solitaire')Sol.open();else if(id==='patch')Patch.open();else if(id==='snake')Snake.open();else if(id==='blocks')Blocks.open();else if(id==='2048')G48.open();else if(id==='mines')Mines.open();else if(id==='cabin')Cabin.open();else if(id==='sort')Sand.open();else if(id==='bounce')Bz.open();else if(id==='ttt')TTT.open();else if(id==='gate')Gate.open();else if(id==='words')Wd.open();else if(id==='swamp')Swamp.open();else if(id==='scores')HS.open();else showMenu();
+  Sol.close();Patch.close();Snake.close();Blocks.close();G48.close();Mines.close();Cabin.close();Sand.close();Bz.close();TTT.close();HS.close();Gate.close();Wd.close();Swamp.close();Lawn.close();
+  if(id==='solitaire')Sol.open();else if(id==='patch')Patch.open();else if(id==='snake')Snake.open();else if(id==='blocks')Blocks.open();else if(id==='2048')G48.open();else if(id==='mines')Mines.open();else if(id==='cabin')Cabin.open();else if(id==='sort')Sand.open();else if(id==='bounce')Bz.open();else if(id==='ttt')TTT.open();else if(id==='gate')Gate.open();else if(id==='words')Wd.open();else if(id==='swamp')Swamp.open();else if(id==='lawn')Lawn.open();else if(id==='scores')HS.open();else showMenu();
 }
 window.addEventListener('hashchange',()=>route());
 
@@ -4739,6 +4744,20 @@ const Swamp=(()=>{
   };
 })();
 
+/* ================= LAWN DAY (own file: lawn.html, saves tg_lawn per player) ================= */
+const Lawn=(()=>{
+  const scr=$('#lawn'),fr=$('#lawnFrame');let open=false;
+  const done=d=>({m:Math.max(0,((d&&d.lvl&&d.lvl.mow)||1)-1),s:Math.max(0,((d&&d.lvl&&d.lvl.snow)||1)-1)});
+  return{
+    icon:()=>`<svg class="ico" viewBox="0 0 84 84"><defs><clipPath id="lwclip"><rect x="10" y="10" width="64" height="64" rx="12"/></clipPath></defs><g clip-path="url(#lwclip)"><rect x="10" y="10" width="64" height="64" fill="#3f8a33"/><rect x="10" y="32" width="16" height="42" fill="#76c255"/><rect x="42" y="32" width="16" height="42" fill="#76c255"/><rect x="10" y="10" width="64" height="22" fill="#2c6a26"/><path d="M15 30l-1-6M22 31l2-7M30 30l-1-5M37 31l1-7M45 30l-2-6M52 31l2-6M60 30l-1-7M67 31l1-5" stroke="#4f9a3c" stroke-width="2" stroke-linecap="round"/><g transform="translate(42 38) scale(.8)"><path d="M-6 8L-9 30M6 8L9 30" stroke="#2c2c31" stroke-width="2.6" stroke-linecap="round"/><path d="M-10 30H10" stroke="#111" stroke-width="3.4" stroke-linecap="round"/><rect x="-14" y="-12" width="5" height="9" rx="2" fill="#1b1b1f"/><rect x="9" y="-12" width="5" height="9" rx="2" fill="#1b1b1f"/><rect x="-14" y="3" width="5" height="9" rx="2" fill="#1b1b1f"/><rect x="9" y="3" width="5" height="9" rx="2" fill="#1b1b1f"/><rect x="-12" y="-14" width="24" height="24" rx="6" fill="#d93a2b"/><circle r="6.5" cy="-2" fill="#3a3b40"/><circle cx="2" cy="-4" r="1.6" fill="#f1c232"/></g></g></svg>`,
+    stats(){const d=done(store.get('tg_lawn',null));return d.m?`${d.m} yard${d.m>1?'s':''}`:d.s?`❄️ ${d.s}`:'New!'},
+    row(g){const d=done(g('tg_lawn',null));if(!d.m&&!d.s)return null;return{v:d.m+d.s,t:`${d.m} yard${d.m===1?'':'s'}`,s:d.s?`❄️ ${d.s} shoveled`:''}},
+    open(){document.querySelectorAll('.screen').forEach(x=>x.classList.remove('on'));scr.classList.add('on');open=true;
+      fr.src='lawn.html'+(curPid?'?p='+curPid:'');setTimeout(()=>{try{fr.focus()}catch(e){}},60)},
+    close(){if(!open)return;open=false;scr.classList.remove('on');fr.src='about:blank'} // unloading saves and stops its loop
+  };
+})();
+
 const HS=(()=>{
   const scr=$('#hs');let open=false;
   // read another player's saves without switching to them (player 0 uses the plain keys)
@@ -4761,6 +4780,7 @@ const HS=(()=>{
     gate:g=>Gate.row(g),
     swamp:g=>Swamp.row(g),
     words:g=>lvl(g,'tg_words_level'),
+    lawn:g=>Lawn.row(g),
     ttt:g=>{const t=g('tg_ttt',null);if(!t||!t.sc)return null;const w=['easy','medium','hard'].reduce((a,k)=>a+((t.sc[k]||[0])[0]|0),0);
       const h=t.sc.hard||[0,0,0];if(!w&&!h[1])return null;return{v:w*1000+(h[1]|0),t:`${w} win${w===1?'':'s'}`,s:h[1]?`${h[1]} tie${h[1]>1?'s':''} vs Hard`:''}}
   };
