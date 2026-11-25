@@ -47,12 +47,12 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
 /* logo + tiles scroll; High Scores bar and tip stay pinned at the bottom */
 .mscroll{flex:1 1 auto!important;min-height:0;width:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;display:flex;flex-direction:column;align-items:center;padding-bottom:16px;-webkit-mask-image:linear-gradient(180deg,#000 calc(100% - 22px),transparent);mask-image:linear-gradient(180deg,#000 calc(100% - 22px),transparent)}
 .mscroll>*{flex-shrink:0}
-.mhead{text-align:center;margin-top:max(4vh,40px);padding:0 16px}
+.mhead{text-align:center;margin-top:4vh;padding:0 10px}
 .logo{display:flex;flex-direction:row;flex-wrap:nowrap;justify-content:center;align-items:baseline;gap:.1em;line-height:1;font-weight:900;letter-spacing:.01em;
   filter:drop-shadow(0 5px 0 #0a2466) drop-shadow(0 0 22px rgba(70,160,255,.55))}
 .logo span{display:block;background:linear-gradient(180deg,#bff1ff 0%,#5cc4ff 38%,#2a7bff 62%,#1b4fd6 100%);
   -webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-stroke:2.5px #0a2466;padding:0 6px}
-.logo .l1,.logo .l2{font-size:clamp(30px,9.6vw,48px);padding:0 2px;white-space:nowrap}
+.logo .l1,.logo .l2{font-size:clamp(32px,10.7vw,56px);padding:0 2px;white-space:nowrap}
 .tag{margin-top:8px;font-size:14px;font-weight:700;opacity:.85;letter-spacing:.02em}
 .tiles{width:100%;max-width:460px;padding:20px 16px 0;display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
 .tile{position:relative;border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:12px 6px 10px;text-align:center;
@@ -634,7 +634,7 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
   <div class="tiles" id="tiles"></div>
   </div>
   <div class="mtoast" id="mToast" hidden></div>
-  <div class="mbtns"><button id="peekBtn" aria-label="See the campsite">🏕️</button><span class="r"></span></div>
+  <div class="mbtns"><button id="peekBtn" aria-label="See the campsite" hidden>🏕️</button><span class="r"></span></div>
   <div class="wel" id="wel"><h2 id="welH">Welcome back!</h2><p id="welP"></p>
     <form id="welForm" hidden><input id="welName" maxlength="16" placeholder="Your name" autocomplete="off" autocapitalize="words"><button class="go" type="submit">Let's play</button><button class="skip" type="button" id="welSkip">Skip for now</button></form></div>
   <div class="peekhint">Tap anywhere to see the games</div>
