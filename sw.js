@@ -1,5 +1,5 @@
 // Tyler's Games offline cache. Bump VERSION whenever you upload new files.
-const VERSION = 'tylers-games-v73';
+const VERSION = 'tylers-games-v74';
 const FILES = ['./', './index.html', './gatedash.html', './swamp.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
@@ -33,7 +33,8 @@ function pageFirst(req) {
 
 // Icons and other files: saved copy first, refreshed in the background.
 self.addEventListener('fetch', e => {
-  if (e.request.method !== 'GET' || new URL(e.request.url).origin !== location.origin) return;
+  // '?fresh' requests (the app's update check) always go straight to the network
+  if (e.request.method !== 'GET' || new URL(e.request.url).origin !== location.origin || new URL(e.request.url).searchParams.has('fresh')) return;
   const path = new URL(e.request.url).pathname;
   if (e.request.mode === 'navigate' || path.endsWith('/') || path.endsWith('/index.html') || path.endsWith('/gatedash.html') || path.endsWith('/swamp.html')) {
     e.respondWith(pageFirst(e.request));
