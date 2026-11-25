@@ -1410,7 +1410,7 @@ function drawGun(c,id,sc){
   c.restore();
 }
 // Gator style: hats + shades unlock by best wave reached (no coins)
-const HATS=[{id:'straw',name:'Straw Hat',w:0},{id:'cowboy',name:'Cowboy Hat',w:5},{id:'camo',name:'Camo Cap',w:10},{id:'helmet',name:'Army Helmet',w:15},{id:'pirate',name:'Pirate Hat',w:20},{id:'crown',name:'Swamp King Crown',w:30}];
+const HATS=[{id:'straw',name:'Straw Hat',w:0},{id:'bucket',name:'Fishing Bucket Hat',w:3},{id:'cowboy',name:'Cowboy Hat',w:5},{id:'trucker',name:'Trucker Cap',w:7},{id:'camo',name:'Camo Cap',w:10},{id:'coonskin',name:'Coonskin Cap',w:12},{id:'helmet',name:'Army Helmet',w:15},{id:'lily',name:'Lily Pad Hat',w:18},{id:'pirate',name:'Pirate Hat',w:20},{id:'ranger',name:'Park Ranger Hat',w:25},{id:'crown',name:'Swamp King Crown',w:30}];
 const SHADES=[{id:'none',name:'No Shades',w:0},{id:'aviator',name:'Aviators',w:8},{id:'star',name:'Star Shades',w:25}];
 let party=0, gunDip=0;
 /* ---- fireworks for the wave-clear dance: rockets climb, burst into glowing sparks that fall and twinkle ---- */
@@ -1453,6 +1453,37 @@ function drawFireworks(){
 function gGrad(c,x,y,r,a,b){ const g=c.createRadialGradient(x-r*.35,y-r*.45,r*.1,x,y,r*1.15); g.addColorStop(0,a); g.addColorStop(1,b); return g; }
 function drawHat(c,id){
   switch(id){
+    case 'bucket': // khaki fishing bucket hat with a bobber and a fly hooked in the band
+      c.fillStyle='#8f7f56'; c.beginPath(); c.moveTo(-15,-14); c.quadraticCurveTo(-1,-11.4,13,-14); c.lineTo(9.6,-19.4); c.quadraticCurveTo(-1,-18.4,-11.6,-19.4); c.closePath(); c.fill();
+      c.strokeStyle='rgba(70,55,30,.45)'; c.lineWidth=.5; c.beginPath(); c.moveTo(-13.6,-14.8); c.quadraticCurveTo(-1,-12.6,11.6,-14.8); c.stroke();
+      c.fillStyle=gGrad(c,-1,-24,9,'#ddcfa2','#a8966a'); c.beginPath(); c.moveTo(-9.4,-18.8); c.quadraticCurveTo(-9.8,-28.4,-1,-28.6); c.quadraticCurveTo(7.8,-28.4,7.4,-18.8); c.closePath(); c.fill();
+      c.fillStyle='#6b5a3a'; c.fillRect(-9.4,-21,16.8,2.3);
+      c.fillStyle='#f2efe4'; c.beginPath(); c.arc(4.2,-23.6,1.7,0,TAU); c.fill(); c.fillStyle='#d9583c'; c.beginPath(); c.arc(4.2,-23.6,1.7,Math.PI,0); c.fill();
+      c.strokeStyle='#9aa0a6'; c.lineWidth=.6; c.beginPath(); c.moveTo(-4.6,-25); c.lineTo(-4.6,-21.6); c.quadraticCurveTo(-4.6,-20.4,-3.4,-20.8); c.stroke(); c.fillStyle='#c9a04e'; c.beginPath(); c.ellipse(-4.6,-25.6,1.2,.8,.4,0,TAU); c.fill(); break;
+    case 'coonskin': // fur cap with a striped tail hanging down the back
+      for(let i=0;i<6;i++){ const t=i/5, x=lerp(-8,-17.5,t), y=lerp(-19,-5,t)+Math.sin(t*3)*1.2; c.fillStyle=i===5?'#2e2016':(i%2?'#a98258':'#4a3424'); c.beginPath(); c.ellipse(x,y,3.1-t*.7,2.3,1.05,0,TAU); c.fill(); }
+      c.fillStyle=gGrad(c,-1,-21,10,'#a07a54','#5a4030'); c.beginPath(); c.arc(-1,-17,9.6,Math.PI,0); c.fill();
+      c.fillStyle='#6e5038'; c.beginPath(); c.ellipse(-1,-17,10.6,2.2,0,0,TAU); c.fill();
+      c.strokeStyle='rgba(40,25,15,.3)'; c.lineWidth=.5; c.beginPath(); for(let i=0;i<7;i++){ const a=Math.PI+.4+i*.38, r=4+(i%3)*1.4; c.moveTo(-1+Math.cos(a)*r,-17.5+Math.sin(a)*r); c.quadraticCurveTo(-1+Math.cos(a)*(r+1),-17.5+Math.sin(a)*(r+1)-.8,-1+Math.cos(a+.15)*(r+1.6),-17.5+Math.sin(a+.15)*(r+1.6)); } c.stroke(); break;
+    case 'trucker': // mesh-back trucker cap with a little gator patch, bill forward
+      c.fillStyle='#4d6b3f'; c.beginPath(); c.moveTo(6,-17.6); c.quadraticCurveTo(15.5,-17.8,18.4,-14.6); c.lineTo(6,-15.2); c.fill();
+      c.fillStyle='#55744a'; c.beginPath(); c.arc(-1,-17,9.4,Math.PI,0); c.fill();
+      c.fillStyle='rgba(30,45,25,.5)'; for(let y=-24;y<-17.5;y+=1.6) for(let x=-9;x<-1;x+=1.6) if(Math.hypot(x+1,y+17)<9) c.fillRect(x,y,.7,.7);
+      c.fillStyle=gGrad(c,3,-22,8,'#f6efd9','#d6c9a6'); c.beginPath(); c.moveTo(-1.4,-26.4); c.quadraticCurveTo(7,-26,8.4,-17.2); c.lineTo(-1.4,-17.2); c.closePath(); c.fill();
+      c.fillStyle='#4d6b3f'; c.beginPath(); c.arc(3.4,-21.4,2.4,0,TAU); c.fill(); c.fillStyle='#e8dcc0'; c.beginPath(); c.ellipse(4.2,-21.6,1.5,.7,0,0,TAU); c.fill();
+      c.fillStyle='#3b5530'; c.beginPath(); c.arc(-1,-26.3,1,0,TAU); c.fill(); c.fillRect(-10.4,-17.8,18.8,1.2); break;
+    case 'lily': // a lily pad worn like a hat, with a pink water lily on top
+      c.fillStyle='#2f5f2c'; c.beginPath(); c.ellipse(-1,-16.4,13.4,3.2,-.06,0,TAU); c.fill();
+      c.fillStyle=gGrad(c,-1,-18,13,'#6fae55','#3f7a3a'); c.beginPath(); c.moveTo(-1,-17.4); c.ellipse(-1,-17.4,13,3.4,-.06,.45,TAU-.2); c.closePath(); c.fill();
+      c.strokeStyle='rgba(30,70,30,.5)'; c.lineWidth=.45; c.beginPath(); for(const a of[.9,1.8,2.7,3.6,4.5,5.4]){ c.moveTo(-1,-17.4); c.lineTo(-1+Math.cos(a)*11,-17.4+Math.sin(a)*2.8); } c.stroke();
+      for(let i=0;i<7;i++){ const a=-Math.PI/2+(i-3)*.42; c.fillStyle=i%2?'#f6c6d6':'#eaa4bd'; c.beginPath(); c.moveTo(1,-18.6); c.quadraticCurveTo(1+Math.cos(a-.25)*4,-18.6+Math.sin(a-.25)*4.4,1+Math.cos(a)*6,-18.6+Math.sin(a)*6.4); c.quadraticCurveTo(1+Math.cos(a+.25)*4,-18.6+Math.sin(a+.25)*4.4,1,-18.6); c.fill(); }
+      c.fillStyle='#f2cf5a'; c.beginPath(); c.ellipse(1,-19.4,1.8,1.1,0,0,TAU); c.fill(); break;
+    case 'ranger': // flat-brimmed campaign hat with a pinched peak and leather band
+      c.fillStyle='#6b5636'; c.beginPath(); c.ellipse(-1,-16.4,16.4,3.1,-.05,0,TAU); c.fill();
+      c.fillStyle='rgba(255,240,200,.12)'; c.beginPath(); c.ellipse(-1,-17,14.6,1.6,-.05,Math.PI,0); c.fill();
+      c.fillStyle=gGrad(c,-1,-23,9,'#a8905e','#77603a'); c.beginPath(); c.moveTo(-8.6,-17.2); c.lineTo(-6.2,-26.4); c.quadraticCurveTo(-1,-31.4,4.2,-26.4); c.lineTo(6.6,-17.2); c.closePath(); c.fill();
+      c.strokeStyle='rgba(60,45,25,.55)'; c.lineWidth=.7; c.beginPath(); c.moveTo(-1,-30); c.lineTo(-1,-24.6); c.moveTo(-5.2,-27); c.lineTo(-3.4,-23.6); c.moveTo(3.2,-27); c.lineTo(1.4,-23.6); c.stroke();
+      c.fillStyle='#3a2a18'; c.fillRect(-8.4,-19.8,15,2.2); c.fillStyle='#c9a04e'; c.beginPath(); c.arc(4.6,-18.7,1,0,TAU); c.fill(); break;
     case 'cowboy':
       c.fillStyle='#7a4a22'; c.beginPath(); c.moveTo(-17,-16); c.quadraticCurveTo(-1,-12,17,-18); c.quadraticCurveTo(15,-14,-1,-13.5); c.quadraticCurveTo(-14,-13,-17,-16); c.fill();
       c.fillStyle='#8a5428'; c.beginPath(); c.moveTo(-9,-16); c.quadraticCurveTo(-10,-29,-4,-28); c.quadraticCurveTo(-1,-25.5,2,-28); c.quadraticCurveTo(8,-29,7,-16); c.fill();
