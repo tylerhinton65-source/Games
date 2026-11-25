@@ -107,8 +107,9 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
 .hsrow{display:grid;grid-template-columns:minmax(118px,1fr) repeat(var(--n),minmax(66px,92px));gap:6px;align-items:center;
   border:1px solid rgba(255,255,255,.14);border-radius:16px;background:rgba(34,26,72,.82);padding:8px;text-align:left;width:100%}
 .hsrow:active{background:rgba(60,48,110,.9)}
-.hsrow.hd{background:none;border:0;padding:0 8px;position:sticky;top:-6px;z-index:2}
-.hsrow.hd div{font-size:12px;font-weight:900;text-align:center;opacity:.8;padding:6px 2px;border-radius:10px;background:rgba(20,14,48,.85);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* player names stay pinned on a solid bar while the list scrolls under them */
+.hsrow.hd{background:#191238;border:0;border-radius:0 0 16px 16px;padding:8px 9px;position:sticky;top:-6px;z-index:2;box-shadow:0 8px 14px -6px rgba(0,0,0,.6)}
+.hsrow.hd div{font-size:13px;font-weight:900;text-align:center;opacity:.85;padding:6px 2px;border-radius:10px;background:rgba(255,255,255,.08);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .hsrow.hd div.me{opacity:1;color:#ffd166}
 .hsg{display:flex;align-items:center;gap:8px;min-width:0}
 .hsg .ico{width:34px;height:34px;flex:none;border-radius:10px;padding:3px}
