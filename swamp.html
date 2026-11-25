@@ -1191,6 +1191,7 @@ function drawCabin(c,R){
   // porch floor
   c.fillStyle='#4a2f1c'; c.fillRect(-10,F,206,9);
   for(let x=-10;x<196;x+=13){ c.fillStyle=['#8a5a34','#946238','#7e5230'][Math.floor(R()*3)]; c.fillRect(x,F-3,12.4,5); }
+  if(COZY_PORCH) for(let x=-10;x<196;x+=13){ c.fillStyle='rgba(40,22,10,.35)'; c.fillRect(x+12.4,F-3,.6,5); c.fillStyle='rgba(30,20,12,.6)'; c.fillRect(x+1.6,F-1.4,.8,.8); c.fillRect(x+10,F-1.4,.8,.8); c.fillStyle='rgba(255,225,170,.12)'; c.fillRect(x+.6,F-3,11,.7); c.strokeStyle='rgba(60,35,15,.25)'; c.lineWidth=.4; c.beginPath(); c.moveTo(x+2,F-.2); c.quadraticCurveTo(x+6,F-1.2,x+11,F-.4); c.stroke(); }
   // covered porch: ceiling boards, beam and two log posts under the roof overhang
   const px0=106, px1=208;
   c.fillStyle='#3a2616'; c.beginPath(); c.moveTo(px0,ry(px0)+2); c.lineTo(px1,ry(px1)+2); c.lineTo(px1,ry(px1)+12); c.lineTo(px0,ry(px0)+12); c.fill();
@@ -1302,6 +1303,33 @@ function drawDoorOpen(){ // screen door swings open while Benji goes in or out
 }
 
 /* ---- porch foreground (railing, lantern, rocking chair) ---- */
+/* Cozy porch touches, kept muted and warm so the cabin never pulls focus from the fight:
+   natural-wood rocking chair (no bright quilt), a banjo leaning on the corner post, warm-white string lights that
+   droop along the porch beam with a very gentle twinkle, and worn, nailed floor boards. COZY_PORCH=false = old porch. */
+const COZY_PORCH=true;
+function drawBanjo(x,F){ // leaning against the front corner post, behind the railing
+  ctx.save(); ctx.translate(x,F-1); ctx.rotate(.32);
+  ctx.fillStyle='#4a3020'; ctx.fillRect(-1.3,-33,2.6,26);                                  // neck
+  ctx.fillStyle='#2e1f14'; ctx.beginPath(); ctx.moveTo(-2,-33); ctx.lineTo(2,-33); ctx.lineTo(1.6,-38); ctx.lineTo(-1.6,-38); ctx.fill();   // peghead
+  ctx.fillStyle='#d9cfb4'; for(const py of[-36.5,-34.5]){ ctx.fillRect(-3,py,1.2,.9); ctx.fillRect(1.8,py,1.2,.9); }
+  ctx.fillStyle='#7a5434'; ctx.beginPath(); ctx.arc(0,-6,7.2,0,TAU); ctx.fill();             // wooden rim
+  ctx.fillStyle='#e6dcc0'; ctx.beginPath(); ctx.arc(0,-6,5.8,0,TAU); ctx.fill();             // drum head
+  ctx.fillStyle='rgba(120,90,60,.25)'; ctx.beginPath(); ctx.arc(.8,-5.2,5.8,0,TAU); ctx.fill();
+  ctx.fillStyle='#9a7a52'; ctx.fillRect(-2.2,-4.6,4.4,1.2);                                  // bridge
+  ctx.strokeStyle='rgba(235,230,215,.7)'; ctx.lineWidth=.3; ctx.beginPath(); for(const sx of[-.7,0,.7]){ ctx.moveTo(sx,-1.6); ctx.lineTo(sx*.6,-33); } ctx.stroke();
+  ctx.restore();
+}
+let LIGHTS=null;
+function drawStringLights(ry){
+  if(!LIGHTS){ LIGHTS=[]; const pins=[106,132,158,184,208]; for(let k=0;k<pins.length-1;k++){ const a=pins[k], b=pins[k+1]; for(let j=1;j<=4;j++){ const u=j/5; LIGHTS.push({u,a,b,ph:Math.random()*TAU,sp:.6+Math.random()*.8}); } } }
+  const pins=[106,132,158,184,208], sag=5.5, Y=x=>ry(x)+15.5;
+  ctx.strokeStyle='rgba(30,22,16,.9)'; ctx.lineWidth=.6; ctx.beginPath();
+  for(let k=0;k<pins.length-1;k++){ const a=pins[k], b=pins[k+1]; ctx.moveTo(a,Y(a)); ctx.quadraticCurveTo((a+b)/2,(Y(a)+Y(b))/2+sag*2,b,Y(b)); } ctx.stroke();
+  for(const l of LIGHTS){ const x=lerp(l.a,l.b,l.u), y=lerp(Y(l.a),Y(l.b),l.u)+sag*4*l.u*(1-l.u)+1.6, tw=.86+.14*Math.sin(TIME*l.sp+l.ph);
+    ctx.fillStyle=`rgba(255,214,140,${(.16*tw).toFixed(3)})`; circ(x,y,4.2);
+    ctx.fillStyle='#3a2c20'; ctx.fillRect(x-.5,y-2.2,1,1);
+    ctx.fillStyle=`rgba(255,244,214,${tw.toFixed(3)})`; ell(x,y,1.15,1.45); }
+}
 function drawPorch(){
   const F=L.FLOOR, ry=L.roofY;
   // rocking chair with a quilt, in front of the screen door
@@ -1310,24 +1338,32 @@ function drawPorch(){
   ctx.fillStyle='#6b4528'; ctx.fillRect(-12,-21,23,4); ctx.fillRect(-13,-52,4,36); ctx.fillRect(8,-21,3,20); ctx.fillRect(-11,-19,3,18);
   ctx.fillRect(-13,-52,4,3); for(let i=0;i<3;i++)ctx.fillRect(-12.5,-46+i*8,3,2);
   ctx.fillRect(-12,-33,24,3); ctx.fillRect(9,-33,3,14);
+  if(COZY_PORCH){ // plain natural wood: honey-toned spindles, a woven cane seat, soft highlights (no paint, no quilt)
+    ctx.fillStyle='#9a6c40'; for(let i=0;i<3;i++) ctx.fillRect(-11.6+i*1.4,-50+i*.5,1.1,28); ctx.fillRect(-13,-52,4,3);
+    ctx.fillStyle='#a87a4a'; ctx.fillRect(-12,-21,23,2.4); ctx.strokeStyle='rgba(60,35,15,.45)'; ctx.lineWidth=.4; for(let x=-11;x<10;x+=2){ ctx.beginPath(); ctx.moveTo(x,-21); ctx.lineTo(x+1,-18.6); ctx.stroke(); }
+    ctx.fillStyle='rgba(255,225,170,.22)'; ctx.fillRect(-12.6,-51,1,34); ctx.fillRect(-12,-33,24,.8); ctx.fillRect(9.2,-32,.8,12);
+  } else {
   // patchwork quilt hanging over the back and seat
   const q=['#b5382a','#3e78b8','#e0b04a','#5d8a3c'];
   for(let i=0;i<4;i++)for(let j=0;j<2;j++){ ctx.fillStyle=q[(i+j)%4]; ctx.fillRect(-9+j*4.5,-48+i*6,4.5,6); }
   for(let j=0;j<4;j++){ ctx.fillStyle=q[(j+1)%4]; ctx.fillRect(-9+j*5,-23,5,4); }
+  }
   ctx.restore();
+  if(COZY_PORCH) drawBanjo(181,F);
   // moonshine jug + crawfish trap
   ctx.fillStyle='#c9b48a'; ctx.beginPath(); ctx.ellipse(96,F-6,6,7,0,0,TAU); ctx.fill(); ctx.fillStyle='#8a6a3a'; ctx.fillRect(94,F-16,4,4); ctx.fillStyle='#5a3a22'; ctx.font='900 5px system-ui'; ctx.textAlign='center'; ctx.fillText('XXX',96,F-4);
   ctx.strokeStyle='#6a7a52'; ctx.lineWidth=.8; ctx.strokeRect(4,F-11,15,10); for(let x=6;x<19;x+=3){ctx.beginPath();ctx.moveTo(x,F-11);ctx.lineTo(x,F-1);ctx.stroke();}
   // sandbags on porch edge (cabin armor)
   for(let i=0;i<(S?S.house.armor*2:0);i++){ const x=160+(i%4)*7, y=F-3-Math.floor(i/4)*5; ctx.fillStyle='#a8966a'; ell(x,y,6,3.2); ctx.fillStyle='#8a7a52'; ell(x,y+1.2,5,1.5); }
   // railing (front)
-  ctx.fillStyle='#6b4528'; ctx.fillRect(112,F-22,78,3.5);
+  ctx.fillStyle='#6b4528'; ctx.fillRect(112,F-22,78,3.5); if(COZY_PORCH){ ctx.fillStyle='rgba(255,225,170,.15)'; ctx.fillRect(112,F-22,78,.8); }
   for(let x=116;x<190;x+=9){ if(x>118&&x<146)continue; ctx.fillStyle='#5a3a22'; ctx.fillRect(x,F-20,2.5,18); }
   // Spanish moss swaying from the porch beam
   ctx.strokeStyle='rgba(170,180,150,.85)'; ctx.lineWidth=1.3;
   for(let i=0;i<9;i++){ const mx=116+i*10.5+(i%2)*3, my=ry(mx)+14, ml=10+((i*37)%17), sw=Math.sin(TIME*1.3+i)*2.2;
     ctx.beginPath(); ctx.moveTo(mx,my); ctx.quadraticCurveTo(mx+sw*.5,my+ml*.5,mx+sw,my+ml); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(mx+2,my); ctx.quadraticCurveTo(mx+2+sw*.4,my+ml*.35,mx+2.5+sw*.8,my+ml*.7); ctx.stroke(); }
+  if(COZY_PORCH) drawStringLights(ry);
   // lantern under the porch roof
   const lx=166, ly=ry(166)+30, gl=.6+.08*Math.sin(TIME*7)+.05*Math.sin(TIME*13);
   const rg=ctx.createRadialGradient(lx,ly,2,lx,ly,75); rg.addColorStop(0,`rgba(255,200,90,${.42*gl})`); rg.addColorStop(1,'rgba(255,200,90,0)'); ctx.fillStyle=rg; ctx.fillRect(lx-75,ly-75,150,150);
