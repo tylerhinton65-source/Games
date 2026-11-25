@@ -588,6 +588,8 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
 #wdToast{position:absolute;left:50%;top:6px;transform:translateX(-50%);z-index:5;background:#fff7e8;color:#3a2410;font-weight:900;font-size:14px;
   padding:8px 14px;border-radius:12px;box-shadow:0 6px 16px rgba(0,0,0,.4);white-space:nowrap;pointer-events:none}
 #wdWin,#wdLose{align-items:center}
+.wdreset{font-size:20px;padding:5px 12px;line-height:1;min-width:80px}
+#words .hud small.wdsub{white-space:nowrap}
 .wdans{display:flex;justify-content:center;gap:5px;margin:10px 0 4px}
 .wdans .wdt{--ts:40px;width:40px;height:40px}
 .wdlegend div{display:flex;align-items:center;gap:12px;margin:10px 0;font-weight:700;font-size:14px}
@@ -1169,7 +1171,7 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
   <div class="topbar">
     <button class="tb" id="wdBack" aria-label="Menu">‹ Menu</button>
     <div class="hud"><span style="font-size:16px">Trail Words</span><small class="wdsub" id="wdSub">Level 1</small></div>
-    <span class="tb" style="visibility:hidden" aria-hidden="true">‹ Menu</span>
+    <button class="tb wdreset" id="wdReset" aria-label="Start over">↺</button>
   </div>
   <div class="pboard">
     <div class="pstat hi"><small>Level</small><b id="wdLevel">1</b></div>
@@ -1206,6 +1208,15 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
     <div style="opacity:.7;font-weight:700;font-size:13px">You stay on this level with a new word.</div>
     <button class="opt primary" id="wdlGo" style="text-align:center">Try another word</button>
     <button class="opt ghost" id="wdlMenu">Back to menu</button>
+  </div>
+</div>
+
+<div class="overlay" id="wdResetSheet" hidden>
+  <div class="sheet">
+    <h3>Start over?</h3>
+    <p>This takes you back to Level 1 and resets your streak. Your best streak is kept.</p>
+    <button class="opt" id="wdrYes" style="text-align:center;background:#c0392b">Yes, start over</button>
+    <button class="opt ghost" id="wdrNo">Keep playing</button>
   </div>
 </div>
 
@@ -4587,11 +4598,15 @@ const Wd=(()=>{
     b.classList.add('pr');setTimeout(()=>b.classList.remove('pr'),130);press(b.dataset.k)});
   kb.addEventListener('click',e=>{if(e.detail!==0)return;const b=e.target.closest('[data-k]');if(b)press(b.dataset.k)}); // keyboard/VoiceOver activation
   document.addEventListener('keydown',e=>{if(!open||e.metaKey||e.ctrlKey||e.altKey)return;
-    if(!$('#wdWin').hidden||!$('#wdLose').hidden||!$('#wdInfo').hidden)return;
+    if(!$('#wdWin').hidden||!$('#wdLose').hidden||!$('#wdInfo').hidden||!$('#wdResetSheet').hidden)return;
     if(e.key==='Enter'){e.preventDefault();press('enter')}else if(e.key==='Backspace'){e.preventDefault();press('back')}
     else if(/^[a-zA-Z]$/.test(e.key))press(e.key.toLowerCase())});
   $('#wdBack').onclick=()=>{save();go('')};
   $('#wdHint').onclick=hint;
+  $('#wdReset').onclick=()=>{if(!busy)$('#wdResetSheet').hidden=false};
+  $('#wdrNo').onclick=()=>{$('#wdResetSheet').hidden=true};
+  $('#wdResetSheet').addEventListener('click',e=>{if(e.target.id==='wdResetSheet')e.currentTarget.hidden=true});
+  $('#wdrYes').onclick=()=>{$('#wdResetSheet').hidden=true;const best=st.bestStreak;st=fresh();st.bestStreak=best;newWord();toast('Back to Level 1. Have fun!',1600)};
   $('#wdTrail').onclick=()=>{$('#wdInfo').hidden=false};
   $('#wdiOk').onclick=()=>{$('#wdInfo').hidden=true;store.set('tg_words_intro',1)};
   $('#wdInfo').addEventListener('click',e=>{if(e.target.id==='wdInfo'){e.currentTarget.hidden=true;store.set('tg_words_intro',1)}});
@@ -4614,7 +4629,7 @@ const Wd=(()=>{
       layout();render();hud();
       if(!store.get('tg_words_intro',0))setTimeout(()=>{if(open)$('#wdInfo').hidden=false},250);
     },
-    close(){if(!open)return;if(st)save();open=false;busy=false;['#wdWin','#wdLose','#wdInfo'].forEach(i=>$(i).hidden=true);scr.classList.remove('on')},
+    close(){if(!open)return;if(st)save();open=false;busy=false;['#wdWin','#wdLose','#wdInfo','#wdResetSheet'].forEach(i=>$(i).hidden=true);scr.classList.remove('on')},
     _st:()=>st,_score:score,_diff:diffFor
   };
 })();
