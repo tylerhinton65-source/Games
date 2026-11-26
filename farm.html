@@ -68,7 +68,7 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation;borde
 <div class="ov" id="sheet" hidden><div class="sheet">
   <h3>ASMR Farmer</h3><p>Hold to drive, slide to steer. Tap ↶ ↷ at the end of a row for a perfect turn.</p>
   <button class="opt" id="fastBtn">🚜 Speed <span class="tog" id="fastTog">Chill</span><small>Chill is slow and smooth · Quick gets fields done faster</small></button>
-  <button class="opt" id="ctlBtn">👆 Controls <span class="tog on" id="ctlTog">Swipe</span><small>Swipe: it drives itself, swipe back to turn · Hold: hold to drive, slide to steer</small></button>
+  <button class="opt" id="ctlBtn">👆 Controls <span class="tog on" id="ctlTog">Swipe</span><small>Swipe: it drives itself, swipe ← → to turn · Hold: hold to drive, slide to steer</small></button>
   <button class="opt" id="asBtn">🧭 Steering help <span class="tog" id="asTog">On</span><small>Eases you straight and onto the row when your finger is centered</small></button>
   <button class="opt" id="sndBtn">🔊 Sound <span class="tog" id="sndTog">On</span><small>Engine rumble and crunchy wheat</small></button>
   <button class="opt" id="restart">↻ Start this field over</button>
@@ -268,7 +268,7 @@ function build(){
   if(done/F.reqTotal>=.992)startFinish();
 }
 function setHint(show,txt){const h=$('#hint');
-  h.innerHTML=txt||(P.ctrl==='hold'?'Hold anywhere to drive · slide left/right to steer<br>Center your finger and it straightens up on the row':'Swipe ↑ to drive · swipe back ↓ to turn into the next row<br>Swipe sideways to drift over a row · tap to pause');
+  h.innerHTML=txt||(P.ctrl==='hold'?'Hold anywhere to drive · slide left/right to steer<br>Center your finger and it straightens up on the row':'Swipe ↑ to drive · tap to pause<br>Swipe ← or → to turn into the next row that way');
   h.classList.toggle('off',!show)}
 function hud(){
   $('#ttl').textContent=`Field ${F.lvl}`;$('#sub').textContent=`Wheat · ${F.rows} rows`;
@@ -325,7 +325,7 @@ function request(d){
   if(d%2===0){
     if(d===facing()){C.go=true;C.pending=false}
     else{C.side=chooseSide();C.pending=true;C.go=true}
-  }else{C.trow=clamp(rowOf(C.trow!=null?rowX(C.trow):C.x)+(d===1?1:-1),0,F.rows-1);C.go=true}
+  }else{C.side=d===1?1:-1;C.pending=true;C.go=true} // sideways = turn that way at the end of this row (right away if already there)
 }
 function togglePause(){if(!F||won||P.ctrl!=='swipe')return;if(!C.go&&!C.ap){request(facing());return}C.paused=!C.paused;$('#pauseTag').hidden=!C.paused}
 function driveSwipe(f){
@@ -340,7 +340,7 @@ function driveSwipe(f){
   if(C.go&&!C.paused&&!wheatAhead()){
     const fy=Math.sin(c),ahead=(C.y-(fy<0?F.CY0:F.CY1))*(fy<0?1:-1);
     if(C.pending){const p=planTurn(C.side)||planTurn(-C.side);C.pending=false;if(p){C.a=c;C.ap=p;return}}
-    else if(ahead<=HEAD_F-HEAD_D-1.2&&C.y>F.CY0-HL&&C.y<F.CY1+HL){C.go=false;if(done<F.reqTotal*.99)setHint(true,`Swipe ${fy<0?'↓':'↑'} to turn into the next row`)}
+    else if(ahead<=HEAD_F-HEAD_D-1.2&&C.y>F.CY0-HL&&C.y<F.CY1+HL){C.go=false;if(done<F.reqTotal*.99)setHint(true,'Swipe ← or → to turn into the next row')}
   }
   const wall=facing()===0?F.bounds.y0:F.bounds.y1;if(Math.abs(C.y-wall)<.05&&C.go&&!C.ap){C.go=false}
   move(C.v*f);
