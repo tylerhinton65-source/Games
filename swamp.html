@@ -127,6 +127,17 @@ body:has(.ov:not(#title):not(.hide)) #gatorPortrait{display:none}
 #toast.show{opacity:1}
 .howto{text-align:left;font-size:14px;line-height:1.35;margin:6px 0;padding-left:20px}
 .howto li{margin:4px 0}
+.zcard{max-width:720px}
+.zcards{display:flex;gap:10px;margin-top:10px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:4px}
+.zc{flex:1 0 190px;scroll-snap-align:start;background:rgba(0,0,0,.25);border:2px solid #5d8a5c;border-radius:16px;padding:8px;display:flex;flex-direction:column;gap:6px;text-align:left;color:inherit;font:inherit}
+.zc.cur{border-color:#ffc72c;box-shadow:0 0 0 2px rgba(255,199,44,.35)}
+.zc .zprev{width:100%;aspect-ratio:16/7.2;border-radius:10px;overflow:hidden;background:#0d1a12;position:relative}
+.zc .zprev canvas{width:100%;height:100%;object-fit:cover;display:block}
+.zc .zprev .zbadge{position:absolute;top:6px;left:6px;background:#ffc72c;color:#3a2405;font-size:11px;font-weight:900;border-radius:7px;padding:2px 6px}
+.zc b{font-size:18px}.zc small{opacity:.8;font-size:13px;line-height:1.3}
+.zc .zgo{margin-top:auto;height:40px;border-radius:12px;border:none;font-weight:900;font-size:16px;background:#ffc72c;color:#3a2405}
+.zc.cur .zgo{background:rgba(255,255,255,.12);color:#fff}
+.zc.lock{opacity:.65}.zc.lock .zprev{display:flex;align-items:center;justify-content:center;font-size:34px;background:repeating-linear-gradient(45deg,#1b2a20 0 10px,#22352a 10px 20px)}
 .volrow{gap:10px}.volrow input{flex:1;accent-color:#ffc72c;height:28px}.volrow b{min-width:32px;text-align:right}.sndTip{font-size:13px;opacity:.75;margin:2px 0 0}
 .toggle{display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,.22);border-radius:12px;padding:6px 12px;font-weight:800;flex:1}
 </style>
@@ -183,10 +194,17 @@ body:has(.ov:not(#title):not(.hide)) #gatorPortrait{display:none}
     <div id="titleBest"></div>
     <button class="big" id="contBtn">▶ Continue</button>
     <button class="big" id="newBtn">New Game</button>
-    <div class="small"><button id="howBtn">📖 How to play</button><button id="flagBtn">🎩 Style</button><button id="sndBtn">🔊 Sound</button><button id="zoneBtn">🗺️ Zone</button><button id="fsBtn">⛶ Full screen</button><button id="flipBtn" class="hide">↻ Flip</button></div>
+    <div class="small"><button id="howBtn">📖 How to play</button><button id="flagBtn">🎩 Style</button><button id="sndBtn">🔊 Sound</button><button id="zoneBtn">🗺️ Zones</button><button id="fsBtn">⛶ Full screen</button><button id="flipBtn" class="hide">↻ Flip</button></div>
   </div>
 </div>
 <div id="gatorPortrait"></div>
+
+<div id="zoneOv" class="ov hide"><div class="card zcard">
+  <h2>Choose your zone</h2>
+  <p>Each zone keeps its own game and best score.</p>
+  <div class="zcards" id="zcards"></div>
+  <button class="big alt" id="zoneClose" style="height:38px;font-size:16px;flex:none;margin-top:8px;width:100%">Close</button>
+</div></div>
 
 <div id="sndOv" class="ov hide"><div class="card">
   <h2>Sound</h2>
@@ -1093,16 +1111,44 @@ const SPACE_TREES=true, FILL_GAP=true;
    The cabin is still the swamp cabin for now (next: a beach shack), and the swamp wildlife is hidden here. ---- */
 const BEACH_ZONE=true;
 function isBeach(){ return BEACH_ZONE&&SET.zone==='beach'; }
-function palm(c,x,y,s,R,lean){ c.save(); c.translate(x,y); c.scale(s,s);
-  const lx=lean*60; c.strokeStyle='#6b4a2e'; c.lineWidth=7; c.lineCap='round'; c.beginPath(); c.moveTo(0,0); c.quadraticCurveTo(lx*.2,-60,lx,-118); c.stroke();
+function palm(c,x,y,s,R,lean,sway){ c.save(); c.translate(x,y); c.scale(s,s);
+  const lx=lean*60+(sway||0)*4; c.strokeStyle='#6b4a2e'; c.lineWidth=7; c.lineCap='round'; c.beginPath(); c.moveTo(0,0); c.quadraticCurveTo(lx*.2,-60,lx,-118); c.stroke();
   c.strokeStyle='#8a6440'; c.lineWidth=1.4; for(let i=1;i<12;i++){ const t=i/12, px=lx*t*t, py=-118*t; c.beginPath(); c.moveTo(px-3.5,py); c.lineTo(px+3.5,py-2); c.stroke(); }
   c.translate(lx,-118);
-  for(let i=0;i<8;i++){ const a=-Math.PI/2+(i-3.5)*.42+(R()-.5)*.15, l=44+R()*14, droop=18+R()*10;
+  for(let i=0;i<8;i++){ const a=-Math.PI/2+(i-3.5)*.42+(R()-.5)*.15+(sway||0)*.06*Math.sin(i*1.7), l=44+R()*14, droop=18+R()*10+(sway||0)*2*Math.sin(i*2.3);
     const ex=Math.cos(a)*l, ey=Math.sin(a)*l*.55+droop;
     c.fillStyle=i%2?'#2f6b3a':'#3c8044'; c.beginPath(); c.moveTo(0,0); c.quadraticCurveTo(ex*.5,ey*.2-14,ex,ey); c.quadraticCurveTo(ex*.55,ey*.2-4,0,4); c.fill();
     c.strokeStyle='rgba(20,50,25,.5)'; c.lineWidth=.8; c.beginPath(); c.moveTo(0,0); c.quadraticCurveTo(ex*.5,ey*.2-11,ex,ey); c.stroke(); }
   c.fillStyle='#5a3a22'; for(const [cx,cy] of [[-3,5],[3,6],[0,9]]){ c.beginPath(); c.arc(cx,cy,3.4,0,TAU); c.fill(); }
   c.restore(); }
+/* Live beach layer (drawn every frame, under the zombies): the lighthouse lamp blinks, a little fishing boat
+   putters back and forth on the water with a wake and a bob, and the palms sway gently in the sea breeze. */
+const BOAT={x:0,dir:1,init:false};
+function drawBeachLife(){
+  const fw=W-L.FX, t=TIME;
+  if(L.lighthouse){ const on=(t%3)<1.4, a=on?.9:.15, lx=L.lighthouse.x, ly=L.lighthouse.y;
+    const g=ctx.createRadialGradient(lx,ly,0,lx,ly,on?14:5); g.addColorStop(0,`rgba(255,240,170,${a})`); g.addColorStop(1,'rgba(255,220,140,0)'); ctx.fillStyle=g; ctx.beginPath(); ctx.arc(lx,ly,on?14:5,0,TAU); ctx.fill(); }
+  // boat
+  if(!BOAT.init){ BOAT.x=L.FX+fw*.55; BOAT.init=true; }
+  const x0=L.FX+fw*.3, x1=W-40, dt=Math.min(.05,t-(BOAT.t||t)); BOAT.t=t;
+  BOAT.x+=BOAT.dir*9*dt; if(BOAT.x>x1){BOAT.x=x1;BOAT.dir=-1;} if(BOAT.x<x0){BOAT.x=x0;BOAT.dir=1;}
+  const bx=BOAT.x, by=236+Math.sin(t*1.6)*.8, rock=Math.sin(t*1.3)*.05;
+  ctx.save(); ctx.translate(bx,by);
+  ctx.strokeStyle='rgba(255,255,255,.35)'; ctx.lineWidth=.9; for(let k=1;k<4;k++){ const wx=-BOAT.dir*(10+k*7); ctx.beginPath(); ctx.moveTo(wx,1.5+k*.4); ctx.lineTo(wx-BOAT.dir*6,1.5+k*.4); ctx.stroke(); }
+  ctx.fillStyle='rgba(20,40,60,.3)'; ctx.beginPath(); ctx.ellipse(0,3,15,1.6,0,0,TAU); ctx.fill();
+  ctx.rotate(rock); ctx.scale(BOAT.dir,1);
+  ctx.fillStyle='#f2ece0'; ctx.beginPath(); ctx.moveTo(-14,-3); ctx.lineTo(13,-3); ctx.quadraticCurveTo(12,2,7,3); ctx.lineTo(-11,3); ctx.quadraticCurveTo(-14,1,-14,-3); ctx.fill();
+  ctx.fillStyle='#c84a3e'; ctx.fillRect(-13,-1,25,1.6);
+  ctx.fillStyle='#e9dccb'; ctx.fillRect(-7,-9,8,6); ctx.fillStyle='#5a8ab0'; ctx.fillRect(-5.5,-7.6,2.4,2.2); ctx.fillRect(-2.2,-7.6,2.4,2.2);
+  ctx.fillStyle='#6a4a3a'; ctx.fillRect(-7.5,-10,9,1.3);
+  ctx.strokeStyle='#4a3a30'; ctx.lineWidth=.8; ctx.beginPath(); ctx.moveTo(5,-3); ctx.lineTo(5,-17); ctx.moveTo(5,-16); ctx.lineTo(13,-4); ctx.stroke(); // mast + fishing line
+  ctx.fillStyle='#ffcf6a'; ctx.beginPath(); ctx.arc(-9.5,-5,1,0,TAU); ctx.fill(); // little cabin light
+  ctx.restore();
+  // palms down the beach, swaying
+  const R=mulberry(77);
+  for(const p of [{x:L.FX+fw*.3,s:.75,l:.3,ph:0},{x:L.FX+fw*.52,s:.95,l:-.2,ph:1.7},{x:L.FX+fw*.74,s:.7,l:.35,ph:3.1},{x:W-14,s:1.15,l:-.4,ph:4.4}])
+    palm(ctx,p.x,294,p.s,R,p.l,Math.sin(t*.7+p.ph)*.6+Math.sin(t*1.9+p.ph)*.15);
+}
 function drawBeachBG(c){
   const R=mulberry(23), top=-OY-2, Wd=W+4, fw=W-L.FX;
   // sunset sky
@@ -1114,14 +1160,24 @@ function drawBeachBG(c){
   sg=c.createLinearGradient(0,sy-34,0,sy+10); sg.addColorStop(0,'#fff1b0'); sg.addColorStop(1,'#ff9a52'); c.fillStyle=sg; c.beginPath(); c.arc(sx,sy,34,Math.PI,TAU); c.fill();
   // soft clouds
   for(let i=0;i<6;i++){ const cx=R()*W, cy=60+R()*90, w=40+R()*70; c.fillStyle=`rgba(255,${150+R()*60|0},${150+R()*40|0},.35)`; c.beginPath(); c.ellipse(cx,cy,w,6+R()*5,0,0,TAU); c.fill(); c.beginPath(); c.ellipse(cx+w*.3,cy-5,w*.5,5,0,0,TAU); c.fill(); }
-  // distant island
-  c.fillStyle='#4a3a6a'; c.beginPath(); c.moveTo(L.FX+fw*.08,207); c.quadraticCurveTo(L.FX+fw*.2,188,L.FX+fw*.34,207); c.fill();
+  // distant island: two hills, sunlit rim, a few palms, a beach strip and a little lighthouse (its lamp blinks in drawBeachLife)
+  { const ix=L.FX+fw*.2, iy=207;
+    c.fillStyle='#5a4878'; c.beginPath(); c.moveTo(ix-fw*.14,iy); c.quadraticCurveTo(ix-fw*.08,iy-12,ix-fw*.02,iy-14); c.quadraticCurveTo(ix+fw*.05,iy-24,ix+fw*.1,iy-8); c.quadraticCurveTo(ix+fw*.13,iy-3,ix+fw*.15,iy); c.fill();
+    c.fillStyle='#4a3a68'; c.beginPath(); c.moveTo(ix-fw*.06,iy); c.quadraticCurveTo(ix+fw*.03,iy-20,ix+fw*.1,iy); c.fill();
+    c.strokeStyle='rgba(255,170,120,.55)'; c.lineWidth=1.2; c.beginPath(); c.moveTo(ix+fw*.0,iy-14); c.quadraticCurveTo(ix+fw*.05,iy-24.5,ix+fw*.1,iy-8.5); c.stroke();
+    c.fillStyle='#c79a86'; c.beginPath(); c.ellipse(ix-fw*.02,iy+.5,fw*.1,1.6,0,0,TAU); c.fill();
+    const mini=(x,h,l)=>{ c.strokeStyle='#3a2c52'; c.lineWidth=1.1; c.beginPath(); c.moveTo(x,iy-1); c.quadraticCurveTo(x+l*.4,iy-h*.6,x+l,iy-h); c.stroke(); c.fillStyle='#3a2c52';
+      for(let k=0;k<5;k++){ const a=-Math.PI/2+(k-2)*.6; c.beginPath(); c.moveTo(x+l,iy-h); c.quadraticCurveTo(x+l+Math.cos(a)*4,iy-h+Math.sin(a)*2-1.5,x+l+Math.cos(a)*7,iy-h+Math.sin(a)*2+3); c.lineTo(x+l+Math.cos(a)*6,iy-h+Math.sin(a)*2+3.6); c.quadraticCurveTo(x+l+Math.cos(a)*3,iy-h+Math.sin(a)*2,x+l,iy-h+.8); c.fill(); } };
+    mini(ix-fw*.09,15,2); mini(ix-fw*.075,12,-1.5); mini(ix+fw*.07,13,1.5);
+    // lighthouse on the shoulder of the right hill
+    const lx=ix+fw*.075, lb=iy-7; c.fillStyle='#e8ddd8'; c.beginPath(); c.moveTo(lx-2.4,lb); c.lineTo(lx-1.5,lb-14); c.lineTo(lx+1.5,lb-14); c.lineTo(lx+2.4,lb); c.fill();
+    c.fillStyle='#b8505a'; c.fillRect(lx-2,lb-5,4,2.4); c.fillRect(lx-1.7,lb-10,3.4,2.2); c.fillStyle='#3a2c3a'; c.fillRect(lx-2,lb-17,4,3); c.beginPath(); c.moveTo(lx-2.4,lb-17); c.lineTo(lx,lb-19.5); c.lineTo(lx+2.4,lb-17); c.fill();
+    c.fillStyle='#4a3a5e'; c.beginPath(); c.ellipse(ix+fw*.14,iy-.5,5,2.2,0,0,TAU); c.fill(); // rocks off the point
+    L.lighthouse={x:lx,y:lb-15.5}; }
   // ocean
   g=c.createLinearGradient(0,206,0,292); g.addColorStop(0,'#f2a070'); g.addColorStop(.12,'#3f7fa8'); g.addColorStop(1,'#1f5f86'); c.fillStyle=g; c.fillRect(-2,206,Wd,90);
   c.fillStyle='rgba(255,210,140,.55)'; for(let i=0;i<20;i++){ const y=209+i*i*.2; c.fillRect(sx-26+R()*52-i*2,y,12+R()*40,1.3); }
   c.strokeStyle='rgba(255,255,255,.22)'; c.lineWidth=1; for(let i=0;i<40;i++){ const x=R()*W, y=222+R()*60; c.beginPath(); c.moveTo(x,y); c.quadraticCurveTo(x+6,y-2,x+12,y); c.stroke(); }
-  // a little sailboat
-  { const bx=L.FX+fw*.82, by=232; c.fillStyle='#3a2a3a'; c.beginPath(); c.moveTo(bx-12,by); c.lineTo(bx+12,by); c.lineTo(bx+8,by+4); c.lineTo(bx-8,by+4); c.fill(); c.fillStyle='#f6e8d8'; c.beginPath(); c.moveTo(bx,by-1); c.lineTo(bx,by-24); c.lineTo(bx+11,by-2); c.fill(); }
   // surf line then sand
   c.fillStyle='rgba(255,255,255,.75)'; c.beginPath(); c.moveTo(-2,290); for(let x=-2;x<=W+4;x+=10)c.lineTo(x,284+Math.sin(x*.06)*3+R()*2); c.lineTo(W+4,296); c.lineTo(-2,296); c.fill();
   g=c.createLinearGradient(0,286,0,402); g.addColorStop(0,'#e8c98e'); g.addColorStop(1,'#cfa564'); c.fillStyle=g; c.beginPath(); c.moveTo(-2,293); for(let x=-2;x<=W+4;x+=16)c.lineTo(x,289+Math.sin(x*.05)*2+R()*2); c.lineTo(W+4,402); c.lineTo(-2,402); c.fill();
@@ -1137,7 +1193,6 @@ function drawBeachBG(c){
   c.fillStyle='#7a7470'; for(let i=0;i<5;i++){ const a=R()*TAU; c.beginPath(); c.ellipse(pc+Math.cos(a)*(pw+4),342+Math.sin(a)*32,5+R()*4,3+R()*2,0,0,TAU); c.fill(); }
   // palm trees (behind the cabin, and down the beach — clear of the stairs, fence and turret spots)
   palm(c,170,262,.9,R,-.25);
-  for(const t of [{x:L.FX+fw*.3,s:.75,l:.3},{x:L.FX+fw*.52,s:.95,l:-.2},{x:L.FX+fw*.74,s:.7,l:.35},{x:W-14,s:1.15,l:-.4}]) palm(c,t.x,294,t.s,R,t.l);
   // beach umbrella + towel
   { const ux=L.FX+fw*.62, uy=300; c.fillStyle='#d9524a'; c.fillRect(ux-16,uy+2,30,8); c.fillStyle='#f4e6c8'; c.fillRect(ux-16,uy+4,30,2);
     c.strokeStyle='#eee'; c.lineWidth=1.5; c.beginPath(); c.moveTo(ux,uy+6); c.lineTo(ux+6,uy-30); c.stroke();
@@ -2445,7 +2500,7 @@ function frogOld(x,y,puff,dir){
   ctx.restore();
 }
 function drawWildlife(){
-  if(isBeach())return;
+  if(isBeach()){ drawBeachLife(); return; }
   if(!WL.frogs)return;
   // more cypress knees and a dead snag in the water
   // turtles sunning on a floating log
@@ -2945,8 +3000,29 @@ document.querySelectorAll('.volSl').forEach(sl=>{
   sl.oninput=()=>{ SET.vol=+sl.value; if(SET.vol>0&&SET.mute)SET.mute=false; if(SET.vol===0)SET.mute=true; wakeAudio(true); setVolGain(); store.set('swamp_set',SET); syncSnd(); };
   sl.onchange=()=>{ if(!SET.mute)snd('coin'); }; });
 function goZone(k){ if((SET.zone||'swamp')===k)return; if(phase==='wave'||phase==='paused'||phase==='build')save(); SET.zone=k; store.set('swamp_set',SET); location.reload(); }
-function zoneLabel(){ $('#zoneBtn').textContent=isBeach()?'🐊 Swamp':'🏖️ Beach'; }
-$('#zoneBtn').onclick=()=>goZone(isBeach()?'swamp':'beach'); zoneLabel();
+function zoneLabel(){ $('#zoneBtn').textContent='🗺️ Zones'; }
+$('#zoneBtn').onclick=openZones;
+$('#zoneClose').onclick=()=>$('#zoneOv').classList.add('hide');
+/* Zone picker: one card per zone with a little picture of it, its best wave, and a Play button.
+   Add a new zone by adding it to ZONES (and drawing its background). */
+const ZONES=[{id:'swamp',name:'Swamp',sub:'The bayou cabin under the moon',suf:''},{id:'beach',name:'Beach',sub:'A sea-blue beach house at sunset',suf:'_beach',badge:'NEW'}];
+function zonePreview(id){ const keep=SET.zone; SET.zone=id; const bg=drawBG(); SET.zone=keep; bgCv=null;
+  const t=document.createElement('canvas'); t.width=480; t.height=240; const g=t.getContext('2d');
+  // crop to the cabin + water band so the picture reads at this size
+  const sx=0, sy=bg.height*.12, sw=bg.width, sh=bg.width/2; g.drawImage(bg,sx,Math.min(sy,bg.height-sh),sw,Math.min(sh,bg.height),0,0,480,240);
+  if(id==='beach'){ const k=480/bg.width*DPR*K; g.setTransform(k,0,0,k,0,(OY*DPR*K-Math.min(sy,bg.height-sh))*480/bg.width); const R=mulberry(77), fw=W-L.FX;
+    for(const p of [{x:L.FX+fw*.3,s:.75,l:.3},{x:L.FX+fw*.52,s:.95,l:-.2},{x:L.FX+fw*.74,s:.7,l:.35},{x:W-14,s:1.15,l:-.4}]) palm(g,p.x,294,p.s,R,p.l,0); }
+  return t; }
+function zoneBest(z){ const keep=ZONE_SUF; ZONE_SUF=z.suf; const b=store.get('swamp_best',{}), r=store.get('swamp_run2',null); ZONE_SUF=keep; return {b,r}; }
+function openZones(){ const box=$('#zcards'); box.innerHTML=''; const here=SET.zone||'swamp';
+  for(const z of ZONES){ const {b,r}=zoneBest(z), on=here===z.id, el=document.createElement('button'); el.className='zc'+(on?' cur':'');
+    const pv=document.createElement('div'); pv.className='zprev'; pv.appendChild(zonePreview(z.id)); if(z.badge){ const bd=document.createElement('span'); bd.className='zbadge'; bd.textContent=z.badge; pv.appendChild(bd); }
+    el.appendChild(pv); const nm=document.createElement('b'); nm.textContent=z.name; el.appendChild(nm);
+    const sb=document.createElement('small'); sb.textContent=z.sub+' · '+(b&&b.wave?('Best wave '+b.wave):'Not played yet')+(r&&r.wave?(' · Saved game on wave '+r.wave):''); el.appendChild(sb);
+    const go=document.createElement('span'); go.className='zgo'; go.style.display='flex'; go.style.alignItems='center'; go.style.justifyContent='center'; go.textContent=on?"✓ You're here":'▶ Play here'; el.appendChild(go);
+    el.onclick=()=>{ if(on)$('#zoneOv').classList.add('hide'); else goZone(z.id); }; box.appendChild(el); }
+  const lk=document.createElement('div'); lk.className='zc lock'; lk.innerHTML='<div class="zprev">🔒</div><b>More zones</b><small>Coming soon…</small>'; box.appendChild(lk);
+  $('#zoneOv').classList.remove('hide'); }
 $('#sndBtn').onclick=()=>{ syncSnd(); $('#sndOv').classList.remove('hide'); $('#gatorPortrait').style.visibility='hidden'; };
 $('#sndDone').onclick=()=>{ $('#sndOv').classList.add('hide'); $('#gatorPortrait').style.visibility=''; };
 syncSnd();
