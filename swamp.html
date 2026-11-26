@@ -441,6 +441,8 @@ function sfx(type,gap){
       case 'napalm': noise(1.1,'lowpass',300,1400,.16,.15,.9,.7); noise(.9,'bandpass',1800,700,.05,.1,.75,2); break;       // fire whoosh + crackle
       case 'bigboom':noise(1.4,'lowpass',420,90,.5,.01,1.3); tone('sine',70,32,.35,.01,1); break;                        // the Big One
       case 'plane':  tone('sawtooth',62,48,.05,.6,1.6); noise(2.2,'lowpass',260,180,.06,.6,1.5); break;                  // B-2 rumble
+      case 'woof':   tone('sawtooth',260,150,.09,.01,.13); noise(.14,'bandpass',900,500,.08,.005,.12,1.5); setTimeout(()=>{ if(!SET.mute)sfx('woof2'); },170); break; // big dog bark
+      case 'woof2':  tone('sawtooth',240,130,.08,.01,.14); noise(.14,'bandpass',850,450,.07,.005,.12,1.5); break;
       case 'hit':    noise(.06,'bandpass',700,350,.06,.002,.05,1.2); break;                                              // bullet thwack
       case 'splat':  noise(.18,'lowpass',1300,250,.07,.004,.16); tone('sine',160,60,.045,.004,.14); break;                 // zombie goes down
       case 'roar':   { const o=AC.createOscillator(), lfo=AC.createOscillator(), lg=AC.createGain(), f=AC.createBiquadFilter(), g=AC.createGain();
@@ -960,7 +962,7 @@ function gameOver(){
   setTimeout(()=>{ if(phase==='over'){overFlag=true; showUI();} },950);
 }
 function newGame(){ store.del('swamp_run2'); newRun(); resetWorld(); phase='build'; overFlag=false; save(); showUI(); renderGuns(); }
-function resetWorld(){ FW=[]; FWP=[]; fwQueue=0; Object.assign(BJ,{x:BJ_SPOT,state:'sit',dir:1,door:0,bark:0}); Z=[];B=[];FX=[];C=[];EP=[];BOMBS=[];FIRE=[];PLANE=null;WAVE=null;reloadT=0;P.touch=false;P.a=.25;P.aimTo=null; }
+function resetWorld(){ FW=[]; FWP=[]; fwQueue=0; Object.assign(BJ,{x:BJ_SPOT,state:'sit',dir:1,door:0,bark:0,bigT:8,big:false}); Z=[];B=[];FX=[];C=[];EP=[];BOMBS=[];FIRE=[];PLANE=null;WAVE=null;reloadT=0;P.touch=false;P.a=.25;P.aimTo=null; }
 function migrate(s){ if(!s)return s; if(s.turrets)s.turrets=s.turrets.map(t=>t&&(t.type==='nail'||t.type==='scatter')?Object.assign({},t,{type:'rocket'}):t); const g=s.guns||{}; if(g.rifle){delete g.rifle; g.sniper=1;} if(g.flamer){delete g.flamer; g.flame=1;} for(const k in g)g[k]=1; s.guns=g; if(s.cur==='rifle')s.cur='sniper'; if(s.cur==='flamer')s.cur='flame'; if(!WEAPONS.find(w=>w.id===s.cur))s.cur='pistol'; s.ammo={}; for(const k in g)s.ammo[k]=WEAPONS.find(w=>w.id===k).clip; if((s.v||2)<3&&s.fence&&s.fence.tier>=4){ s.fence.tier+=1; } s.v=3; return s; }
 function continueGame(){ const s=migrate(store.get('swamp_run2',null)); if(!s)return newGame(); S=s; resetWorld(); phase='build'; showUI(); renderGuns(); }
 function pauseGame(){ if(phase!=='wave')return; phase='paused'; P.touch=false; showUI(); }
@@ -1036,6 +1038,8 @@ function drawBG(){
   if(SPACE_TREES) cypress(c,168,250,.82,R); else cypress(c,L.FX+2,262,.9,R);
   cypress(c,L.FX+156,266,.72,R);
   if(SPACE_TREES) cypress(c,L.FX+fw*.47,284,.42,R); else cypress(c,L.FX+12,288,.5,R);
+  // FILL_GAP: Tyler — the open water in front of the porch looked bare once the trees moved, so two cypress stand back in it (clear of the stairs, fence and turret spots)
+  if(SPACE_TREES&&FILL_GAP){ c.globalAlpha=.7; cypress(c,L.FX+30,248,.5,R); c.globalAlpha=1; cypress(c,L.FX+64,258,.74,R); }
   // stumps and cypress knees poking out of the water
   for(let i=0;i<7;i++){ const x=L.FX+R()*fw, y=244+R()*36, h=4+R()*8; c.fillStyle='#3b2a1e'; c.beginPath(); c.moveTo(x-3,y); c.quadraticCurveTo(x,y-h*1.4,x+3,y); c.fill(); c.strokeStyle='rgba(190,230,210,.18)'; c.lineWidth=.8; c.beginPath(); c.ellipse(x,y+.5,6,1.2,0,0,TAU); c.stroke(); }
   // palmettos and ferns along the water's edge
@@ -1059,7 +1063,7 @@ function drawBG(){
   drawCabin(c,R);
   return bgCv;
 }
-const SPACE_TREES=true;
+const SPACE_TREES=true, FILL_GAP=true;
 function snag(c,x,y,s,R){ // dead bare tree
   c.save(); c.translate(x,y); c.scale(s,s); c.strokeStyle='#4a3a30'; c.lineCap='round';
   c.lineWidth=7; c.beginPath(); c.moveTo(0,0); c.quadraticCurveTo(-4,-40,2,-90); c.stroke();
@@ -1217,8 +1221,9 @@ function drawCabin(c,R){
 }
 function circ2(c,x,y,r){c.beginPath();c.arc(x,y,r,0,TAU);c.fill()}
 
-/* ---- Benji: Tyler's dog hangs out on the porch, barks at zombies, and bolts inside when the cabin is in danger ---- */
-const BJ={x:100,state:'sit',dir:1,t:0,bark:0,barkT:2,door:0,safeT:0,hop:0};
+/* ---- Benji: Tyler's dog holds the porch, barks at zombies, and now and then scares one back (BENJI_CHAD) ---- */
+const BJ={x:100,state:'sit',dir:1,t:0,bark:0,barkT:2,door:0,safeT:0,hop:0,bigT:8,big:false};
+const BENJI_CHAD=true; // Tyler: Benji's a Chad now — no yipping and running inside; he stands his ground and now and then a big WOOF scares a zombie back. false = old scaredy Benji
 const BJ_SPOT=82, BJ_DOOR=70;   // sits behind the gator, peeking past his tail
 function benjiDanger(){ if(!S||phase!=='wave')return false; if(S.house.hp<houseMax()*.35)return true; return Z.some(z=>!z.dead&&(z.state==='house'||z.state==='peck')); }
 function stepBenji(dt){
@@ -1227,10 +1232,16 @@ function stepBenji(dt){
   if(danger)BJ.safeT=0; else BJ.safeT+=dt;
   switch(BJ.state){
     case 'sit': case 'stand':
-      if(danger){ BJ.state='flee'; BJ.dir=-1; BJ.bark=.7; BJ.yelp=true; break; }
+      if(danger&&!BENJI_CHAD){ BJ.state='flee'; BJ.dir=-1; BJ.bark=.7; BJ.yelp=true; break; }
+      if(BENJI_CHAD&&phase==='wave'){ // Chad Benji holds the porch; every so often a big WOOF sends a zombie stumbling back
+        BJ.bigT-=dt;
+        if(BJ.bigT<=0){ const tg=Z.filter(z=>!z.dead&&!z.fly&&z.state!=='sub'&&!ZT[z.type]?.boss&&z.x<L.FX+70).sort((a,b)=>a.x-b.x)[0];
+          if(tg){ BJ.bigT=rnd(12,20); BJ.bark=.9; BJ.big=true; BJ.yelp=false; BJ.state='stand'; tg.kbv=Math.min(260,tg.kbv+170*tg.kbRes); tg.flash=.07; num(tg.x,zBox(tg).y0-12,'😱','#fff',true); sfx('woof'); }
+          else BJ.bigT=1; }
+        if(danger&&BJ.state==='sit')BJ.state='stand'; }
       BJ.barkT-=dt;
-      if(phase==='wave'&&BJ.barkT<=0){ const near=Z.some(z=>!z.dead&&z.state!=='sub'&&z.x<L.FX+170); BJ.barkT=near?rnd(1.4,3):rnd(4,8); if(near){ BJ.bark=.6; BJ.yelp=false; BJ.state='stand'; } }
-      if(BJ.state==='stand'&&BJ.bark<=0&&Math.random()<dt*.5) BJ.state='sit';
+      if(phase==='wave'&&BJ.barkT<=0){ const near=Z.some(z=>!z.dead&&z.state!=='sub'&&z.x<L.FX+170); BJ.barkT=near?rnd(1.4,3):rnd(4,8); if(near){ BJ.bark=.6; BJ.yelp=false; BJ.big=false; BJ.state='stand'; } }
+      if(BJ.state==='stand'&&BJ.bark<=0&&!(BENJI_CHAD&&danger)&&Math.random()<dt*.5) BJ.state='sit';
       break;
     case 'flee':
       BJ.door=Math.max(BJ.door,1.2); BJ.x-=90*dt; if(BJ.x<=BJ_DOOR){ BJ.x=BJ_DOOR; BJ.state='inside'; BJ.door=1; }
@@ -1293,7 +1304,7 @@ function drawBenji(){
   ctx.strokeStyle='#e8d6ac'; ctx.lineWidth=.8; ctx.beginPath(); ctx.moveTo(.6,-3.2); ctx.lineTo(3.4,-4.2); ctx.moveTo(1.6,-2.8); ctx.lineTo(4.2,-3.4); ctx.stroke();
   ctx.restore();
   ctx.restore();
-  if(BJ.bark>.15){ const bx=BJ.x-4, by=L.FLOOR-40; ctx.font='900 8px ui-rounded,system-ui,sans-serif'; ctx.textAlign='center'; ctx.lineWidth=2.6; ctx.strokeStyle='rgba(0,0,0,.6)'; const tx=BJ.yelp?'yip!':'woof!'; ctx.strokeText(tx,bx,by); ctx.fillStyle='#fff'; ctx.fillText(tx,bx,by); }
+  if(BJ.bark>.15){ const bx=BJ.x-4, by=L.FLOOR-40-(BJ.big?4:0); ctx.font=BJ.big?'900 12px ui-rounded,system-ui,sans-serif':'900 8px ui-rounded,system-ui,sans-serif'; ctx.textAlign='center'; ctx.lineWidth=2.6; ctx.strokeStyle='rgba(0,0,0,.6)'; const tx=BJ.yelp?'yip!':BJ.big?'WOOF!':'woof!'; ctx.strokeText(tx,bx,by); ctx.fillStyle='#fff'; ctx.fillText(tx,bx,by); }
 }
 function drawDoorOpen(){ // screen door swings open while Benji goes in or out
   if(BJ.door<=0)return; const o=Math.min(1,BJ.door), dx0=80, dx1=106, dy0=196, F=L.FLOOR;
@@ -2218,7 +2229,7 @@ function wlInit(){
   WL.frogs=[{p:1,hop:0,from:1,puff:0,next:4},{p:4,hop:0,from:4,puff:0,next:7}];
   WL.log={x:f+fw*.645,y:252};
   if(!WL.gus)WL.gus={x:f+90,y:276,dir:1,t:0,cd:rnd(6,10),aim:0,wave:0,catchT:rnd(15,25),fish:0,face:1}; WL.heron={x:Math.min(W-30,f+fw*.93),y:283}; WL.eyes={x:f+fw*.58,y:246,dir:1};
-  WL.trunks=(SPACE_TREES?[f+fw*.47]:[f+2,f+12]).concat([f+156,f+fw*.17,f+fw*.36,f+fw*.44,f+fw*.55,f+fw*.72,f+fw*.84,W-8]);
+  WL.trunks=(SPACE_TREES?[f+fw*.47].concat(FILL_GAP?[f+30,f+64]:[]):[f+2,f+12]).concat([f+156,f+fw*.17,f+fw*.36,f+fw*.44,f+fw*.55,f+fw*.72,f+fw*.84,W-8]);
 }
 function stepWildlife(dt){
   if(!WL.frogs||WL.w!==W){ wlInit(); WL.w=W; }
@@ -2745,7 +2756,7 @@ function styleIcon(kind,id){ const c=document.createElement('canvas'); c.width=1
 function styleRows(rows){
   const best=Math.max(BEST.wave||0,BEST.reach||0);
   if(GIRL_OPTION){ rows.push({icon:'🐊',name:'Your gator',sub:'Every hat and flag fits both',hdr:true});
-    for(const [k,n,d] of [['boy','Boy gator','Blue overalls'],['girl','Girl gator','Lashes, a bow and rosy overalls']]){ const on=(SET.kid||'boy')===k;
+    for(const [k,n,d] of [['boy','Tyler','Blue overalls'],['girl','Lauren','Lashes, a bow and rosy overalls']]){ const on=(SET.kid||'boy')===k;
       rows.push({icon:styleIcon('kid',k),name:n,sub:d,cur:on,btn:{pick:true,on,label:on?'Playing':'Pick',act:()=>{SET.kid=k; store.set('swamp_set',SET); refreshPortrait(); renderSheet();}}}); } }
   rows.push({icon:'🎩',name:'Hats',sub:'Unlock more by reaching new waves (your best: wave '+best+')',hdr:true});
   HATS.forEach(h=>{ const ok=best>=h.w; rows.push({icon:styleIcon('hat',h.id),name:h.name,sub:ok?(h.w?'Unlocked at wave '+h.w:'The classic'):'Reach wave '+h.w+' to unlock',cur:(SET.hat||'straw')===h.id,
