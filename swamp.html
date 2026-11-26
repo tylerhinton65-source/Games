@@ -92,6 +92,7 @@ button{font:inherit;color:inherit;border:0;cursor:pointer}
 #titleBest{font-size:13px;font-weight:800;opacity:.85;margin:4px 0 2px}
 #titleBox .small{display:flex;gap:8px}
 #titleBox .small button{flex:1;height:52px;border-radius:15px;background:rgba(20,40,26,.9);border:2px solid #5d8a5c;font-weight:800;font-size:17px}
+body:has(.ov:not(#title):not(.hide)) #gatorPortrait{display:none}
 #gatorPortrait{position:absolute;left:calc(var(--pl) + 3%);bottom:6%;height:72%;z-index:21;pointer-events:none;filter:drop-shadow(0 8px 12px rgba(0,0,0,.5))}
 #gatorPortrait svg{height:100%;width:auto}
 /* sheet: right-side panel */
@@ -182,7 +183,7 @@ button{font:inherit;color:inherit;border:0;cursor:pointer}
     <div id="titleBest"></div>
     <button class="big" id="contBtn">▶ Continue</button>
     <button class="big" id="newBtn">New Game</button>
-    <div class="small"><button id="howBtn">📖 How to play</button><button id="flagBtn">🎩 Style</button><button id="sndBtn">🔊 Sound</button><button id="fsBtn">⛶ Full screen</button><button id="flipBtn" class="hide">↻ Flip</button></div>
+    <div class="small"><button id="howBtn">📖 How to play</button><button id="flagBtn">🎩 Style</button><button id="sndBtn">🔊 Sound</button><button id="zoneBtn">🗺️ Zone</button><button id="fsBtn">⛶ Full screen</button><button id="flipBtn" class="hide">↻ Flip</button></div>
   </div>
 </div>
 <div id="gatorPortrait"></div>
@@ -251,7 +252,9 @@ button{font:inherit;color:inherit;border:0;cursor:pointer}
 const $=s=>document.querySelector(s);
 const cv=$('#cv'), ctx=cv.getContext('2d'), stage=$('#stage');
 const TAU=Math.PI*2, rnd=(a,b)=>a+Math.random()*(b-a), clamp=(v,a,b)=>v<a?a:v>b?b:v, lerp=(a,b,t)=>a+(b-a)*t;
-const PK=(()=>{let p=null;try{p=new URLSearchParams(location.search).get('p')}catch(e){}return k=>p&&p!=='0'?'p'+p+':'+k:k})();
+// Each zone keeps its own run and best (swamp keeps the original keys, so old saves stay put)
+let ZONE_SUF='';
+const PK=(()=>{let p=null;try{p=new URLSearchParams(location.search).get('p')}catch(e){}return k=>{ if(ZONE_SUF&&(k==='swamp_run2'||k==='swamp_best'))k+=ZONE_SUF; return p&&p!=='0'?'p'+p+':'+k:k; }})();
 const IN_FRAME=(()=>{try{return window.parent!==window&&!!window.parent.tgGoHome}catch(e){return false}})();
 const store={get(k,d){k=PK(k);try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){k=PK(k);try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},del(k){k=PK(k);try{localStorage.removeItem(k)}catch(e){}}};
 
@@ -338,6 +341,7 @@ const ECON=.75;   // overall coin income (Tyler: economy still too fast)
 /* ---------------- state ---------------- */
 let S=null;
 const SET=Object.assign({flag:'gator',mute:false,auto:false,rot:90,hat:'straw',shades:'none',kid:'boy',vol:80},store.get('swamp_set',{}));
+ZONE_SUF=(SET.zone==='beach')?'_beach':'';
 let BEST=Object.assign({score:0,wave:0},store.get('swamp_best',{})); BEST.reach=Math.max(BEST.reach||0,BEST.wave||0); // reach = furthest wave in any run (DEV runs too) — unlocks style items
 const P={a:.25,touch:false,tx:0,ty:0,cool:0,recoil:0,flameOn:false,aimTo:null};
 let Z=[],B=[],FX=[],C=[],EP=[],BOMBS=[],PLANE=null,FIRE=[];
@@ -2719,7 +2723,7 @@ function showUI(){
 function refreshTitle(){
   const r=store.get('swamp_run2',null); $('#contBtn').classList.toggle('hide',!r);
   if(r)$('#contBtn').textContent='▶ Continue · Wave '+r.wave;
-  $('#titleBest').textContent=BEST.score?('🏆 High score '+BEST.score.toLocaleString()+' · Best wave '+BEST.wave):'Defend the cabin. Save the bayou.';
+  $('#titleBest').textContent=BEST.score?('🏆 High score '+BEST.score.toLocaleString()+' · Best wave '+BEST.wave):(isBeach()?'🏖️ Beach zone · Defend the beach house.':'Defend the cabin. Save the bayou.');
 }
 let hudCache={};
 function hudTick(force){
@@ -2841,7 +2845,7 @@ function styleRows(rows){
       rows.push({icon:styleIcon('kid',k),name:n,sub:d,cur:on,btn:{pick:true,on,label:on?'Playing':'Pick',act:()=>{SET.kid=k; store.set('swamp_set',SET); refreshPortrait(); renderSheet();}}}); } }
   if(BEACH_ZONE){ rows.push({icon:'🗺️',name:'Zone',sub:'Where the gator makes his stand',hdr:true});
     for(const [k,n,d,ic] of [['swamp','Swamp','The bayou cabin','🐊'],['beach','Beach','New! Work in progress','🏖️']]){ const on=(SET.zone||'swamp')===k;
-      rows.push({icon:ic,name:n,sub:d,cur:on,btn:{pick:true,on,label:on?'Here':'Go',act:()=>{SET.zone=k; store.set('swamp_set',SET); bgCv=null; renderSheet();}}}); } }
+      rows.push({icon:ic,name:n,sub:d,cur:on,btn:{pick:true,on,label:on?'Here':'Go',act:()=>goZone(k)}}); } }
   rows.push({icon:'🎩',name:'Hats',sub:'Unlock more by reaching new waves (your best: wave '+best+')',hdr:true});
   HATS.forEach(h=>{ const ok=best>=h.w; rows.push({icon:styleIcon('hat',h.id),name:h.name,sub:ok?(h.w?'Unlocked at wave '+h.w:'The classic'):'Reach wave '+h.w+' to unlock',cur:(SET.hat||'straw')===h.id,
     btn:ok?{pick:true,on:(SET.hat||'straw')===h.id,label:(SET.hat||'straw')===h.id?'Wearing':'Wear',act:()=>{SET.hat=h.id; store.set('swamp_set',SET); renderSheet();}}:{locked:true,label:'🔒'}}); });
@@ -2940,6 +2944,9 @@ $('#muteBtn').onclick=toggleMute; $('#muteBtn2').onclick=toggleMute;
 document.querySelectorAll('.volSl').forEach(sl=>{
   sl.oninput=()=>{ SET.vol=+sl.value; if(SET.vol>0&&SET.mute)SET.mute=false; if(SET.vol===0)SET.mute=true; wakeAudio(true); setVolGain(); store.set('swamp_set',SET); syncSnd(); };
   sl.onchange=()=>{ if(!SET.mute)snd('coin'); }; });
+function goZone(k){ if((SET.zone||'swamp')===k)return; if(phase==='wave'||phase==='paused'||phase==='build')save(); SET.zone=k; store.set('swamp_set',SET); location.reload(); }
+function zoneLabel(){ $('#zoneBtn').textContent=isBeach()?'🐊 Swamp':'🏖️ Beach'; }
+$('#zoneBtn').onclick=()=>goZone(isBeach()?'swamp':'beach'); zoneLabel();
 $('#sndBtn').onclick=()=>{ syncSnd(); $('#sndOv').classList.remove('hide'); $('#gatorPortrait').style.visibility='hidden'; };
 $('#sndDone').onclick=()=>{ $('#sndOv').classList.add('hide'); $('#gatorPortrait').style.visibility=''; };
 syncSnd();
