@@ -64,6 +64,7 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
 .tile .ts{font-size:11px;font-weight:700;opacity:.8;white-space:nowrap}
 .tile.locked{opacity:.55}
 .tile .beta{position:absolute;top:5px;right:5px;font-size:8.5px;font-weight:900;letter-spacing:.5px;background:#ffc72c;color:#3a2405;border-radius:6px;padding:1px 4px;box-shadow:0 1px 3px rgba(0,0,0,.35)}
+.tile .beta.dev{background:#7fd8ff;color:#06283a;left:7px;right:auto;top:7px}
 .tile.locked .lk{width:62px;height:62px;display:flex;align-items:center;justify-content:center;font-size:26px;border-radius:16px;background:rgba(255,255,255,.08)}
 .hsbar{display:block;width:calc(100% - 32px);max-width:428px;margin:6px auto 0;border:1px solid rgba(255,209,102,.45);border-radius:18px;padding:13px;
   background:rgba(20,14,48,.66);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 6px 18px rgba(0,0,0,.28);font-weight:900;font-size:17px;color:#ffd166;flex:none}
@@ -1622,11 +1623,11 @@ const GAMES=[
    style:'background:linear-gradient(160deg,rgba(74,42,86,.92),rgba(30,64,38,.94))',
    icon:()=>Swamp.icon(),
    stats(){return Swamp.stats()}},
-  {id:'lawn',name:'Lawn Day',desc:'Mow stripes or shovel snow — endless, relaxing yards',
+  {id:'lawn',dev:true,name:'Lawn Day',desc:'Mow stripes or shovel snow — endless, relaxing yards',
    style:'background:linear-gradient(160deg,rgba(150,206,84,.92),rgba(36,110,62,.92))',
    icon:()=>Lawn.icon(),
    stats(){return Lawn.stats()}},
-  {id:'farm',name:'ASMR Farmer',desc:'Slow, satisfying wheat harvest — straight rows, endless fields',
+  {id:'farm',dev:true,name:'ASMR Farmer',desc:'Slow, satisfying wheat harvest — straight rows, endless fields',
    style:'background:linear-gradient(160deg,rgba(236,192,92,.94),rgba(150,96,34,.94))',
    icon:()=>Farm.icon(),
    stats(){return Farm.stats()}}
@@ -1652,7 +1653,7 @@ function renderTiles(){
   const f=favs(),list=[...ordered.filter(g=>f.includes(g.id)),...ordered.filter(g=>!f.includes(g.id))];
   $('#tiles').innerHTML=list.map((g,i)=>g.locked
     ?`<div class="tile locked"><div class="lk">🔒</div><div class="tn">Soon</div><div class="ts">&nbsp;</div></div>`
-    :`<button class="tile" data-game="${g.id}" aria-label="${g.name}" style="--i:${i};${g.style||''}"><span class="fav${f.includes(g.id)?' on':''}" data-fav="${g.id}" role="button" aria-label="${f.includes(g.id)?'Unfavorite':'Favorite'} ${g.name}">${f.includes(g.id)?'★':'☆'}</span>${icoOf(g)}<div class="tn">${g.name}</div><div class="ts">${g.stats?g.stats():''}</div>${g.beta?'<span class="beta">BETA</span>':''}</button>`).join('');
+    :`<button class="tile" data-game="${g.id}" aria-label="${g.name}" style="--i:${i};${g.style||''}"><span class="fav${f.includes(g.id)?' on':''}" data-fav="${g.id}" role="button" aria-label="${f.includes(g.id)?'Unfavorite':'Favorite'} ${g.name}">${f.includes(g.id)?'★':'☆'}</span>${icoOf(g)}<div class="tn">${g.name}</div><div class="ts">${g.stats?g.stats():''}</div>${g.beta?'<span class="beta">BETA</span>':''}${g.dev?'<span class="beta dev">DEV</span>':''}</button>`).join('');
   const r=recents().map(id=>GAMES.find(g=>g.id===id));
   $('#mShelf').innerHTML=(r.length?`<div class="mlab"><span>▶ Jump back in</span></div><div class="jbi">${r.map(g=>
     `<button class="jbc" data-game="${g.id}" aria-label="${g.name}"><div class="ico" style="${g.style||''};border-radius:10px;padding:2px">${icoOf(g)}</div><b>${g.name}</b></button>`).join('')}</div>`:'')+
