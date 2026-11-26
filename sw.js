@@ -1,6 +1,6 @@
 // Tyler's Games offline cache. Bump VERSION whenever you upload new files.
-const VERSION = 'tylers-games-v95';
-const FILES = ['./', './index.html', './gatedash.html', './swamp.html', './farm.html', './chess.html', './checkers.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
+const VERSION = 'tylers-games-v96';
+const FILES = ['./', './index.html', './gatedash.html', './swamp.html', './farm.html', './chess.html', './checkers.html', './swamp-music.js', './swamp-beach.js', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
@@ -19,7 +19,8 @@ self.addEventListener('activate', e => {
 function pageFirst(req) {
   // each page is saved under its own name (gatedash.html and swamp.html run in a frame inside index.html)
   const pth = new URL(req.url).pathname;
-  const key = pth.endsWith('/gatedash.html') ? './gatedash.html' : pth.endsWith('/swamp.html') ? './swamp.html' : pth.endsWith('/checkers.html') ? './checkers.html' : './index.html';
+  // game script files (swamp-*.js) are kept fresh like pages so they always match their page
+  const key = pth.endsWith('.js') ? '.' + pth.slice(pth.lastIndexOf('/')) : pth.endsWith('/gatedash.html') ? './gatedash.html' : pth.endsWith('/swamp.html') ? './swamp.html' : pth.endsWith('/checkers.html') ? './checkers.html' : './index.html';
   return caches.open(VERSION).then(cache => {
     const saved = () => cache.match(req, { ignoreSearch: true }).then(hit => hit || cache.match(key));
     const net = fetch(req, { cache: 'no-cache' }).then(res => {
@@ -36,7 +37,7 @@ self.addEventListener('fetch', e => {
   // '?fresh' requests (the app's update check) always go straight to the network
   if (e.request.method !== 'GET' || new URL(e.request.url).origin !== location.origin || new URL(e.request.url).searchParams.has('fresh')) return;
   const path = new URL(e.request.url).pathname;
-  if (e.request.mode === 'navigate' || path.endsWith('/') || path.endsWith('/index.html') || path.endsWith('/gatedash.html') || path.endsWith('/swamp.html') || path.endsWith('/checkers.html')) {
+  if (e.request.mode === 'navigate' || path.endsWith('/') || path.endsWith('/index.html') || path.endsWith('/gatedash.html') || path.endsWith('/swamp.html') || path.endsWith('/checkers.html') || path.endsWith('.js')) {
     e.respondWith(pageFirst(e.request));
     return;
   }

@@ -262,6 +262,8 @@ body:has(.ov:not(#title):not(.hide)) #gatorPortrait{display:none}
 <div id="toast"></div>
 </div>
 
+<script src="swamp-music.js"></script>
+<script src="swamp-beach.js"></script>
 <script>
 'use strict';
 /* =========================================================
@@ -456,61 +458,7 @@ function snd(type){
   }catch(e){}
 }
 
-/* ---- Music (Tyler picked from the theme ideas, Nov 25): "Bayou Stomp" on the title screen, "Moonlight Gator" in the
-   shop between waves, quiet during waves. All made in code (banjo/guitar plucks, tuba, washboard, slide lead), so it plays
-   offline. Goes through the master volume; Music On/Off is in the Sound panel and the pause menu. MUSIC=false turns it off. ---- */
-const MUSIC=true;
-const MUS={cur:null,out:null,nextT:0,step:0,ks:{},nb:null};
-function musHz(n){ const N={C:-9,'C#':-8,D:-7,'D#':-6,E:-5,F:-4,'F#':-3,G:-2,'G#':-1,A:0,'A#':1,B:2}; const m=n.match(/^([A-G]#?)(\d)$/); return 440*Math.pow(2,(N[m[1]]+(+m[2]-4)*12)/12); }
-function musPluck(f,damp){ const k=f.toFixed(1)+'|'+damp; if(MUS.ks[k])return MUS.ks[k]; const sr=AC.sampleRate, N=Math.round(sr/f), len=Math.floor(sr*1.4), b=AC.createBuffer(1,len,sr), y=b.getChannelData(0);
-  for(let i=0;i<=N;i++)y[i]=Math.random()*2-1; for(let i=N+1;i<len;i++)y[i]=damp*.5*(y[i-N]+y[i-N-1]); return MUS.ks[k]=b; } // starts at N+1: never reads y[-1] (NaN silences Safari)
-function musEnv(g,t,v,a,d){ g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(v,t+a); g.gain.exponentialRampToValueAtTime(.0001,t+a+d); }
-const MI={
-  pluck(t,n,vol,damp,filt,fq){ const s=AC.createBufferSource(); s.buffer=musPluck(musHz(n),damp); const f=AC.createBiquadFilter(); f.type=filt; f.frequency.value=fq; const g=AC.createGain(); g.gain.value=vol; s.connect(f); f.connect(g); g.connect(MUS.out); s.start(t); s.stop(t+1.3); },
-  banjo(t,n,v=.26){ MI.pluck(t,n,v,.992,'highpass',180); }, guitar(t,n,v=.12){ MI.pluck(t,n,v,.997,'lowpass',1800); },
-  tuba(t,n,d,v=.35){ const o=AC.createOscillator(); o.type='sawtooth'; o.frequency.value=musHz(n); const lp=AC.createBiquadFilter(); lp.type='lowpass'; lp.frequency.setValueAtTime(260,t); lp.frequency.linearRampToValueAtTime(520,t+.04); lp.frequency.linearRampToValueAtTime(240,t+d);
-    const g=AC.createGain(); musEnv(g,t,v,.03,d); o.connect(lp); lp.connect(g); g.connect(MUS.out); o.start(t); o.stop(t+d+.1); },
-  bass(t,n,d,v=.42){ const o=AC.createOscillator(); o.type='triangle'; o.frequency.value=musHz(n); const g=AC.createGain(); musEnv(g,t,v,.01,d); o.connect(g); g.connect(MUS.out); o.start(t); o.stop(t+d+.1); },
-  scrape(t,v,len,f){ if(!MUS.nb){ MUS.nb=AC.createBuffer(1,AC.sampleRate,AC.sampleRate); const d=MUS.nb.getChannelData(0); for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1; }
-    const s=AC.createBufferSource(); s.buffer=MUS.nb; const b=AC.createBiquadFilter(); b.type='bandpass'; b.frequency.value=f; b.Q.value=.8; const g=AC.createGain(); g.gain.setValueAtTime(v,t); g.gain.exponentialRampToValueAtTime(.0001,t+len); s.connect(b); b.connect(g); g.connect(MUS.out); s.start(t,Math.random()*.5); s.stop(t+len+.02); },
-  kick(t,v=.35){ const o=AC.createOscillator(); o.frequency.setValueAtTime(130,t); o.frequency.exponentialRampToValueAtTime(45,t+.12); const g=AC.createGain(); g.gain.setValueAtTime(v,t); g.gain.exponentialRampToValueAtTime(.0001,t+.2); o.connect(g); g.connect(MUS.out); o.start(t); o.stop(t+.22); },
-  lead(t,n,d,o){ const osc=AC.createOscillator(); osc.type=o.wave; const f=musHz(n);
-    if(o.from){ osc.frequency.setValueAtTime(musHz(o.from),t); osc.frequency.exponentialRampToValueAtTime(f,t+(o.glide||.12)); } else osc.frequency.setValueAtTime(f,t);
-    const lfo=AC.createOscillator(), lg=AC.createGain(); lfo.frequency.value=o.vibHz; lg.gain.setValueAtTime(0,t); lg.gain.linearRampToValueAtTime(f*o.vib,t+Math.min(.25,d*.6)); lfo.connect(lg); lg.connect(osc.frequency);
-    const bp=AC.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=o.formant; bp.Q.value=o.q; const lp=AC.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=o.lp||3200;
-    const g=AC.createGain(), v=o.vol; g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(v,t+(o.att||.03)); g.gain.setValueAtTime(v*.85,t+d*.8); g.gain.exponentialRampToValueAtTime(.0001,t+d+(o.rel||.08));
-    osc.connect(bp); bp.connect(lp); lp.connect(g); g.connect(MUS.out); osc.start(t); lfo.start(t); osc.stop(t+d+.3); lfo.stop(t+d+.3); },
-  cricket(t){ for(let i=0;i<3;i++){ const o=AC.createOscillator(); o.frequency.value=4300+Math.random()*200; const g=AC.createGain(), s=t+i*.06; musEnv(g,s,.012,.01,.035); o.connect(g); g.connect(MUS.out); o.start(s); o.stop(s+.06); } }
-};
-const mParse=x=>x.trim().split(/\s+/), mDur=(a,i,e)=>{ let k=1; while(a[i+k]==='-')k++; return k*e; };
-const MCH={G:['G3','B3','D4','G4','B4'],C:['C4','E4','G4','C5','E4'],D:['D4','F#4','A4','D5','F#4'],E:['E3','G#3','B3','E4'],A:['A3','C#4','E4','A4'],B:['B3','D#4','F#4','B4']};
-const SONGS={
-  stomp:{bpm:132,swing:0,chords:'G G C G D D G G'.split(' '),br:{G:['G2','D2'],C:['C3','G2'],D:['D3','A2']},
-    mel:mParse('D5 - B4 - G4 - B4 D5 E5 - D5 - B4 - - - E5 - G5 - E5 - C5 - D5 - B4 - G4 - - - A4 - D5 - F#5 - E5 D5 C5 - A4 - F#4 - A4 - B4 - D5 - G5 - B4 D5 G5 - - - - - - -'),
-    play(s,t,e,bar,ch){ const c=MCH[ch], roll=[0,2,4,1,3,4,2,4]; MI.banjo(t,c[roll[s%8]]);
-      if(s%4===0)MI.tuba(t,this.br[ch][(s%8)/4],e*1.7); if(s%2===1)MI.scrape(t,.11,.05,5000); if(s%8===0||s%8===4)MI.kick(t);
-      const i=bar*8+s%8, m=this.mel[i]; if(Math.floor(s/64)%2===1&&m!=='-')MI.lead(t,m,mDur(this.mel,i,e)*.92,{wave:'square',formant:1600,q:1.4,vol:.11,vib:.008,vibHz:6}); }},
-  moon:{bpm:76,swing:.62,chords:'E E A E B A E B'.split(' '),walk:{E:['E2','G#2','B2','C#3'],A:['A2','C#3','E3','F#3'],B:['B2','D#3','F#3','G#3']},
-    mel:mParse('B4 - - - G4 - E4 - - - G4 A4 B4 - - - C#5 - - - A4 - E4 - G4 - E4 - - - - - F#4 - A4 - B4 - D5 - C#5 - B4 - A4 - - - G4 - E4 - D4 - E4 - - - - - B3 - - -'),
-    play(s,t,e,bar,ch){ if(s%2===0)MI.bass(t,this.walk[ch][(s%8)/2],e*1.6);
-      if(s%4===2)MCH[ch].slice(1).forEach((n,k)=>MI.guitar(t+k*.018,n));
-      if(s%2===1)MI.scrape(t,.05,.09,3200); if(s%16===5)MI.cricket(t);
-      const i=bar*8+s%8, m=this.mel[i]; if(m!=='-'){ let j=i-1; while(j>=0&&this.mel[j]==='-')j--; const prev=j>=0?this.mel[j]:null;
-        MI.lead(t,m,mDur(this.mel,i,e)*.95,{wave:'sawtooth',from:prev&&Math.random()<.6?prev:null,glide:.16,formant:900,q:.9,lp:1800,vol:.16,vib:.018,vibHz:4.5,att:.06,rel:.25}); } }}
-};
-function musicWant(){ if(!MUSIC||SET.mute||SET.music===false||document.hidden)return null; return phase==='title'?'stomp':phase==='build'?'moon':null; }
-function musicStep(){
-  if(!AC||AC.state!=='running'){ if(!musicWant()&&MUS.cur)musicStop(); return; }
-  const want=musicWant();
-  if(want!==MUS.cur){ musicStop(); if(want){ MUS.cur=want; MUS.out=AC.createGain(); MUS.out.gain.setValueAtTime(.0001,AC.currentTime); MUS.out.gain.exponentialRampToValueAtTime(.5,AC.currentTime+.8); MUS.out.connect(masterOut()); MUS.step=0; MUS.nextT=AC.currentTime+.1; } }
-  if(!MUS.cur)return; const d=SONGS[MUS.cur], e=60/d.bpm/2;
-  if(MUS.nextT<AC.currentTime-.5){ MUS.nextT=AC.currentTime+.05; } // came back from a pause: don't rush to catch up
-  while(MUS.nextT<AC.currentTime+.25){ const bar=Math.floor(MUS.step/8)%8, s8=MUS.step%8, sw=s8%2===1&&d.swing?e*(d.swing*2-1):0;
-    try{ d.play(MUS.step,MUS.nextT+sw,e,bar,d.chords[bar]); }catch(err){}
-    MUS.nextT+=e; MUS.step++; }
-}
-function musicStop(){ if(MUS.out){ const o=MUS.out; try{ o.gain.cancelScheduledValues(AC.currentTime); o.gain.setTargetAtTime(.0001,AC.currentTime,.15); }catch(e){} setTimeout(()=>{ try{o.disconnect()}catch(e){} },900); } MUS.out=null; MUS.cur=null; }
-
+// Music lives in swamp-music.js
 /* ---- more sound effects (all made in code with Web Audio, so the game stays offline with nothing to download) ----
    They listen for things happening (a rocket launched, a zombie hit, a boss arriving...) instead of being wired into
    the game code, so this whole block can be switched off with MORE_SOUNDS=false. Pitch varies a little each time,
@@ -1129,14 +1077,14 @@ function drawBG(){
   snag(c,L.FX+fw*.44,250,.8,R);
   for(const t of [{x:L.FX+fw*.17,s:.9},{x:L.FX+fw*.36,s:.7},{x:L.FX+fw*.55,s:1.1},{x:L.FX+fw*.72,s:.65},{x:L.FX+fw*.84,s:.8},{x:W-8,s:1.3}]) cypress(c,t.x,t.s<.75?268:262,t.s,R);
   // cypress trees crowding in around the cabin
-  c.globalAlpha=.6; cypress(c,L.FX+122,232,.45,R); cypress(c,L.FX+148,234,.4,R); c.globalAlpha=1;
+  c.globalAlpha=.6; if(SMOOTH_TREES){ cypress(c,L.FX-58,236,.45,R); cypress(c,L.FX-14,233,.42,R); } else { cypress(c,L.FX+122,232,.45,R); cypress(c,L.FX+148,234,.4,R); } c.globalAlpha=1;
   // SPACE_TREES: the big cypress that crowded the stairs now stands behind the cabin (its crown shows over the roof),
   // and the young one moved off the fence line into an open patch of water. false = the old crowded spots.
   if(SPACE_TREES) cypress(c,168,250,.82,R); else cypress(c,L.FX+2,262,.9,R);
   cypress(c,L.FX+156,266,.72,R);
   if(SPACE_TREES) cypress(c,L.FX+fw*.47,284,.42,R); else cypress(c,L.FX+12,288,.5,R);
   // FILL_GAP: Tyler — the open water in front of the porch looked bare once the trees moved, so two cypress stand back in it (clear of the stairs, fence and turret spots)
-  if(SPACE_TREES&&FILL_GAP){ c.globalAlpha=.7; cypress(c,L.FX+30,248,.5,R); c.globalAlpha=1; cypress(c,L.FX+64,258,.74,R); }
+  if(SPACE_TREES&&FILL_GAP){ c.globalAlpha=.7; cypress(c,SMOOTH_TREES?L.FX-34:L.FX+30,246,.5,R); c.globalAlpha=1; cypress(c,SMOOTH_TREES?L.FX+22:L.FX+64,256,.66,R); }
   // stumps and cypress knees poking out of the water
   for(let i=0;i<7;i++){ const x=L.FX+R()*fw, y=244+R()*36, h=4+R()*8; c.fillStyle='#3b2a1e'; c.beginPath(); c.moveTo(x-3,y); c.quadraticCurveTo(x,y-h*1.4,x+3,y); c.fill(); c.strokeStyle='rgba(190,230,210,.18)'; c.lineWidth=.8; c.beginPath(); c.ellipse(x,y+.5,6,1.2,0,0,TAU); c.stroke(); }
   // palmettos and ferns along the water's edge
@@ -1160,101 +1108,8 @@ function drawBG(){
   drawCabin(c,R);
   return bgCv;
 }
-const SPACE_TREES=true, FILL_GAP=true;
-/* ---- ZONE 2: Beach (work in progress, Nov 25). Picked in Style → Zone. Same game, new scenery:
-   sunset sky + sun, ocean with surf, sandy lane, palm trees, a tide pool where swimmers pop out.
-   The cabin is still the swamp cabin for now (next: a beach shack), and the swamp wildlife is hidden here. ---- */
-const BEACH_ZONE=true;
-function isBeach(){ return BEACH_ZONE&&SET.zone==='beach'; }
-function palm(c,x,y,s,R,lean,sway){ c.save(); c.translate(x,y); c.scale(s,s);
-  const lx=lean*60+(sway||0)*4; c.strokeStyle='#6b4a2e'; c.lineWidth=7; c.lineCap='round'; c.beginPath(); c.moveTo(0,0); c.quadraticCurveTo(lx*.2,-60,lx,-118); c.stroke();
-  c.strokeStyle='#8a6440'; c.lineWidth=1.4; for(let i=1;i<12;i++){ const t=i/12, px=lx*t*t, py=-118*t; c.beginPath(); c.moveTo(px-3.5,py); c.lineTo(px+3.5,py-2); c.stroke(); }
-  c.translate(lx,-118);
-  for(let i=0;i<8;i++){ const a=-Math.PI/2+(i-3.5)*.42+(R()-.5)*.15+(sway||0)*.06*Math.sin(i*1.7), l=44+R()*14, droop=18+R()*10+(sway||0)*2*Math.sin(i*2.3);
-    const ex=Math.cos(a)*l, ey=Math.sin(a)*l*.55+droop;
-    c.fillStyle=i%2?'#2f6b3a':'#3c8044'; c.beginPath(); c.moveTo(0,0); c.quadraticCurveTo(ex*.5,ey*.2-14,ex,ey); c.quadraticCurveTo(ex*.55,ey*.2-4,0,4); c.fill();
-    c.strokeStyle='rgba(20,50,25,.5)'; c.lineWidth=.8; c.beginPath(); c.moveTo(0,0); c.quadraticCurveTo(ex*.5,ey*.2-11,ex,ey); c.stroke(); }
-  c.fillStyle='#5a3a22'; for(const [cx,cy] of [[-3,5],[3,6],[0,9]]){ c.beginPath(); c.arc(cx,cy,3.4,0,TAU); c.fill(); }
-  c.restore(); }
-/* Live beach layer (drawn every frame, under the zombies): the lighthouse lamp blinks, a little fishing boat
-   putters back and forth on the water with a wake and a bob, and the palms sway gently in the sea breeze. */
-const BOAT={x:0,dir:1,init:false};
-function drawBeachLife(){
-  const fw=W-L.FX, t=TIME;
-  if(L.lighthouse){ const on=(t%3)<1.4, a=on?.9:.15, lx=L.lighthouse.x, ly=L.lighthouse.y;
-    const g=ctx.createRadialGradient(lx,ly,0,lx,ly,on?14:5); g.addColorStop(0,`rgba(255,240,170,${a})`); g.addColorStop(1,'rgba(255,220,140,0)'); ctx.fillStyle=g; ctx.beginPath(); ctx.arc(lx,ly,on?14:5,0,TAU); ctx.fill(); }
-  // boat
-  if(!BOAT.init){ BOAT.x=L.FX+fw*.55; BOAT.init=true; }
-  const x0=L.FX+fw*.3, x1=W-40, dt=Math.min(.05,t-(BOAT.t||t)); BOAT.t=t;
-  BOAT.x+=BOAT.dir*9*dt; if(BOAT.x>x1){BOAT.x=x1;BOAT.dir=-1;} if(BOAT.x<x0){BOAT.x=x0;BOAT.dir=1;}
-  const bx=BOAT.x, by=236+Math.sin(t*1.6)*.8, rock=Math.sin(t*1.3)*.05;
-  ctx.save(); ctx.translate(bx,by);
-  ctx.strokeStyle='rgba(255,255,255,.35)'; ctx.lineWidth=.9; for(let k=1;k<4;k++){ const wx=-BOAT.dir*(10+k*7); ctx.beginPath(); ctx.moveTo(wx,1.5+k*.4); ctx.lineTo(wx-BOAT.dir*6,1.5+k*.4); ctx.stroke(); }
-  ctx.fillStyle='rgba(20,40,60,.3)'; ctx.beginPath(); ctx.ellipse(0,3,15,1.6,0,0,TAU); ctx.fill();
-  ctx.rotate(rock); ctx.scale(BOAT.dir,1);
-  ctx.fillStyle='#f2ece0'; ctx.beginPath(); ctx.moveTo(-14,-3); ctx.lineTo(13,-3); ctx.quadraticCurveTo(12,2,7,3); ctx.lineTo(-11,3); ctx.quadraticCurveTo(-14,1,-14,-3); ctx.fill();
-  ctx.fillStyle='#c84a3e'; ctx.fillRect(-13,-1,25,1.6);
-  ctx.fillStyle='#e9dccb'; ctx.fillRect(-7,-9,8,6); ctx.fillStyle='#5a8ab0'; ctx.fillRect(-5.5,-7.6,2.4,2.2); ctx.fillRect(-2.2,-7.6,2.4,2.2);
-  ctx.fillStyle='#6a4a3a'; ctx.fillRect(-7.5,-10,9,1.3);
-  ctx.strokeStyle='#4a3a30'; ctx.lineWidth=.8; ctx.beginPath(); ctx.moveTo(5,-3); ctx.lineTo(5,-17); ctx.moveTo(5,-16); ctx.lineTo(13,-4); ctx.stroke(); // mast + fishing line
-  ctx.fillStyle='#ffcf6a'; ctx.beginPath(); ctx.arc(-9.5,-5,1,0,TAU); ctx.fill(); // little cabin light
-  ctx.restore();
-  // palms down the beach, swaying
-  const R=mulberry(77);
-  for(const p of [{x:L.FX+fw*.3,s:.75,l:.3,ph:0},{x:L.FX+fw*.52,s:.95,l:-.2,ph:1.7},{x:L.FX+fw*.74,s:.7,l:.35,ph:3.1},{x:W-14,s:1.15,l:-.4,ph:4.4}])
-    palm(ctx,p.x,294,p.s,R,p.l,Math.sin(t*.7+p.ph)*.6+Math.sin(t*1.9+p.ph)*.15);
-}
-function drawBeachBG(c){
-  const R=mulberry(23), top=-OY-2, Wd=W+4, fw=W-L.FX;
-  // sunset sky
-  let g=c.createLinearGradient(0,top,0,220); g.addColorStop(0,'#2b3a78'); g.addColorStop(.45,'#7a5aa8'); g.addColorStop(.75,'#f08a6a'); g.addColorStop(1,'#ffc46b');
-  c.fillStyle=g; c.fillRect(-2,top,Wd,224-top);
-  c.fillStyle='#fff'; for(let i=0;i<30;i++){ c.globalAlpha=R()*.5+.15; c.fillRect(R()*W,top+R()*(90-top),1.3,1.3); } c.globalAlpha=1;
-  // sun sinking into the sea
-  const sx=W*.64, sy=206; let sg=c.createRadialGradient(sx,sy,8,sx,sy,120); sg.addColorStop(0,'rgba(255,220,140,.7)'); sg.addColorStop(1,'rgba(255,180,110,0)'); c.fillStyle=sg; c.fillRect(sx-120,sy-120,240,240);
-  sg=c.createLinearGradient(0,sy-34,0,sy+10); sg.addColorStop(0,'#fff1b0'); sg.addColorStop(1,'#ff9a52'); c.fillStyle=sg; c.beginPath(); c.arc(sx,sy,34,Math.PI,TAU); c.fill();
-  // soft clouds
-  for(let i=0;i<6;i++){ const cx=R()*W, cy=60+R()*90, w=40+R()*70; c.fillStyle=`rgba(255,${150+R()*60|0},${150+R()*40|0},.35)`; c.beginPath(); c.ellipse(cx,cy,w,6+R()*5,0,0,TAU); c.fill(); c.beginPath(); c.ellipse(cx+w*.3,cy-5,w*.5,5,0,0,TAU); c.fill(); }
-  // distant island: two hills, sunlit rim, a few palms, a beach strip and a little lighthouse (its lamp blinks in drawBeachLife)
-  { const ix=L.FX+fw*.2, iy=207;
-    c.fillStyle='#5a4878'; c.beginPath(); c.moveTo(ix-fw*.14,iy); c.quadraticCurveTo(ix-fw*.08,iy-12,ix-fw*.02,iy-14); c.quadraticCurveTo(ix+fw*.05,iy-24,ix+fw*.1,iy-8); c.quadraticCurveTo(ix+fw*.13,iy-3,ix+fw*.15,iy); c.fill();
-    c.fillStyle='#4a3a68'; c.beginPath(); c.moveTo(ix-fw*.06,iy); c.quadraticCurveTo(ix+fw*.03,iy-20,ix+fw*.1,iy); c.fill();
-    c.strokeStyle='rgba(255,170,120,.55)'; c.lineWidth=1.2; c.beginPath(); c.moveTo(ix+fw*.0,iy-14); c.quadraticCurveTo(ix+fw*.05,iy-24.5,ix+fw*.1,iy-8.5); c.stroke();
-    c.fillStyle='#c79a86'; c.beginPath(); c.ellipse(ix-fw*.02,iy+.5,fw*.1,1.6,0,0,TAU); c.fill();
-    const mini=(x,h,l)=>{ c.strokeStyle='#3a2c52'; c.lineWidth=1.1; c.beginPath(); c.moveTo(x,iy-1); c.quadraticCurveTo(x+l*.4,iy-h*.6,x+l,iy-h); c.stroke(); c.fillStyle='#3a2c52';
-      for(let k=0;k<5;k++){ const a=-Math.PI/2+(k-2)*.6; c.beginPath(); c.moveTo(x+l,iy-h); c.quadraticCurveTo(x+l+Math.cos(a)*4,iy-h+Math.sin(a)*2-1.5,x+l+Math.cos(a)*7,iy-h+Math.sin(a)*2+3); c.lineTo(x+l+Math.cos(a)*6,iy-h+Math.sin(a)*2+3.6); c.quadraticCurveTo(x+l+Math.cos(a)*3,iy-h+Math.sin(a)*2,x+l,iy-h+.8); c.fill(); } };
-    mini(ix-fw*.09,15,2); mini(ix-fw*.075,12,-1.5); mini(ix+fw*.07,13,1.5);
-    // lighthouse on the shoulder of the right hill
-    const lx=ix+fw*.075, lb=iy-7; c.fillStyle='#e8ddd8'; c.beginPath(); c.moveTo(lx-2.4,lb); c.lineTo(lx-1.5,lb-14); c.lineTo(lx+1.5,lb-14); c.lineTo(lx+2.4,lb); c.fill();
-    c.fillStyle='#b8505a'; c.fillRect(lx-2,lb-5,4,2.4); c.fillRect(lx-1.7,lb-10,3.4,2.2); c.fillStyle='#3a2c3a'; c.fillRect(lx-2,lb-17,4,3); c.beginPath(); c.moveTo(lx-2.4,lb-17); c.lineTo(lx,lb-19.5); c.lineTo(lx+2.4,lb-17); c.fill();
-    c.fillStyle='#4a3a5e'; c.beginPath(); c.ellipse(ix+fw*.14,iy-.5,5,2.2,0,0,TAU); c.fill(); // rocks off the point
-    L.lighthouse={x:lx,y:lb-15.5}; }
-  // ocean
-  g=c.createLinearGradient(0,206,0,292); g.addColorStop(0,'#f2a070'); g.addColorStop(.12,'#3f7fa8'); g.addColorStop(1,'#1f5f86'); c.fillStyle=g; c.fillRect(-2,206,Wd,90);
-  c.fillStyle='rgba(255,210,140,.55)'; for(let i=0;i<20;i++){ const y=209+i*i*.2; c.fillRect(sx-26+R()*52-i*2,y,12+R()*40,1.3); }
-  c.strokeStyle='rgba(255,255,255,.22)'; c.lineWidth=1; for(let i=0;i<40;i++){ const x=R()*W, y=222+R()*60; c.beginPath(); c.moveTo(x,y); c.quadraticCurveTo(x+6,y-2,x+12,y); c.stroke(); }
-  // surf line then sand
-  c.fillStyle='rgba(255,255,255,.75)'; c.beginPath(); c.moveTo(-2,290); for(let x=-2;x<=W+4;x+=10)c.lineTo(x,284+Math.sin(x*.06)*3+R()*2); c.lineTo(W+4,296); c.lineTo(-2,296); c.fill();
-  g=c.createLinearGradient(0,286,0,402); g.addColorStop(0,'#e8c98e'); g.addColorStop(1,'#cfa564'); c.fillStyle=g; c.beginPath(); c.moveTo(-2,293); for(let x=-2;x<=W+4;x+=16)c.lineTo(x,289+Math.sin(x*.05)*2+R()*2); c.lineTo(W+4,402); c.lineTo(-2,402); c.fill();
-  c.fillStyle='rgba(120,80,40,.12)'; for(let i=0;i<260;i++){ c.fillRect(R()*W,295+R()*105,1.2,1.2); }
-  for(let i=0;i<14;i++){ const x=L.HX+R()*(W-L.HX), y=302+R()*92; c.fillStyle='rgba(150,105,55,.2)'; c.beginPath(); c.ellipse(x,y,14+R()*24,2+R()*2.5,0,0,TAU); c.fill(); }
-  // shells and starfish
-  for(let i=0;i<10;i++){ const x=L.FX+R()*fw, y=300+R()*90; if(R()<.35){ c.fillStyle='#e86a4a'; c.save(); c.translate(x,y); c.beginPath(); for(let k=0;k<10;k++){ const r=k%2?1.6:4.2, a=k*Math.PI/5-Math.PI/2; c.lineTo(Math.cos(a)*r,Math.sin(a)*r*.7); } c.fill(); c.restore(); } else { c.fillStyle='#fbefe0'; c.beginPath(); c.ellipse(x,y,2.6,1.8,R(),0,TAU); c.fill(); } }
-  // tide pool across the lane (swimmers pop out here)
-  const pc=(L.POOL0+L.POOL1)/2, pw=(L.POOL1-L.POOL0)/2;
-  c.fillStyle='#b88e55'; c.beginPath(); c.ellipse(pc,342,pw+6,34,0,0,TAU); c.fill();
-  g=c.createLinearGradient(0,310,0,375); g.addColorStop(0,'#4aa0b8'); g.addColorStop(1,'#2a7088'); c.fillStyle=g; c.beginPath(); c.ellipse(pc,342,pw,30,0,0,TAU); c.fill();
-  c.strokeStyle='rgba(255,255,255,.3)'; for(let i=0;i<6;i++){ c.beginPath(); c.ellipse(pc+R()*pw-pw/2,330+R()*24,8+R()*14,1.5,0,0,TAU); c.stroke(); }
-  c.fillStyle='#7a7470'; for(let i=0;i<5;i++){ const a=R()*TAU; c.beginPath(); c.ellipse(pc+Math.cos(a)*(pw+4),342+Math.sin(a)*32,5+R()*4,3+R()*2,0,0,TAU); c.fill(); }
-  // palm trees (behind the cabin, and down the beach — clear of the stairs, fence and turret spots)
-  palm(c,170,262,.9,R,-.25);
-  // beach umbrella + towel
-  { const ux=L.FX+fw*.62, uy=300; c.fillStyle='#d9524a'; c.fillRect(ux-16,uy+2,30,8); c.fillStyle='#f4e6c8'; c.fillRect(ux-16,uy+4,30,2);
-    c.strokeStyle='#eee'; c.lineWidth=1.5; c.beginPath(); c.moveTo(ux,uy+6); c.lineTo(ux+6,uy-30); c.stroke();
-    c.save(); c.translate(ux+6,uy-30); c.rotate(.2); for(let i=0;i<6;i++){ c.fillStyle=i%2?'#f4f0e0':'#2a8ac0'; c.beginPath(); c.moveTo(0,0); c.arc(0,0,22,Math.PI+i*Math.PI/6,Math.PI+(i+1)*Math.PI/6); c.fill(); } c.restore(); }
-  drawCabin(c,R);
-  return bgCv;
-}
+const SPACE_TREES=true, FILL_GAP=true, SMOOTH_TREES=true; // SMOOTH_TREES (Tyler, Nov 25): thin the clump past the fence and step trees down toward the porch
+// Beach zone scenery lives in swamp-beach.js
 function snag(c,x,y,s,R){ // dead bare tree
   c.save(); c.translate(x,y); c.scale(s,s); c.strokeStyle='#4a3a30'; c.lineCap='round';
   c.lineWidth=7; c.beginPath(); c.moveTo(0,0); c.quadraticCurveTo(-4,-40,2,-90); c.stroke();
@@ -2423,7 +2278,7 @@ function wlInit(){
   WL.frogs=[{p:1,hop:0,from:1,puff:0,next:4},{p:4,hop:0,from:4,puff:0,next:7}];
   WL.log={x:f+fw*.645,y:252};
   if(!WL.gus)WL.gus={x:f+90,y:276,dir:1,t:0,cd:rnd(6,10),aim:0,wave:0,catchT:rnd(15,25),fish:0,face:1}; WL.heron={x:Math.min(W-30,f+fw*.93),y:283}; WL.eyes={x:f+fw*.58,y:246,dir:1};
-  WL.trunks=(SPACE_TREES?[f+fw*.47].concat(FILL_GAP?[f+30,f+64]:[]):[f+2,f+12]).concat([f+156,f+fw*.17,f+fw*.36,f+fw*.44,f+fw*.55,f+fw*.72,f+fw*.84,W-8]);
+  WL.trunks=(SPACE_TREES?[f+fw*.47].concat(FILL_GAP?(SMOOTH_TREES?[f-34,f+22]:[f+30,f+64]):[]):[f+2,f+12]).concat([f+156,f+fw*.17,f+fw*.36,f+fw*.44,f+fw*.55,f+fw*.72,f+fw*.84,W-8]);
 }
 function stepWildlife(dt){
   if(!WL.frogs||WL.w!==W){ wlInit(); WL.w=W; }
