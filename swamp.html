@@ -1203,19 +1203,22 @@ function cypressOld(c,x,y,s,R){
   c.restore();
 }
 function drawCabin(c,R){
-  const F=L.FLOOR, G=L.GROUND, ry=L.roofY, WT=284;
-  // big old cypress growing behind the cabin
+  const F=L.FLOOR, G=L.GROUND, ry=L.roofY, WT=284, BCH=isBeach();
+  // big old cypress growing behind the cabin (a tall palm on the beach)
+  if(BCH){ palm(c,-14,WT-6,1.35,R,.35); }
+  if(!BCH){
   c.fillStyle='#2e2218'; c.beginPath(); c.moveTo(-60,WT+10); c.quadraticCurveTo(-22,WT-20,-26,150); c.quadraticCurveTo(-30,90,-18,40); c.lineTo(-2,40); c.quadraticCurveTo(-8,100,-4,160); c.quadraticCurveTo(0,WT-30,30,WT+10); c.fill();
   c.strokeStyle='#3b2c1f'; c.lineWidth=1.2; for(let i=0;i<6;i++){ c.beginPath(); c.moveTo(-20+i*2.5,WT-10); c.quadraticCurveTo(-18+i*2,180,-12+i*1.5,60); c.stroke(); }
   const cc=['#1f3a25','#27462c','#1a3020'];
   for(let i=0;i<9;i++){ c.fillStyle=cc[i%3]; c.beginPath(); c.ellipse(-10+R()*90-20,36+R()*40,30+R()*18,13+R()*6,0,0,TAU); c.fill(); }
+  }
   // muddy bank under the back half of the cabin
-  let g=c.createLinearGradient(0,WT-10,0,330); g.addColorStop(0,'#4a4628'); g.addColorStop(1,'#2e2c18'); c.fillStyle=g;
+  let g=c.createLinearGradient(0,WT-10,0,330); g.addColorStop(0,BCH?'#e2c286':'#4a4628'); g.addColorStop(1,BCH?'#c49a5a':'#2e2c18'); c.fillStyle=g;
   c.beginPath(); c.moveTo(-14,WT-12); c.quadraticCurveTo(40,WT-16,92,WT-6); c.quadraticCurveTo(104,WT+10,90,WT+24); c.quadraticCurveTo(60,WT+40,-14,WT+44); c.fill();
-  for(let i=0;i<50;i++){ const x=-10+R()*95, y=WT-10+R()*40; c.strokeStyle=R()<.5?'#5d7232':'#6f8a3a'; c.lineWidth=1; c.beginPath(); c.moveTo(x,y); c.lineTo(x+R()*3-1.5,y-3-R()*4); c.stroke(); }
+  for(let i=0;i<50;i++){ const x=-10+R()*95, y=WT-10+R()*40; c.strokeStyle=BCH?(R()<.5?'#a89a5a':'#8a9a4a'):(R()<.5?'#5d7232':'#6f8a3a'); if(BCH&&i>14)continue; c.lineWidth=1; c.beginPath(); c.moveTo(x,y); c.lineTo(x+R()*3-1.5,y-3-R()*4); c.stroke(); }
   for(let i=0;i<5;i++){ c.fillStyle=['#6b6a5e','#57564c','#7a786a'][i%3]; c.beginPath(); c.ellipse(10+R()*70,WT+4+R()*20,2+R()*3,1.4+R()*1.6,0,0,TAU); c.fill(); }
   // murky water: only under the porch end, opening to the bayou
-  g=c.createLinearGradient(0,WT-4,0,324); g.addColorStop(0,'#2a4840'); g.addColorStop(1,'#162a22'); c.fillStyle=g;
+  g=c.createLinearGradient(0,WT-4,0,324); g.addColorStop(0,BCH?'#4aa6b8':'#2a4840'); g.addColorStop(1,BCH?'#2a7a90':'#162a22'); c.fillStyle=g;
   c.beginPath(); c.moveTo(84,WT-4); c.quadraticCurveTo(150,WT-10,226,WT+2); c.quadraticCurveTo(238,306,214,322); c.quadraticCurveTo(140,330,82,WT+30); c.quadraticCurveTo(98,WT+12,84,WT-4); c.fill();
   c.strokeStyle='rgba(120,100,60,.6)'; c.lineWidth=1.2; c.beginPath(); c.moveTo(84,WT-4); c.quadraticCurveTo(98,WT+12,82,WT+30); c.stroke();
   c.strokeStyle='rgba(190,230,210,.16)'; c.lineWidth=1; for(let i=0;i<7;i++){ const x=100+R()*110, y=WT+4+R()*28; c.beginPath(); c.ellipse(x,y,6+R()*12,1.2,0,0,TAU); c.stroke(); }
@@ -1240,7 +1243,7 @@ function drawCabin(c,R){
   c.strokeStyle='#8a6038'; c.lineWidth=1.6; c.beginPath(); c.moveTo(PX+36,WT+16); c.lineTo(PX+64,WT+3); c.stroke(); c.fillStyle='#8a6038'; c.beginPath(); c.ellipse(PX+66,WT+2,4,1.8,-.45,0,TAU); c.fill();
   c.strokeStyle='#c9b48a'; c.lineWidth=.8; c.beginPath(); c.moveTo(PX+16,WT+14); c.quadraticCurveTo(PX+12,WT+6,113,WT-2); c.stroke();
   // back wall: weathered cypress boards
-  const wallR=110, pal=['#5e4a38','#6b543c','#57452f','#665040','#4f4232','#6e5a44'];
+  const wallR=110, pal=BCH?['#7fb9c4','#86c0ca','#78b2be','#8cc4cc','#73acb8','#82bcc6']:['#5e4a38','#6b543c','#57452f','#665040','#4f4232','#6e5a44'];
   for(let x=-10;x<wallR;x+=8){ const top=ry(x)+2, sh=R()<.15?R()*4:0; c.fillStyle=pal[Math.floor(R()*pal.length)]; c.fillRect(x,top,7.4,F-top-sh); c.fillStyle='rgba(0,0,0,.3)'; c.fillRect(x+7.4,top,.8,F-top); c.fillStyle='rgba(255,230,190,.05)'; c.fillRect(x+1,top,1.2,F-top); if(R()<.5){c.fillStyle='rgba(0,0,0,.35)'; c.beginPath(); c.arc(x+3.7,top+20+R()*80,1,0,TAU); c.fill();} }
   c.fillStyle='rgba(20,15,10,.35)'; c.fillRect(-10,F-26,wallR+10,26);
   for(let i=0;i<60;i++){ c.fillStyle=R()<.5?'rgba(80,120,50,.55)':'rgba(100,140,60,.45)'; c.beginPath(); c.arc(-10+R()*(wallR+10),F-R()*R()*24,1+R()*2.2,0,TAU); c.fill(); }
