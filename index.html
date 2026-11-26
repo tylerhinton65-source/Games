@@ -660,6 +660,7 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
 <section id="swamp" class="screen" style="background:#0e1a14;padding:0"><iframe id="swampFrame" title="Swamp Defense" allow="fullscreen" allowfullscreen style="flex:1;width:100%;border:0;display:block;background:#0e1a14"></iframe></section>
 <section id="lawn" class="screen" style="background:#173a1f"><iframe id="lawnFrame" title="Lawn Day" style="flex:1;width:100%;border:0;display:block;background:#173a1f"></iframe></section>
 <section id="farm" class="screen" style="background:#2b2414"><iframe id="farmFrame" title="ASMR Farmer" style="flex:1;width:100%;border:0;display:block;background:#2b2414"></iframe></section>
+<section id="chess" class="screen" style="background:#1d2433"><iframe id="chessFrame" title="Chess" style="flex:1;width:100%;border:0;display:block;background:#1d2433"></iframe></section>
 <section id="hs" class="screen">
   <div class="shade"></div>
   <div class="topbar">
@@ -1630,7 +1631,11 @@ const GAMES=[
   {id:'farm',dev:true,name:'ASMR Farmer',desc:'Slow, satisfying wheat harvest — straight rows, endless fields',
    style:'background:linear-gradient(160deg,rgba(236,192,92,.94),rgba(150,96,34,.94))',
    icon:()=>Farm.icon(),
-   stats(){return Farm.stats()}}
+   stats(){return Farm.stats()}},
+  {id:'chess',name:'Chess',desc:'Chill chess vs a computer that makes mistakes — Easy, Medium, Hard',
+   style:'background:linear-gradient(160deg,rgba(92,120,176,.94),rgba(34,44,72,.94))',
+   icon:()=>Chess.icon(),
+   stats(){return Chess.stats()}}
 ];
 const TAGS=['Offline arcade · Benji approved','No Wi-Fi? No problem.','Airplane-mode friendly','Campfire certified 🔥','Good boy edition 🐾'];
 function showMenu(){
@@ -1674,8 +1679,8 @@ function go(id){
 function route(id){
   if(id===undefined)id=location.hash.slice(1);
   if(id)noteRecent(id);
-  Sol.close();Patch.close();Snake.close();Blocks.close();G48.close();Mines.close();Cabin.close();Sand.close();Bz.close();TTT.close();HS.close();Gate.close();Wd.close();Swamp.close();Lawn.close();Farm.close();
-  if(id==='solitaire')Sol.open();else if(id==='patch')Patch.open();else if(id==='snake')Snake.open();else if(id==='blocks')Blocks.open();else if(id==='2048')G48.open();else if(id==='mines')Mines.open();else if(id==='cabin')Cabin.open();else if(id==='sort')Sand.open();else if(id==='bounce')Bz.open();else if(id==='ttt')TTT.open();else if(id==='gate')Gate.open();else if(id==='words')Wd.open();else if(id==='swamp')Swamp.open();else if(id==='lawn')Lawn.open();else if(id==='farm')Farm.open();else if(id==='scores')HS.open();else showMenu();
+  Sol.close();Patch.close();Snake.close();Blocks.close();G48.close();Mines.close();Cabin.close();Sand.close();Bz.close();TTT.close();HS.close();Gate.close();Wd.close();Swamp.close();Lawn.close();Farm.close();Chess.close();
+  if(id==='solitaire')Sol.open();else if(id==='patch')Patch.open();else if(id==='snake')Snake.open();else if(id==='blocks')Blocks.open();else if(id==='2048')G48.open();else if(id==='mines')Mines.open();else if(id==='cabin')Cabin.open();else if(id==='sort')Sand.open();else if(id==='bounce')Bz.open();else if(id==='ttt')TTT.open();else if(id==='gate')Gate.open();else if(id==='words')Wd.open();else if(id==='swamp')Swamp.open();else if(id==='lawn')Lawn.open();else if(id==='farm')Farm.open();else if(id==='chess')Chess.open();else if(id==='scores')HS.open();else showMenu();
 }
 window.addEventListener('hashchange',()=>route());
 
@@ -4778,6 +4783,20 @@ const Farm=(()=>{
   };
 })();
 
+const Chess=(()=>{
+  const scr=$('#chess'),fr=$('#chessFrame');let open=false;
+  const rec=g=>{const r=g('tg_chess_rec',null);if(!r)return null;const w=['easy','medium','hard'].reduce((a,k)=>a+((r[k]||[0])[0]|0),0);
+    const n=['easy','medium','hard'].reduce((a,k)=>a+(r[k]||[0,0,0]).reduce((x,y)=>x+(y|0),0),0);return{w,n,h:(r.hard||[0])[0]|0}};
+  return{
+    icon:()=>`<svg class="ico" viewBox="0 0 84 84"><defs><clipPath id="chclip"><rect x="10" y="10" width="64" height="64" rx="12"/></clipPath></defs><g clip-path="url(#chclip)"><rect x="10" y="10" width="64" height="64" fill="#a9764a"/><g fill="#ecd6ae"><rect x="10" y="10" width="16" height="16"/><rect x="42" y="10" width="16" height="16"/><rect x="26" y="26" width="16" height="16"/><rect x="58" y="26" width="16" height="16"/><rect x="10" y="42" width="16" height="16"/><rect x="42" y="42" width="16" height="16"/><rect x="26" y="58" width="16" height="16"/><rect x="58" y="58" width="16" height="16"/></g></g><path d="M31 68h22l-2.5-6.5h-17z M35 61.5h14l-1.8-12c3.6-1.8 5.4-5.4 5.4-9 0-5.4-4.5-9-8.1-10.8l.9-5.4h-7.2l.9 5.4c-3.6 1.8-8.1 5.4-8.1 10.8 0 3.6 1.8 7.2 5.4 9z" fill="#fffaf0" stroke="#2a2018" stroke-width="2.4" stroke-linejoin="round"/><path d="M38.5 18h7M42 14.5v7.5" stroke="#2a2018" stroke-width="2.8" stroke-linecap="round"/></svg>`,
+    stats(){const r=rec((k,d)=>store.get(k,d));return r&&r.n?`${r.w} win${r.w===1?'':'s'}`:'New!'},
+    row(g){const r=rec(g);return r&&r.w?{v:r.w,t:`${r.w} win${r.w===1?'':'s'}`,s:r.h?`${r.h} vs Hard`:`${r.n} played`}:null},
+    open(){document.querySelectorAll('.screen').forEach(x=>x.classList.remove('on'));scr.classList.add('on');open=true;
+      fr.src='chess.html'+(curPid?'?p='+curPid:'');setTimeout(()=>{try{fr.focus()}catch(e){}},60)},
+    close(){if(!open)return;open=false;scr.classList.remove('on');fr.src='about:blank'}
+  };
+})();
+
 const HS=(()=>{
   const scr=$('#hs');let open=false;
   // read another player's saves without switching to them (player 0 uses the plain keys)
@@ -4802,6 +4821,7 @@ const HS=(()=>{
     words:g=>lvl(g,'tg_words_level'),
     lawn:g=>Lawn.row(g),
     farm:g=>Farm.row(g),
+    chess:g=>Chess.row(g),
     ttt:g=>{const t=g('tg_ttt',null);if(!t||!t.sc)return null;const w=['easy','medium','hard'].reduce((a,k)=>a+((t.sc[k]||[0])[0]|0),0);
       const h=t.sc.hard||[0,0,0];if(!w&&!h[1])return null;return{v:w*1000+(h[1]|0),t:`${w} win${w===1?'':'s'}`,s:h[1]?`${h[1]} tie${h[1]>1?'s':''} vs Hard`:''}}
   };
