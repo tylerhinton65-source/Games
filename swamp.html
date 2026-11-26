@@ -126,6 +126,7 @@ button{font:inherit;color:inherit;border:0;cursor:pointer}
 #toast.show{opacity:1}
 .howto{text-align:left;font-size:14px;line-height:1.35;margin:6px 0;padding-left:20px}
 .howto li{margin:4px 0}
+.volrow{gap:10px}.volrow input{flex:1;accent-color:#ffc72c;height:28px}.volrow b{min-width:32px;text-align:right}.sndTip{font-size:13px;opacity:.75;margin:2px 0 0}
 .toggle{display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,.22);border-radius:12px;padding:6px 12px;font-weight:800;flex:1}
 </style>
 </head>
@@ -181,10 +182,20 @@ button{font:inherit;color:inherit;border:0;cursor:pointer}
     <div id="titleBest"></div>
     <button class="big" id="contBtn">▶ Continue</button>
     <button class="big" id="newBtn">New Game</button>
-    <div class="small"><button id="howBtn">📖 How to play</button><button id="flagBtn">🎩 Style</button><button id="fsBtn">⛶ Full screen</button><button id="flipBtn" class="hide">↻ Flip</button></div>
+    <div class="small"><button id="howBtn">📖 How to play</button><button id="flagBtn">🎩 Style</button><button id="sndBtn">🔊 Sound</button><button id="fsBtn">⛶ Full screen</button><button id="flipBtn" class="hide">↻ Flip</button></div>
   </div>
 </div>
 <div id="gatorPortrait"></div>
+
+<div id="sndOv" class="ov hide"><div class="card">
+  <h2>Sound</h2>
+  <div class="btns">
+    <div class="btnrow"><div class="toggle"><span>Sound</span><button class="buy dim" id="muteBtn2">On</button></div></div>
+    <div class="btnrow"><div class="toggle volrow"><span>🔊</span><input type="range" class="volSl" min="0" max="100" step="5" aria-label="Volume"><b class="volN">80</b></div></div>
+    <p class="sndTip">No sound? Flip the silent switch on the side of your iPhone and turn up the phone volume.</p>
+    <button class="big" id="sndDone" style="height:52px;font-size:20px;flex:none">Done</button>
+  </div>
+</div></div>
 
 <div id="pause" class="ov hide"><div class="card">
   <h2>Paused</h2>
@@ -192,6 +203,7 @@ button{font:inherit;color:inherit;border:0;cursor:pointer}
   <div class="btns">
     <button class="big" id="resumeBtn" style="height:68px;font-size:26px;flex:none">▶ Resume</button>
     <div class="btnrow"><div class="toggle"><span>Sound</span><button class="buy dim" id="muteBtn">On</button></div><div class="toggle" id="fsRow"><span>Screen</span><button class="buy dim" id="fsBtn2">⛶ Full</button></div><div class="toggle hide" id="flipRow"><span>Screen</span><button class="buy dim" id="flipBtn2">↻ Flip</button></div></div>
+    <div class="btnrow"><div class="toggle volrow"><span>🔊</span><input type="range" class="volSl" min="0" max="100" step="5" aria-label="Volume"><b class="volN">80</b></div></div>
     <div class="btnrow"><button class="big alt" style="flex:1;font-size:16px;height:46px" id="quitBtn">Save &amp; quit</button><button class="big red" style="flex:1;font-size:16px;height:46px" id="restartBtn">Give up run</button></div>
   </div>
 </div></div>
@@ -325,7 +337,7 @@ const ECON=.75;   // overall coin income (Tyler: economy still too fast)
 
 /* ---------------- state ---------------- */
 let S=null;
-const SET=Object.assign({flag:'gator',mute:false,auto:false,rot:90,hat:'straw',shades:'none',kid:'boy'},store.get('swamp_set',{}));
+const SET=Object.assign({flag:'gator',mute:false,auto:false,rot:90,hat:'straw',shades:'none',kid:'boy',vol:80},store.get('swamp_set',{}));
 let BEST=Object.assign({score:0,wave:0},store.get('swamp_best',{})); BEST.reach=Math.max(BEST.reach||0,BEST.wave||0); // reach = furthest wave in any run (DEV runs too) — unlocks style items
 const P={a:.25,touch:false,tx:0,ty:0,cool:0,recoil:0,flameOn:false,aimTo:null};
 let Z=[],B=[],FX=[],C=[],EP=[],BOMBS=[],PLANE=null,FIRE=[];
@@ -395,12 +407,19 @@ const depth=y=>1.12+.3*clamp((y-L.LANE0)/(L.LANE1-L.LANE0),0,1);   // nearer (lo
 function zs(z){ return z.fly?1.25:depth(z.y); }
 
 /* ---------------- sound (tiny) ---------------- */
-let AC=null,lastShotSnd=0;
+let AC=null,lastShotSnd=0,MASTER=null;
+// Master volume (Sound panel / pause menu slider). Every sound goes through MASTER.
+function masterOut(){ if(!MASTER){ MASTER=AC.createGain(); MASTER.connect(AC.destination); } setVolGain(); return MASTER; }
+function setVolGain(){ if(MASTER){ const v=(SET.vol??80)/100; MASTER.gain.value=v*v*1.2; } }
+// iPhone Safari pauses ("suspends"/"interrupts") audio after the app goes to the background or a call;
+// it can only be woken during a tap, so every tap checks and wakes it.
+function wakeAudio(make){ try{ if(!AC&&make)AC=new (window.AudioContext||window.webkitAudioContext)(); if(AC&&AC.state!=='running')AC.resume(); }catch(e){} }
+document.addEventListener('pointerdown',()=>wakeAudio(false),true); document.addEventListener('touchend',()=>wakeAudio(false),true);
 function snd(type){
   if(SET.mute)return;
   try{
     if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)();
-    const t=AC.currentTime, g=AC.createGain(); g.connect(AC.destination);
+    if(AC.state!=='running')AC.resume(); const t=AC.currentTime, g=AC.createGain(); g.connect(masterOut());
     if(type==='boom'){
       const len=.45,buf=AC.createBuffer(1,AC.sampleRate*len,AC.sampleRate),d=buf.getChannelData(0);
       for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,2.5);
@@ -423,11 +442,11 @@ const MORE_SOUNDS=true, SND_LAST={};
 let SFX_OUT=null;
 function sfxOut(){ // shared output with a gentle limiter so stacked explosions never get harsh
   if(SFX_OUT)return SFX_OUT; const comp=AC.createDynamicsCompressor(); comp.threshold.value=-14; comp.ratio.value=6; comp.attack.value=.004; comp.release.value=.2;
-  const g=AC.createGain(); g.gain.value=.9; g.connect(comp); comp.connect(AC.destination); return SFX_OUT=g; }
+  const g=AC.createGain(); g.gain.value=.9; g.connect(comp); comp.connect(masterOut()); return SFX_OUT=g; }
 function noiseBuf(len){ const b=AC.createBuffer(1,Math.max(1,AC.sampleRate*len|0),AC.sampleRate), d=b.getChannelData(0); for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1; return b; }
 function sfx(type,gap){
   if(SET.mute||!MORE_SOUNDS)return; const now=performance.now()/1000; if(now-(SND_LAST[type]||0)<(gap||0))return; SND_LAST[type]=now;
-  try{ if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)(); if(AC.state==='suspended')AC.resume();
+  try{ if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)(); if(AC.state!=='running')AC.resume();
     const t=AC.currentTime, out=sfxOut(), v=1+(Math.random()-.5)*.16;   // +-8% pitch
     const env=(g,peak,a,d)=>{ g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(peak,t+a); g.gain.exponentialRampToValueAtTime(.0001,t+a+d); };
     const noise=(len,ftype,f0,f1,peak,a,d,q)=>{ const n=AC.createBufferSource(); n.buffer=noiseBuf(len); const f=AC.createBiquadFilter(); f.type=ftype; f.Q.value=q||1; f.frequency.setValueAtTime(f0*v,t); f.frequency.exponentialRampToValueAtTime(f1*v,t+len); const g=AC.createGain(); env(g,peak,a,d); n.connect(f); f.connect(g); g.connect(out); n.start(t); n.stop(t+len+.05); };
@@ -2628,7 +2647,7 @@ function showUI(){
   $('#pause').classList.toggle('hide',phase!=='paused');
   $('#over').classList.toggle('hide',!(phase==='over'&&overFlag));
   if(phase==='build'){ $('#startBtn').textContent='▶ Start Wave '+S.wave; $('#buildHint').textContent=S.wave===1?'Tip: tap a glowing spot to build a turret, or open the Shop':((S.wave%5===0)?'⚠️ Boss wave next! Stock up.':'Tap a glowing spot to build or upgrade a turret'); }
-  if(phase==='paused'){ $('#pauseInfo').textContent='Wave '+S.wave+' · '+S.score.toLocaleString()+' pts'; $('#muteBtn').textContent=SET.mute?'Off':'On'; }
+  if(phase==='paused'){ $('#pauseInfo').textContent='Wave '+S.wave+' · '+S.score.toLocaleString()+' pts'; syncSnd(); }
   if(phase==='title') refreshTitle();
   try{fsButtons()}catch(e){}
   if(inGame){ renderGuns(); renderAir(); }
@@ -2756,7 +2775,7 @@ function styleIcon(kind,id){ const c=document.createElement('canvas'); c.width=1
 function styleRows(rows){
   const best=Math.max(BEST.wave||0,BEST.reach||0);
   if(GIRL_OPTION){ rows.push({icon:'🐊',name:'Your gator',sub:'Every hat and flag fits both',hdr:true});
-    for(const [k,n,d] of [['boy','Tyler','Blue overalls'],['girl','Lauren','Lashes, a bow and rosy overalls']]){ const on=(SET.kid||'boy')===k;
+    for(const [k,n,d] of [['boy','Male gator','Blue overalls'],['girl','Female gator','Lashes, a bow and rosy overalls']]){ const on=(SET.kid||'boy')===k;
       rows.push({icon:styleIcon('kid',k),name:n,sub:d,cur:on,btn:{pick:true,on,label:on?'Playing':'Pick',act:()=>{SET.kid=k; store.set('swamp_set',SET); refreshPortrait(); renderSheet();}}}); } }
   rows.push({icon:'🎩',name:'Hats',sub:'Unlock more by reaching new waves (your best: wave '+best+')',hdr:true});
   HATS.forEach(h=>{ const ok=best>=h.w; rows.push({icon:styleIcon('hat',h.id),name:h.name,sub:ok?(h.w?'Unlocked at wave '+h.w:'The classic'):'Reach wave '+h.w+' to unlock',cur:(SET.hat||'straw')===h.id,
@@ -2849,7 +2868,16 @@ cv.addEventListener('pointerup',endTouch); cv.addEventListener('pointercancel',e
 document.addEventListener('gesturestart',e=>e.preventDefault());
 $('#pauseBtn').onclick=()=>{ if(phase==='wave')pauseGame(); else if(phase==='paused')resumeGame(); else if(phase==='build'){ save(); phase='title'; showUI(); } };
 $('#resumeBtn').onclick=resumeGame;
-$('#muteBtn').onclick=()=>{ SET.mute=!SET.mute; store.set('swamp_set',SET); $('#muteBtn').textContent=SET.mute?'Off':'On'; };
+function syncSnd(){ document.querySelectorAll('#muteBtn,#muteBtn2').forEach(b=>b.textContent=SET.mute?'Off':'On');
+  document.querySelectorAll('.volSl').forEach(sl=>sl.value=SET.vol??80); document.querySelectorAll('.volN').forEach(n=>n.textContent=SET.mute?'off':(SET.vol??80)); }
+function toggleMute(){ SET.mute=!SET.mute; if(!SET.mute&&!(SET.vol>0))SET.vol=60; setVolGain(); store.set('swamp_set',SET); syncSnd(); if(!SET.mute){ wakeAudio(true); snd('coin'); } }
+$('#muteBtn').onclick=toggleMute; $('#muteBtn2').onclick=toggleMute;
+document.querySelectorAll('.volSl').forEach(sl=>{
+  sl.oninput=()=>{ SET.vol=+sl.value; if(SET.vol>0&&SET.mute)SET.mute=false; if(SET.vol===0)SET.mute=true; wakeAudio(true); setVolGain(); store.set('swamp_set',SET); syncSnd(); };
+  sl.onchange=()=>{ if(!SET.mute)snd('coin'); }; });
+$('#sndBtn').onclick=()=>{ syncSnd(); $('#sndOv').classList.remove('hide'); $('#gatorPortrait').style.visibility='hidden'; };
+$('#sndDone').onclick=()=>{ $('#sndOv').classList.add('hide'); $('#gatorPortrait').style.visibility=''; };
+syncSnd();
 const flip=()=>{ SET.rot=SET.rot===-90?90:-90; store.set('swamp_set',SET); layout(); showUI(); };
 $('#flipBtn').onclick=flip; $('#flipBtn2').onclick=flip;
 $('#quitBtn').onclick=()=>{ const snap=store.get('swamp_run2',null); phase='title'; resetWorld(); if(snap)S=snap; showUI(); };
