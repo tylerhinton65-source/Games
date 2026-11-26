@@ -150,8 +150,6 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation;borde
     <button class="lv" data-lv="medium"><b>Medium</b><span>A fair fight — it slips up now and then.</span><i id="rMedium"></i></button>
     <button class="lv" data-lv="hard"><b>Hard</b><span>Thinks ahead. Only a few mistakes a game.</span><i id="rHard"></i></button>
   </div>
-  <div class="lab">Rules</div>
-  <button class="tog" id="mustTog"><span><b>Must jump</b>Official rule: if you can capture, you have to.</span><i class="sw"></i></button>
   <div class="row2"><button class="btn" id="cancel">Cancel</button><button class="btn go" id="start">Start game</button></div>
   <button class="small" id="resetSc">Reset scores</button>
 </div></div>
@@ -284,6 +282,7 @@ for(const k of ['easy','medium','hard'])if(!Array.isArray(D.sc[k]))D.sc[k]=[0,0,
 const save=()=>sv('tg_checkers',D);
 
 // game state (D.g): b board, turn (1 black / -1 red), me (my side), lv, must, quiet, last [from,to], undo [], undos, hints, st {slips}, over
+let hintTo=-1,hintFrom=-1;
 let G=D.g,ids=[],nextId=1,busy=false,sel=-1,partial=null,tb=null,legal=[],drag=null,aiT=0;
 const brd=$('#board');
 
@@ -313,8 +312,8 @@ function marks(){
   const anyCap=legal.length&&legal[0].caps.length;
   for(let i=0;i<64;i++){const id=ids[i];if(!id||!PCS[id])continue;const e=PCS[id];
     e.classList.toggle('sel',i===sel);
-    e.classList.toggle('must',myTurn&&G.must&&anyCap&&movers.has(i)&&sel<0&&!partial)}
-  if(sel>=0&&myTurn)for(const t of nextSteps(sel)){SQ[t.to].classList.add('tgt');if(t.cap>=0)SQ[t.to].classList.add('cap')}
+    e.classList.remove('must')}
+  if(hintTo>=0&&myTurn&&sel===hintFrom)SQ[hintTo].classList.add('tgt');
 }
 function trays(b){
   // pieces each side has captured, shown on that player's side of the board
@@ -331,7 +330,7 @@ addEventListener('resize',()=>{size()});
 // ---------- HUD ----------
 function hud(){
   const sc=D.sc[G.lv];
-  $('#sub').textContent=`${LVN[G.lv]} · you're ${G.me>0?'Black':'Red'}${G.must?'':' · jumps optional'}`;
+  $('#sub').textContent=`${LVN[G.lv]} · you're ${G.me>0?'Black':'Red'}`;
   $('#nMe').textContent=myName;
   $('#dMe').className='dot '+(G.me>0?'black':'red');$('#dAi').className='dot '+(G.me>0?'red':'black');
   $('#sMe').textContent=sc[0];$('#sDr').textContent=sc[1];$('#sAi').textContent=sc[2];
@@ -350,7 +349,7 @@ let toastT=0;function toast(m){const t=$('#toast');t.textContent=m;t.hidden=fals
 function newGame(){
   clearTimeout(aiT);busy=false;
   const s=D.set;
-  G=D.g={b:CK.init(),turn:1,me:s.color==='red'?-1:1,lv:s.level,must:s.must!==false,quiet:0,last:null,undo:[],undos:0,hints:0,st:{},over:null,counted:false};
+  G=D.g={b:CK.init(),turn:1,me:s.color==='red'?-1:1,lv:s.level,must:true,quiet:0,last:null,undo:[],undos:0,hints:0,st:{},over:null,counted:false};
   ids=[];for(const id in PCS){PCS[id].remove();delete PCS[id]}
   save();placeSquares();begin();
 }
@@ -367,10 +366,8 @@ function turnStart(){
   hud();
   if(G.turn===G.me){
     const cap=legal[0].caps.length;
-    if(cap&&G.must)status('You must jump!',legal.some(m=>m.caps.length>1)?'Double jumps keep going automatically.':drawNote());
-    else status('Your turn',drawNote()||(G.last?'':'Tap a piece, then where it should go.'));
-    // only one piece can move → pick it up for you
-    const from=new Set(legal.map(m=>m.path[0]));if(from.size===1&&cap)sel=[...from][0];
+    hintTo=hintFrom=-1;
+    status('Your turn',drawNote()||(G.last?'':'Tap a piece, then where it should go.'));
     marks();
   }else{
     status('Computer is thinking…',drawNote());busy=true;marks();hud();
@@ -435,21 +432,24 @@ function nextSteps(i){
   return out;
 }
 function canPick(i){return legal.some(m=>m.path[0]===i)}
+// a move that isn't allowed: say why, without showing where to go
+function nope(){toast(legal.length&&legal[0].caps.length?'You have to jump when you can!':'Can\'t move there')}
 function tapSquare(i){
   if(busy||G.over||G.turn!==G.me)return;
   const cur=partial?partial[partial.length-1]:sel;
   if(cur>=0){const st=nextSteps(partial?partial[0]:sel).find(t=>t.to===i);if(st){hop(st);return}}
-  if(partial)return; // mid double jump: must keep jumping
+  if(partial){if(i!==partial[partial.length-1])toast('Keep jumping with the same piece!');return} // mid double jump
   const p=G.b[i];
   if(p&&(p>0)===(G.me>0)){
     if(canPick(i)){sel=(sel===i)?-1:i;marks()}
-    else if(G.must&&legal[0].caps.length){toast('You have to jump with a glowing piece')}
+    else if(legal[0].caps.length){toast('You have to jump when you can!')}
     else toast('That piece is stuck right now');
     return;
   }
-  if(sel>=0){sel=-1;marks()}
+  if(sel>=0){if(((i>>3)+(i&7))&1&&!(tb||G.b)[i])nope();sel=-1;marks()}
 }
 function hop(st){
+  hintTo=hintFrom=-1;
   if(!partial){partial=[sel];G.undo.push({b:G.b.slice(),ids:ids.slice(),last:G.last,quiet:G.quiet,turn:G.turn,st:{...G.st}});if(G.undo.length>60)G.undo.shift()}
   const from=partial[partial.length-1];partial.push(st.to);
   tb=tb||G.b.slice();
@@ -499,7 +499,7 @@ function endDrag(e,cancel){
   const i=cancel?-1:sqAt(e.clientX,e.clientY);
   const st=i>=0?nextSteps(partial?partial[0]:d.i).find(t=>t.to===i):null;
   if(st){hop(st);return}
-  if(el){el.classList.remove('drag');pos(el,d.i)}marks();
+  if(el){el.classList.remove('drag');pos(el,d.i)}if(i>=0&&i!==d.i)nope();marks();
 }
 brd.addEventListener('pointerup',e=>endDrag(e,false));
 brd.addEventListener('pointercancel',e=>endDrag(e,true));
@@ -518,9 +518,8 @@ $('#hint').onclick=()=>{
   if(partial){const more=nextSteps(partial[0]);if(more.length){toast('Keep jumping with the lifted piece');return}}
   const m=CK.hint(G.b,G.turn,G.must);
   if(G.lv==='hard')G.hints++;
-  sel=m.path[0];marks();
-  SQ[m.path[1]].classList.add('last');
-  status('Try this piece',m.caps.length?'It can capture!':'The bright dot is a good spot.');
+  sel=hintFrom=m.path[0];hintTo=m.path[1];marks();
+  status('Try this move',m.caps.length?'It captures a piece!':'Move the lifted piece to the dot.');
   save();hud();
 };
 function openSetup(first){
@@ -528,12 +527,10 @@ function openSetup(first){
   const paint=()=>{
     document.querySelectorAll('.cbtn').forEach(b=>b.classList.toggle('on',b.dataset.color===s.color));
     document.querySelectorAll('.lv').forEach(b=>b.classList.toggle('on',b.dataset.lv===s.level));
-    $('#mustTog').classList.toggle('on',s.must!==false);
     for(const k of ['easy','medium','hard']){const c=D.sc[k];$('#r'+k[0].toUpperCase()+k.slice(1)).textContent=c[0]||c[2]||c[1]?`${c[0]}–${c[2]}`:''}
   };
   document.querySelectorAll('.cbtn').forEach(b=>b.onclick=()=>{s.color=b.dataset.color;paint()});
   document.querySelectorAll('.lv').forEach(b=>b.onclick=()=>{s.level=b.dataset.lv;paint()});
-  $('#mustTog').onclick=()=>{s.must=s.must===false;paint()};
   $('#start').onclick=()=>{D.set=s;$('#setup').hidden=true;$('#end').hidden=true;newGame()};
   $('#cancel').hidden=!!first;
   $('#cancel').onclick=()=>{$('#setup').hidden=true};
@@ -559,8 +556,8 @@ const ICON='<svg viewBox="0 0 84 84" width="84" height="84"><rect width="84" hei
 // ---------- start ----------
 requestAnimationFrame(()=>{
   size();
-  if(G&&G.b&&G.b.length===64){G.undo=G.undo||[];G.st=G.st||{};placeSquares();begin()}
-  else{G={b:CK.init(),turn:1,me:D.set.color==='red'?-1:1,lv:D.set.level,must:D.set.must!==false,quiet:0,last:null,undo:[],undos:0,hints:0,st:{},over:null};
+  if(G&&G.b&&G.b.length===64){G.must=true;G.undo=G.undo||[];G.st=G.st||{};placeSquares();begin()}
+  else{G={b:CK.init(),turn:1,me:D.set.color==='red'?-1:1,lv:D.set.level,must:true,quiet:0,last:null,undo:[],undos:0,hints:0,st:{},over:null};
     placeSquares();render();hud();status('Pick your color to start','');openSetup(true)}
 });
 // test hooks

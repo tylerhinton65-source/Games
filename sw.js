@@ -1,5 +1,5 @@
 // Tyler's Games offline cache. Bump VERSION whenever you upload new files.
-const VERSION = 'tylers-games-v96';
+const VERSION = 'tylers-games-v97';
 const FILES = ['./', './index.html', './gatedash.html', './swamp.html', './farm.html', './chess.html', './checkers.html', './swamp-music.js', './swamp-beach.js', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
