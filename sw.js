@@ -1,6 +1,6 @@
 // Tyler's Games offline cache. Bump VERSION whenever you upload new files.
-const VERSION = 'tylers-games-v85';
-const FILES = ['./', './index.html', './gatedash.html', './swamp.html', './lawn.html', './farm.html', './chess.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
+const VERSION = 'tylers-games-v86';
+const FILES = ['./', './index.html', './gatedash.html', './swamp.html', './farm.html', './chess.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));

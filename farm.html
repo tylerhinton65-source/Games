@@ -68,7 +68,7 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation;borde
 <div class="ov" id="sheet" hidden><div class="sheet">
   <h3>ASMR Farmer</h3><p>Hold to drive, slide to steer. Tap ↶ ↷ at the end of a row for a perfect turn.</p>
   <button class="opt" id="fastBtn">🚜 Speed <span class="tog" id="fastTog">Chill</span><small>Chill is slow and smooth · Quick gets fields done faster</small></button>
-  <button class="opt" id="ctlBtn">👆 Controls <span class="tog on" id="ctlTog">Swipe</span><small>Swipe: it drives itself, swipe ← → to turn · Hold: hold to drive, slide to steer</small></button>
+  <button class="opt" id="ctlBtn" hidden>👆 Controls <span class="tog on" id="ctlTog">Swipe</span><small>Swipe: it drives itself, swipe ← → to turn · Hold: hold to drive, slide to steer</small></button>
   <button class="opt" id="asBtn">🧭 Steering help <span class="tog" id="asTog">On</span><small>Eases you straight and onto the row when your finger is centered</small></button>
   <button class="opt" id="sndBtn">🔊 Sound <span class="tog" id="sndTog">On</span><small>Engine rumble and crunchy wheat</small></button>
   <button class="opt" id="restart">↻ Start this field over</button>
@@ -95,7 +95,7 @@ const sv=(k,v)=>{try{localStorage.setItem(K(k),JSON.stringify(v))}catch(e){}};
 let P=ld('tg_farm',null);
 if(!P||!P.lvl)P={lvl:1,snd:true,fast:false,assist:true,cur:null};
 if(P.assist===undefined)P.assist=true;
-if(!P.ctrl)P.ctrl='swipe'; // 'swipe' (default) or 'hold'
+P.ctrl='swipe'; // swipe controls only (hold & steer code kept but no longer offered)
 const saveP=()=>sv('tg_farm',P);
 
 /* ---------- helpers ---------- */
@@ -219,7 +219,7 @@ function drawScenery(c){
 }
 
 /* ---------- combine (faces +x locally) ---------- */
-function drawCombine(c){
+function drawCombine(c,tm){
   const HW=F.HW;
   c.save();c.translate(C.x,C.y);c.rotate(C.a);
   ell(c,-.6,1,8,Math.max(5.2,HW*.5),'rgba(40,25,0,.22)');
@@ -240,6 +240,9 @@ function drawCombine(c){
   c.fillStyle='#cfd3d8';c.fillRect(HEAD_F-.25,-HW/2,.25,HW);                       // cutter bar
   for(const s of[-1,1]){c.beginPath();c.moveTo(3.4,s*HW/2);c.lineTo(HEAD_F+.9,s*(HW/2-.3));c.lineTo(3.4,s*(HW/2-.9));c.closePath();c.fillStyle='#55585f';c.fill()} // crop dividers
   circ(c,-6.7,-.8,.45,'#3a3b40');circ(c,-6.7,.8,.45,'#3a3b40');                    // chaff spreaders
+  if((C.pending||C.ap)&&Math.floor((tm||0)/330)%2===0){ // turn signal on the side it's turning to
+    const sd=C.ap?Math.sign(C.ap.segs[1].sw):C.side*Math.sign(-Math.sin(C.a))||1;
+    for(const x of[2.4,-6.2]){circ(c,x,sd*2.95,.75,'rgba(255,170,40,.45)');circ(c,x,sd*2.95,.42,'#ffb52e')}}
   c.restore();
 }
 
@@ -319,14 +322,37 @@ function chooseSide(){const r0=rowOf(C.x),dist=[99,99];
   if(dist[0]===99&&dist[1]===99)return r0>0&&(r0>=F.rows-1||C.side<0)?-1:1;
   if(dist[0]===dist[1])return C.side;return dist[0]<dist[1]?-1:1}
 function request(d){
-  if(!F||won||P.ctrl!=='swipe')return;audioUnlock();setHint(false);
+  if(!F||won||P.ctrl!=='swipe')return;try{audioUnlock()}catch(_){}setHint(false);
   if(C.paused){C.paused=false;$('#pauseTag').hidden=true}
   if(C.ap)return;
   if(d%2===0){
     if(d===facing()){C.go=true;C.pending=false}
     else{C.side=chooseSide();C.pending=true;C.go=true}
   }else{C.side=d===1?1:-1;C.pending=true;C.go=true} // sideways = turn that way at the end of this row (right away if already there)
+  if(C.pending&&wheatAhead())flash(C.side>0?'↷ Turning right at the end of this row':'↶ Turning left at the end of this row');
+  preview=null;
 }
+let flashT=0,preview=null;
+function flash(t){setHint(true,t);clearTimeout(flashT);flashT=setTimeout(()=>setHint(false),2600)}
+// dashed arrow showing the turn the combine is going to make
+function turnPath(p){const pts=[];let x=C.x,y=C.y,a=cardinal(C.a).c;
+  for(const sg of p.segs){const len=sg.t==='L'?Math.max(0,sg.len):Math.abs(sg.sw)*sg.r,n=Math.max(1,Math.ceil(len/1.2));
+    const sx=x,sy=y,sa=a;
+    for(let i=1;i<=n;i++){const s=len*i/n;
+      if(sg.t==='L'){x=sx+Math.cos(sa)*s;y=sy+Math.sin(sa)*s}
+      else{const g=Math.sign(sg.sw),cx=sx-Math.sin(sa)*sg.r*g,cy=sy+Math.cos(sa)*sg.r*g;a=sa+g*s/sg.r;x=cx+Math.sin(a)*sg.r*g;y=cy-Math.cos(a)*sg.r*g}
+      pts.push([x,y])}
+    if(sg.t==='A')a=sa+sg.sw}
+  pts.push([x+Math.cos(a)*6,y+Math.sin(a)*6]);return pts}
+function drawPreview(c,t){
+  if(!C.pending||C.ap||won)return;
+  if(!preview||tick%10===0){const p=planTurn(C.side)||planTurn(-C.side);preview=p?turnPath(p):null}
+  if(!preview||preview.length<3)return;
+  // start the preview from where the combine will leave the row (the straight part fills in as you drive)
+  c.save();c.strokeStyle='rgba(255,214,102,.85)';c.lineWidth=.7;c.setLineDash([1.6,1.2]);c.lineDashOffset=-t/90;c.lineCap='round';
+  c.beginPath();c.moveTo(preview[0][0],preview[0][1]);for(const q of preview)c.lineTo(q[0],q[1]);c.stroke();c.setLineDash([]);
+  const e=preview[preview.length-1],b=preview[preview.length-3],an=Math.atan2(e[1]-b[1],e[0]-b[0]);
+  c.fillStyle='rgba(255,214,102,.95)';c.beginPath();c.moveTo(e[0]+Math.cos(an)*1.8,e[1]+Math.sin(an)*1.8);c.lineTo(e[0]+Math.cos(an+2.4)*1.8,e[1]+Math.sin(an+2.4)*1.8);c.lineTo(e[0]+Math.cos(an-2.4)*1.8,e[1]+Math.sin(an-2.4)*1.8);c.closePath();c.fill();c.restore()}
 function togglePause(){if(!F||won||P.ctrl!=='swipe')return;if(!C.go&&!C.ap){request(facing());return}C.paused=!C.paused;$('#pauseTag').hidden=!C.paused}
 function driveSwipe(f){
   if(C.ap){if(C.paused)return;autopilot(f);if(!C.ap){C.go=true;C.trow=rowOf(C.x)}return}
@@ -491,7 +517,7 @@ function frame(t){
   if(P.ctrl==='hold'&&P.assist&&hold&&C.steer===0&&!C.ap&&!won){const{c,d}=cardinal(C.a);if(Math.abs(Math.sin(c))>.5&&Math.abs(d)<.62&&C.y>F.CY0-10&&C.y<F.CY1+10){
     const tx=rowX(rowOf(C.x)),fy=Math.sin(c),y2=fy<0?F.CY0:F.CY1;ctx.strokeStyle='rgba(255,255,255,.28)';ctx.lineWidth=.35;ctx.setLineDash([1.6,1.6]);
     ctx.beginPath();ctx.moveTo(tx,C.y+fy*(HEAD_F+1));ctx.lineTo(tx,y2);ctx.stroke();ctx.setLineDash([])}}
-  drawParts(ctx);drawCombine(ctx);
+  drawPreview(ctx,t);drawParts(ctx);drawCombine(ctx,t);
   // steering wheel under your finger
   if(hold&&P.ctrl==='hold'){ctx.setTransform(dpr,0,0,dpr,0,0);const r=stage.getBoundingClientRect(),x0=hold.x0-r.left,y0=hold.y-r.top,off=clamp(hold.x-hold.x0,-60,60);
     ctx.globalAlpha=.5;ctx.strokeStyle='#fff';ctx.lineWidth=3;ctx.beginPath();ctx.arc(x0,y0,30,0,TAU);ctx.stroke();
@@ -539,8 +565,9 @@ function chime(){
 
 /* ---------- input ---------- */
 let sw=null;
-stage.addEventListener('pointerdown',e=>{if(!F||won||e.target.closest('.turn'))return;audioUnlock();
-  if(P.ctrl==='swipe'){sw={id:e.pointerId,x0:e.clientX,y0:e.clientY,fired:false};try{stage.setPointerCapture(e.pointerId)}catch(_){}e.preventDefault();return}
+stage.addEventListener('pointerdown',e=>{if(!F||won||(e.target.closest&&e.target.closest('.turn')))return;
+  if(P.ctrl==='swipe'){sw={id:e.pointerId,x0:e.clientX,y0:e.clientY,fired:false};try{stage.setPointerCapture(e.pointerId)}catch(_){}e.preventDefault();try{audioUnlock()}catch(_){}return}
+  try{audioUnlock()}catch(_){}
   hold={id:e.pointerId,x0:e.clientX,x:e.clientX,y:e.clientY};try{stage.setPointerCapture(e.pointerId)}catch(_){}$('#hint').classList.add('off');e.preventDefault()});
 stage.addEventListener('pointermove',e=>{
   if(sw&&e.pointerId===sw.id){const dx=e.clientX-sw.x0,dy=e.clientY-sw.y0;
@@ -568,7 +595,7 @@ function goHome(){saveCur();try{if(window.parent!==window&&window.parent.tgGoHom
 $('#back').onclick=goHome;$('#wMenu').onclick=goHome;
 $('#wNext').onclick=()=>{$('#win').hidden=true;build()};
 const tog=(id,on,a,b)=>{$(id).textContent=on?a:b;$(id).classList.toggle('on',on)};
-function sheet(){$('#ctlTog').textContent=P.ctrl==='hold'?'Hold & steer':'Swipe';$('#asBtn').hidden=P.ctrl!=='hold';tog('#fastTog',P.fast,'Quick','Chill');tog('#asTog',P.assist,'On','Off');tog('#sndTog',P.snd,'On','Off');$('#sheet').hidden=false}
+function sheet(){$('#ctlBtn').hidden=true;$('#asBtn').hidden=true;tog('#fastTog',P.fast,'Quick','Chill');tog('#asTog',P.assist,'On','Off');tog('#sndTog',P.snd,'On','Off');$('#sheet').hidden=false}
 $('#setBtn').onclick=sheet;$('#sClose').onclick=()=>{$('#sheet').hidden=true};
 $('#sheet').addEventListener('click',e=>{if(e.target.id==='sheet')$('#sheet').hidden=true});
 $('#fastBtn').onclick=()=>{P.fast=!P.fast;saveP();tog('#fastTog',P.fast,'Quick','Chill')};
