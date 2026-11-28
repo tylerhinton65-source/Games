@@ -1,0 +1,518 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Uno</title>
+<style>
+/* Uno — Tyler's Games. Runs in a frame inside index.html (like connect4.html). */
+:root{--font:ui-rounded,"SF Pro Rounded",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;height:100%;overflow:hidden;color:#fff;font-family:var(--font);background:#1c1446;
+  -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;overscroll-behavior:none}
+button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation;border:0;background:none;padding:0}
+#app{--cw:60px;--pw:72px;position:fixed;inset:0;display:flex;flex-direction:column;
+  background:radial-gradient(38% 26% at 0% 8%,rgba(228,59,47,.55),transparent 70%),radial-gradient(38% 26% at 100% 18%,rgba(31,116,220,.6),transparent 70%),
+    radial-gradient(42% 24% at 0% 78%,rgba(243,184,21,.38),transparent 70%),radial-gradient(42% 24% at 100% 92%,rgba(47,158,72,.45),transparent 70%),
+    radial-gradient(120% 75% at 50% 45%,#3b2c86 0%,#281d63 50%,#170f3d 100%);
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+.bar{display:flex;align-items:center;gap:8px;padding:8px 10px 4px}
+.tb{background:rgba(255,255,255,.14);border-radius:12px;padding:8px 12px;font-weight:800;font-size:15px;min-width:44px}
+.tb:active{background:rgba(255,255,255,.26)}
+.hud{flex:1;text-align:center;font-weight:800;font-size:17px;line-height:1.15}
+.hud small{display:block;font-size:11.5px;opacity:.75;font-weight:700}
+/* opponents */
+#seats{display:flex;gap:8px;padding:6px 10px 2px;justify-content:center}
+.seat{position:relative;flex:1;max-width:130px;background:rgba(255,255,255,.09);border:2px solid transparent;border-radius:16px;padding:6px 6px 5px;text-align:center;transition:border-color .2s,background .2s}
+.seat.turn{border-color:#ffd666;background:rgba(255,214,102,.14)}
+.av{width:38px;height:38px;margin:0 auto;border-radius:50%;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center;font-size:23px}
+.nm{font-size:12.5px;font-weight:800;margin-top:2px}
+.fan{height:22px;display:flex;justify-content:center;margin-top:3px}
+.mc{width:14px;height:20px;border-radius:3px;background:#2a3348;border:1.5px solid #fff;margin-left:-8px;box-shadow:0 1px 2px rgba(0,0,0,.4)}
+.mc:first-child{margin-left:0}
+.cnt{position:absolute;top:5px;right:6px;font-size:13px;font-weight:900;background:rgba(0,0,0,.35);border-radius:99px;padding:1px 7px;font-variant-numeric:tabular-nums}
+.ub{position:absolute;top:-9px;left:50%;transform:translateX(-50%);background:#ffd666;color:#5a1800;font-weight:900;font-size:12px;padding:2px 8px;border-radius:99px;box-shadow:0 2px 6px rgba(0,0,0,.4);display:none;white-space:nowrap}
+.seat.uno .ub{display:block;animation:pop .35s cubic-bezier(.2,1.4,.4,1)}
+/* table */
+#table{flex:1;min-height:0;position:relative;display:flex;align-items:center;justify-content:center;gap:26px}
+#conf{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;opacity:.5}
+#dir{position:absolute;top:4px;left:0;right:0;text-align:center;font-size:12px;font-weight:800;opacity:.65}
+#deck{position:relative;width:var(--pw);height:calc(var(--pw)*1.46);--cw:var(--pw)}
+#deck .cb{position:absolute;left:0;top:0}
+#deck .cb:nth-child(1){transform:translate(4px,4px)}
+#deck .cb:nth-child(2){transform:translate(2px,2px)}
+#deck.glow .cb:last-of-type{animation:glow 1.1s ease-in-out infinite}
+@keyframes glow{0%,100%{box-shadow:0 0 0 3px #fff,0 0 14px 4px rgba(255,255,255,.55)}50%{box-shadow:0 0 0 3px #ffd666,0 0 22px 8px rgba(255,214,102,.75)}}
+.plab{position:absolute;left:50%;transform:translateX(-50%);bottom:-24px;font-size:12px;font-weight:900;white-space:nowrap;opacity:.85}
+#pileWrap{position:relative;width:var(--pw);height:calc(var(--pw)*1.46);--cw:var(--pw)}
+#ring{position:absolute;inset:-9px;border-radius:calc(var(--pw)*.2);box-shadow:0 0 0 4px var(--ring,#fff),0 0 24px 4px var(--ring,#fff);opacity:.9;transition:box-shadow .3s}
+#pile .cd{position:absolute;left:0;top:0}
+#clab{background:var(--ring,#fff);color:#fff;padding:2px 10px;border-radius:99px;text-shadow:0 1px 2px rgba(0,0,0,.4);opacity:1}
+/* cards */
+.cd,.cb{position:relative;width:var(--cw);height:calc(var(--cw)*1.46);border-radius:calc(var(--cw)*.13);background:#fff;padding:calc(var(--cw)*.055);box-shadow:0 2px 6px rgba(0,0,0,.35);flex:none}
+.cd .in,.cb .in{position:relative;width:100%;height:100%;border-radius:calc(var(--cw)*.09);overflow:hidden;background:var(--cc)}
+.cd.r{--cc:#e43b2f}.cd.y{--cc:#f3b815}.cd.g{--cc:#2f9e48}.cd.b{--cc:#1f74dc}.cd.w{--cc:#1b1d24}
+.ov{position:absolute;left:9%;right:9%;top:21%;bottom:21%;border-radius:50%;background:#fff;transform:rotate(-30deg);display:flex;align-items:center;justify-content:center}
+.ov b{transform:rotate(30deg);font-weight:900;font-size:calc(var(--cw)*.5);line-height:1;color:var(--cc);text-shadow:calc(var(--cw)*.028) calc(var(--cw)*.028) 0 #15171d;letter-spacing:-.04em}
+.ov b.u{text-decoration:underline;text-decoration-thickness:calc(var(--cw)*.04);text-underline-offset:calc(var(--cw)*.04)}
+.cd.w .ov{background:conic-gradient(#e43b2f 0 25%,#1f74dc 0 50%,#2f9e48 0 75%,#f3b815 0)}
+.cd.w .ov b{color:#fff;font-size:calc(var(--cw)*.42)}
+.k{position:absolute;color:#fff;font-weight:900;font-size:calc(var(--cw)*.21);line-height:1;text-shadow:1px 1px 0 rgba(0,0,0,.4)}
+.k.tl{left:8%;top:5%}.k.br{right:8%;bottom:5%;transform:rotate(180deg)}
+.cb .in{background:repeating-linear-gradient(45deg,#232b3f 0 6px,#2b3550 6px 12px)}
+.cb .ov{background:#ffd666;left:12%;right:12%;top:24%;bottom:24%}
+.cb .ov b{color:#5a3200;font-size:calc(var(--cw)*.36);text-shadow:none}
+/* hand */
+#acts{height:48px;display:flex;align-items:center;justify-content:center;gap:10px}
+.ab{border-radius:99px;padding:10px 20px;font-weight:900;font-size:16px;box-shadow:0 3px 0 rgba(0,0,0,.3)}
+.ab:active{transform:translateY(2px);box-shadow:0 1px 0 rgba(0,0,0,.3)}
+#unoBtn{background:#e43b2f;font-size:18px;letter-spacing:.03em;animation:pulse 1s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+#passBtn{background:rgba(255,255,255,.2)}
+#catchBtn{background:#ff9a2e;color:#3a1a00}
+.stat{min-height:22px;margin:2px 10px 0;font-weight:900;font-size:15.5px;text-align:center;text-shadow:0 1px 3px rgba(0,0,0,.5);line-height:1.2}
+.stat small{display:block;font-size:12px;font-weight:700;opacity:.75}
+#hand{position:relative;margin:0 8px 8px;height:calc(var(--cw)*1.46*1.5 + 14px)}
+.hc{position:absolute;left:0;top:0;transition:transform .18s ease-out,left .22s ease-out,top .22s ease-out,filter .2s}
+.hc.ok{transform:translateY(-12px)}
+.hc.ok .cd{box-shadow:0 0 0 2px #ffd666,0 4px 10px rgba(0,0,0,.45)}
+.hc.no{filter:brightness(.62) saturate(.8)}
+.hc.shake{animation:shake .35s}
+@keyframes shake{20%,60%{margin-left:-6px}40%,80%{margin-left:6px}}
+.fly{position:fixed;left:0;top:0;z-index:40;pointer-events:none;transform-origin:0 0}
+/* sheets */
+.overlay{position:fixed;inset:0;z-index:50;background:rgba(10,6,30,.62);display:flex;align-items:flex-end;justify-content:center;animation:fade .2s}
+@keyframes fade{from{opacity:0}}
+.sheet{width:100%;max-width:480px;background:#2a1f5c;border-radius:24px 24px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom));
+  box-shadow:0 -10px 40px rgba(0,0,0,.45);animation:up .28s cubic-bezier(.2,.8,.3,1);max-height:92vh;overflow:auto}
+@keyframes up{from{transform:translateY(40px);opacity:.4}}
+.sheet h3{margin:2px 0 4px;font-size:20px;text-align:center}
+.sheet p{margin:0 0 6px;text-align:center;opacity:.78;font-size:13.5px;font-weight:600;line-height:1.35}
+.lab{font-size:12px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;opacity:.6;margin:14px 2px 7px}
+.pls{display:flex;gap:8px}
+.pb{flex:1;background:rgba(255,255,255,.08);border:3px solid transparent;border-radius:16px;padding:10px 6px;font-weight:900;font-size:17px;display:flex;flex-direction:column;align-items:center;gap:3px}
+.pb small{font-size:11.5px;opacity:.75;font-weight:700}
+.pb.on,.lv.on{border-color:#ffd666;background:rgba(255,214,102,.12)}
+.lvls{display:flex;flex-direction:column;gap:7px}
+.lv{display:flex;align-items:center;gap:10px;text-align:left;background:rgba(255,255,255,.08);border:3px solid transparent;border-radius:16px;padding:10px 12px}
+.lv b{font-size:16px;min-width:70px}
+.lv span{font-size:12.5px;opacity:.75;font-weight:600;line-height:1.3}
+.lv i{font-style:normal;margin-left:auto;font-size:12px;font-weight:800;opacity:.7;white-space:nowrap}
+.row2{display:flex;gap:8px;margin-top:16px}
+.btn{background:rgba(255,255,255,.14);border-radius:14px;padding:11px 14px;font-weight:800;font-size:15px}
+.btn:active{background:rgba(255,255,255,.26)}
+.btn.go{background:#ffd666;color:#3a2600}
+.row2 .btn{flex:1;padding:14px}
+.small{display:block;margin:12px auto 0;font-size:13px;font-weight:700;opacity:.6;text-decoration:underline}
+.overlay.mid{align-items:center}
+.card{margin:auto;width:min(330px,88vw);background:#2a1f5c;border-radius:24px;padding:22px 18px 16px;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.55);animation:pop .35s cubic-bezier(.2,1.3,.4,1)}
+@keyframes pop{from{transform:scale(.85);opacity:0}}
+.card .ico{width:84px;height:84px;margin:0 auto 6px}
+.card h2{margin:4px 0 2px;font-size:25px}
+.card p{margin:0 0 6px;opacity:.8;font-weight:600;font-size:14px}
+.card .tally{font-weight:800;font-size:13px;opacity:.7;margin:6px 0 12px}
+.card .btn{display:block;width:100%;margin-top:8px;padding:13px}
+.picks{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+.pk{height:76px;border-radius:18px;font-weight:900;font-size:18px;box-shadow:0 4px 0 rgba(0,0,0,.3);text-shadow:0 1px 2px rgba(0,0,0,.4)}
+.pk:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.3)}
+.pk small{display:block;font-size:11.5px;font-weight:700;opacity:.9}
+.toast{position:fixed;left:50%;top:28%;transform:translateX(-50%);background:rgba(0,0,0,.78);padding:9px 16px;border-radius:99px;font-weight:800;font-size:14.5px;z-index:60;pointer-events:none;white-space:nowrap;max-width:94vw;overflow:hidden;text-overflow:ellipsis}
+@media (prefers-reduced-motion:reduce){#unoBtn,#deck.glow .cb:last-of-type{animation:none}}
+</style></head><body>
+<div id="app">
+  <div class="bar">
+    <button class="tb" id="back" aria-label="Menu">‹ Menu</button>
+    <div class="hud">Uno<small id="sub">Medium</small></div>
+    <button class="tb" id="gear" aria-label="New game and settings">⚙︎</button>
+  </div>
+  <div id="seats"></div>
+  <div id="table">
+    <svg id="conf" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg>
+    <div id="dir"></div>
+    <button id="deck" aria-label="Draw a card"><div class="cb"><div class="in"><div class="ov"><b>🐾</b></div></div></div><div class="cb"><div class="in"><div class="ov"><b>🐾</b></div></div></div><div class="cb"><div class="in"><div class="ov"><b>🐾</b></div></div></div><span class="plab" id="dlab">Draw</span></button>
+    <div id="pileWrap"><div id="ring"></div><div id="pile"></div><span class="plab" id="clab">Red</span></div>
+  </div>
+  <div class="stat" id="stat">&nbsp;</div>
+  <div id="acts">
+    <button class="ab" id="unoBtn" hidden>UNO!</button>
+    <button class="ab" id="passBtn" hidden>Keep it · Pass</button>
+    <button class="ab" id="catchBtn" hidden>Catch!</button>
+  </div>
+  <div id="hand"></div>
+</div>
+<div class="overlay" id="setup" hidden><div class="sheet">
+  <h3>New game of Uno</h3>
+  <p>Match the top card's color or number. Wilds go on anything. Tap <b>UNO!</b> when you're down to two cards — if you get caught, draw 2.</p>
+  <div class="lab">Players</div>
+  <div class="pls">
+    <button class="pb" data-n="2">2<small>you + Benji</small></button>
+    <button class="pb" data-n="3">3<small>+ Gator</small></button>
+    <button class="pb" data-n="4">4<small>+ Owl</small></button>
+  </div>
+  <div class="lab">Difficulty</div>
+  <div class="lvls">
+    <button class="lv" data-lv="easy"><b>Easy</b><span>Plays whatever. Forgets to say Uno.</span><i id="rEasy"></i></button>
+    <button class="lv" data-lv="medium"><b>Medium</b><span>Saves its wilds and plays smart-ish.</span><i id="rMedium"></i></button>
+    <button class="lv" data-lv="hard"><b>Hard</b><span>Hits you with +2s when you're close. Never forgets Uno.</span><i id="rHard"></i></button>
+  </div>
+  <div class="row2"><button class="btn" id="cancel">Cancel</button><button class="btn go" id="start">Deal</button></div>
+  <button class="small" id="resetSc">Reset scores</button>
+</div></div>
+<div class="overlay mid" id="pick" hidden><div class="card">
+  <h2>Pick a color</h2>
+  <p id="pickP">What color comes next?</p>
+  <div class="picks">
+    <button class="pk" data-c="r" style="background:#e43b2f">Red<small></small></button>
+    <button class="pk" data-c="b" style="background:#1f74dc">Blue<small></small></button>
+    <button class="pk" data-c="g" style="background:#2f9e48">Green<small></small></button>
+    <button class="pk" data-c="y" style="background:#f3b815">Yellow<small></small></button>
+  </div>
+  <button class="btn" id="pickBack">Back</button>
+</div></div>
+<div class="overlay mid" id="end" hidden><div class="card">
+  <div class="ico" id="endIco"></div>
+  <h2 id="endH">You win!</h2>
+  <p id="endP">Nicely played!</p>
+  <div class="tally" id="endT"></div>
+  <button class="btn go" id="again">Deal again</button>
+  <button class="btn" id="change">Change players or difficulty</button>
+  <button class="btn" id="endMenu">Menu</button>
+</div></div>
+<div class="toast" id="toast" hidden></div>
+<script>
+'use strict';
+/*ENGINE-START*/
+// Uno engine. Card = {id, c:'r'|'y'|'g'|'b'|'w', v:'0'..'9'|'s'(skip)|'r'(reverse)|'d2'|'w'|'w4'}
+const U=(()=>{
+  const COLS=['r','y','g','b'];
+  function deck(){let id=0;const d=[];
+    for(const c of COLS){d.push({id:id++,c,v:'0'});
+      for(let k=0;k<2;k++){for(let n=1;n<=9;n++)d.push({id:id++,c,v:String(n)});for(const v of ['s','r','d2'])d.push({id:id++,c,v})}}
+    for(let k=0;k<4;k++){d.push({id:id++,c:'w',v:'w'});d.push({id:id++,c:'w',v:'w4'})}
+    return d}
+  function shuffle(a,rnd){rnd=rnd||Math.random;for(let i=a.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1));const t=a[i];a[i]=a[j];a[j]=t}return a}
+  const ok=(card,top,color)=>card.c==='w'||card.c===color||card.v===top.v;
+  function bestColor(hand,rnd){rnd=rnd||Math.random;const cnt={r:0,y:0,g:0,b:0};for(const c of hand)if(c.c!=='w')cnt[c.c]++;
+    let best=COLS[Math.floor(rnd()*4)],bv=0;for(const k of shuffle(COLS.slice(),rnd))if(cnt[k]>bv){bv=cnt[k];best=k}return best}
+  // ctx: {lv, n (players), next (cards the next player holds), prev (cards the player before holds)}
+  function pick(hand,top,color,ctx,rnd){
+    rnd=rnd||Math.random;const lv=ctx.lv;
+    const play=hand.filter(c=>ok(c,top,color));if(!play.length)return null;
+    let card;
+    if(lv==='easy'){
+      const nw=play.filter(c=>c.c!=='w');const pool=nw.length&&rnd()<.75?nw:play;
+      card=pool[Math.floor(rnd()*pool.length)];
+    }else{
+      const hard=lv==='hard',threat=ctx.next<=2,cnt={r:0,y:0,g:0,b:0};
+      for(const c of hand)if(c.c!=='w')cnt[c.c]++;
+      const plainOk=play.some(x=>x.c!=='w');
+      let bv=-1e9;
+      for(const c of play){
+        let s;
+        if(c.c==='w'){
+          s=c.v==='w4'?-14:-11;
+          if(threat)s+=c.v==='w4'?(hard?32:16):(hard?6:2);
+          if(hand.length<=2&&plainOk)s-=12; // keep the wild as a sure last card
+        }else{
+          s=cnt[c.c]*2+(+c.v||0)*.25;
+          if(c.v==='s'||c.v==='d2'){s+=2;if(threat)s+=hard?24:10}
+          if(c.v==='r'){s+=1;if(threat&&(ctx.n===2||ctx.prev>ctx.next))s+=hard?20:8}
+          if(hard&&c.c!==color&&cnt[c.c]>cnt[color]+1)s+=2; // move play into the color it holds most
+        }
+        s+=(rnd()*2-1)*(hard?1:3);
+        if(s>bv){bv=s;card=c}
+      }
+    }
+    let col=null;
+    if(card.c==='w'){const rest=hand.filter(c=>c!==card);col=lv==='easy'&&rnd()<.5?COLS[Math.floor(rnd()*4)]:bestColor(rest,rnd)}
+    return{card,color:col};
+  }
+  return{COLS,deck,shuffle,ok,pick,bestColor};
+})();
+if(typeof module!=='undefined')module.exports=U;
+/*ENGINE-END*/
+const $=s=>document.querySelector(s);
+// Saves follow Tyler's Games players: player 0 uses plain keys, others get a "p<id>:" prefix (?p=<id>).
+const PID=(()=>{try{return new URLSearchParams(location.search).get('p')}catch(e){return null}})();
+const K=k=>PID&&PID!=='0'?'p'+PID+':'+k:k;
+const ld=(k,d)=>{try{const v=localStorage.getItem(K(k));return v?JSON.parse(v):d}catch(e){return d}};
+const sv=(k,v)=>{try{localStorage.setItem(K(k),JSON.stringify(v))}catch(e){}};
+const myName=(()=>{try{const o=JSON.parse(localStorage.getItem('tg_players'));const id=PID?+PID:(o&&o.cur)||0;const p=o&&o.list&&o.list.find(x=>x.id===id);return p&&p.name?String(p.name).slice(0,14):'You'}catch(e){return 'You'}})();
+const LVN={easy:'Easy',medium:'Medium',hard:'Hard'};
+const NAMES=[myName,'Benji','Gator','Owl'],EMO=['🙂','🐶','🐊','🦉'];
+const CN={r:'Red',y:'Yellow',g:'Green',b:'Blue',w:'Wild'},CHEX={r:'#e43b2f',y:'#f3b815',g:'#2f9e48',b:'#1f74dc'};
+const VN={s:'Skip',r:'Reverse',d2:'Draw Two',w:'Wild',w4:'Wild Draw Four'};
+const SYM={s:'⊘',r:'⇄',d2:'+2',w:'',w4:'+4'};
+const UNO_P={easy:.55,medium:.85,hard:1};   // chance a computer remembers to say Uno
+const CATCH_P={easy:.35,medium:.7,hard:.95};// chance they catch you when you forget
+const cardName=c=>c.c==='w'?VN[c.v]:CN[c.c]+' '+(VN[c.v]||c.v);
+
+let D=ld('tg_uno',null);
+if(!D||!D.set)D={set:{players:4,level:'medium'},sc:{easy:[0,0],medium:[0,0],hard:[0,0]},g:null};
+for(const k of ['easy','medium','hard'])if(!Array.isArray(D.sc[k]))D.sc[k]=[0,0];
+let flying=false; // a card is mid-air between hand and pile: don't save half a move
+const save=()=>{if(!flying)sv('tg_uno',D)};
+
+// game state (D.g): n, lv, hands[[]] (0 = you), deck[], pile[] (top = last), color, turn, dir, uno[], drawn (id), catchable (seat), over (seat), counted
+let G=D.g,busy=false,gen=0;
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const topC=()=>G.pile[G.pile.length-1];
+const step=(i,k)=>((i+G.dir*(k||1))%G.n+G.n*4)%G.n;
+
+// ---------- drawing ----------
+function cardHTML(c){const s=SYM[c.v]!==undefined?SYM[c.v]:c.v,u=c.v==='6'||c.v==='9'?' class="u"':'';
+  return `<div class="cd ${c.c}"><div class="in">${s?`<span class="k tl">${s}</span>`:''}<div class="ov"><b${u}>${s}</b></div>${s?`<span class="k br">${s}</span>`:''}</div></div>`}
+const BACK='<div class="cb"><div class="in"><div class="ov"><b>🐾</b></div></div></div>';
+const ORD={r:0,y:1,g:2,b:3,w:4},VO=v=>v==='s'?10:v==='r'?11:v==='d2'?12:v==='w'?13:v==='w4'?14:+v;
+const sorted=h=>h.slice().sort((a,b)=>ORD[a.c]-ORD[b.c]||VO(a.v)-VO(b.v)||a.id-b.id);
+let CW=60;
+function size(){
+  CW=Math.round(Math.max(44,Math.min(78,innerWidth/6.3,innerHeight/10.8)));
+  const app=$('#app');app.style.setProperty('--cw',CW+'px');app.style.setProperty('--pw',Math.round(CW*1.22)+'px');
+  if(G)render();
+}
+addEventListener('resize',size);
+function myTurn(){return G&&!G.over&&G.turn===0}
+function canAct(){return myTurn()&&!busy}
+function playable(c){return G.drawn!=null?c.id===G.drawn:U.ok(c,topC(),G.color)}
+function render(){
+  if(!G)return;
+  // opponents
+  let h='';
+  for(let i=1;i<G.n;i++){const n=G.hands[i].length;
+    h+=`<div class="seat${G.turn===i&&!G.over?' turn':''}${n===1&&G.uno[i]?' uno':''}" id="seat${i}"><div class="av">${EMO[i]}</div><div class="nm">${NAMES[i]}</div><div class="fan">${'<i class="mc"></i>'.repeat(Math.min(n,8))}</div><span class="cnt">${n}</span><span class="ub">UNO!</span></div>`}
+  $('#seats').innerHTML=h;
+  // pile: top card plus two peeking underneath
+  const p=G.pile.slice(-3);
+  $('#pile').innerHTML=p.map((c,k)=>{const rot=k===p.length-1?((c.id*37)%13)-6:((c.id*53)%31)-15;return cardHTML(c).replace('<div class="cd','<div style="transform:rotate('+rot+'deg)" class="cd')}).join('');
+  $('#pileWrap').style.setProperty('--ring',CHEX[G.color]);$('#clab').textContent=CN[G.color];
+  $('#dir').textContent=G.n>2?(G.dir>0?'Turn order ↻':'Turn order ↺'):'';
+  $('#dlab').textContent=G.deck.length?`Draw · ${G.deck.length}`:'Draw';
+  renderHand();hud();
+}
+function renderHand(){
+  const hand=$('#hand'),cards=sorted(G.hands[0]),n=cards.length,W=hand.clientWidth||300,CH=CW*1.46;
+  const mine=canAct();
+  const oneRow=n<=1||(W-CW)/(n-1)>=CW*.42,rows=oneRow?[cards]:[cards.slice(0,Math.ceil(n/2)),cards.slice(Math.ceil(n/2))];
+  let html='',z=0;
+  rows.forEach((row,ri)=>{const m=row.length,st=m>1?Math.min(CW*1.06,(W-CW)/(m-1)):0,rw=CW+(m-1)*st,x0=(W-rw)/2;
+    const y=14+(oneRow||ri===1?CH*.5:0);
+    // no highlighting of playable cards: spotting a match is part of the game
+    row.forEach((c,k)=>{const cls=mine&&G.drawn!=null&&c.id===G.drawn?' ok':'';
+      html+=`<button class="hc${cls}" data-id="${c.id}" aria-label="${cardName(c)}" style="left:${(x0+k*st).toFixed(1)}px;top:${y.toFixed(1)}px;z-index:${++z}">${cardHTML(c)}</button>`})});
+  hand.innerHTML=html;
+}
+function hud(){
+  $('#sub').textContent=`${LVN[G.lv]} · ${G.n} players`;
+  const mine=canAct(),h=G.hands[0];
+  $('#unoBtn').hidden=G.over!=null||h.length!==2||G.uno[0]||!mine;
+  $('#passBtn').hidden=!(mine&&G.drawn!=null);
+  const cs=G.catchable;
+  $('#catchBtn').hidden=!(G.over==null&&cs>0&&G.hands[cs]&&G.hands[cs].length===1&&!G.uno[cs]);
+  if(!$('#catchBtn').hidden)$('#catchBtn').textContent=`${NAMES[cs]} forgot! Catch!`;
+}
+function status(t,s){$('#stat').innerHTML=t+(s?`<small>${s}</small>`:'')}
+let toastT=0;function toast(m){const t=$('#toast');t.textContent=m;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,1600)}
+
+// a card gliding from one spot to another (purely for looks)
+function fly(from,to,html,dur){
+  return new Promise(res=>{
+    if(!from||!to){res();return}
+    const fx=document.createElement('div');fx.className='fly';fx.style.setProperty('--cw',to.width+'px');fx.innerHTML=html;
+    fx.style.left=to.left+'px';fx.style.top=to.top+'px';document.body.appendChild(fx);
+    const sc=Math.max(.2,from.width/to.width),done=()=>{fx.remove();res()};
+    dur=matchMedia('(prefers-reduced-motion: reduce)').matches?60:(dur||300);
+    let fin=false;const end=()=>{if(!fin){fin=true;done()}};
+    try{const a=fx.animate([{transform:`translate(${from.left-to.left}px,${from.top-to.top}px) scale(${sc})`},{transform:'translate(0,0) scale(1)'}],{duration:dur,easing:'cubic-bezier(.3,.7,.3,1)'});a.onfinish=end}catch(e){}
+    setTimeout(end,dur+250);
+  });
+}
+const rectOf=el=>{if(!el)return null;const r=el.getBoundingClientRect();return{left:r.left,top:r.top,width:r.width,height:r.height}};
+const pileRect=()=>{const r=rectOf($('#pileWrap'));return r};
+function seatRect(s){
+  if(s===0){const h=rectOf($('#hand'));return{left:h.left+h.width/2-CW/2,top:h.top+h.height-CW*1.46,width:CW,height:CW*1.46}}
+  const a=rectOf(document.querySelector(`#seat${s} .av`));return a&&{left:a.left+a.width*.2,top:a.top,width:a.width*.6,height:a.width*.6*1.46};
+}
+
+// ---------- game flow ----------
+function takeCards(s,k){const got=[];
+  for(let i=0;i<k;i++){
+    if(!G.deck.length){const keep=G.pile.pop();G.deck=U.shuffle(G.pile);G.pile=[keep];if(G.deck.length)toast('Shuffling the pile into a new deck')}
+    if(!G.deck.length)break;
+    const c=G.deck.pop();G.hands[s].push(c);got.push(c)}
+  if(G.hands[s].length>1)G.uno[s]=false;
+  return got}
+async function drawCards(s,k){
+  const my=gen,got=[];
+  for(let i=0;i<k;i++){
+    const from=rectOf(document.querySelector('#deck .cb:last-of-type'));
+    const c=takeCards(s,1)[0];if(!c)break;got.push(c);
+    await fly(from,seatRect(s),s===0?cardHTML(c):BACK,s===0?280:220);if(my!==gen)return got;
+    render();
+  }
+  return got}
+function newGame(){
+  gen++;busy=false;flying=false;
+  const s=D.set,n=Math.max(2,Math.min(4,s.players|0||4)),deck=U.shuffle(U.deck());
+  const hands=[];for(let i=0;i<n;i++)hands.push(deck.splice(-7));
+  let t;for(let g=0;g<200;g++){t=deck.pop();if(/^\d$/.test(t.v))break;deck.unshift(t)}
+  G=D.g={n,lv:s.level,hands,deck,pile:[t],color:t.c,turn:0,dir:1,uno:new Array(n).fill(false),drawn:null,catchable:-1,over:null,counted:false};
+  save();render();
+  document.querySelectorAll('.hc').forEach((e,i)=>{try{e.animate([{transform:'translateY(60px)',opacity:0},{transform:'none',opacity:1}],{duration:260,delay:i*40,fill:'backwards'})}catch(_){}});
+  turnStart();
+}
+function begin(){render();if(G.over!=null){status(endTitle(),'');showEnd();return}turnStart()}
+async function turnStart(){
+  const my=gen;render();if(G.over!=null)return;
+  if(G.turn===0){
+    busy=false;render();
+    if(G.drawn!=null)status('You drew one that fits!','Play it, or keep it and pass.');
+    else status('Your turn',`Match ${CN[G.color]}${topC().c!=='w'?' or '+(VN[topC().v]||topC().v):''} — or draw.`);
+    return;
+  }
+  busy=true;render();status(`${NAMES[G.turn]} is thinking…`,'');
+  await sleep(650+Math.random()*350+(G.catchable>0&&G.catchable!==G.turn?1500:0));
+  if(my!==gen)return;
+  aiTurn();
+}
+async function aiTurn(){
+  const my=gen,s=G.turn,h=G.hands[s];
+  const ctx={lv:G.lv,n:G.n,next:G.hands[step(s)].length,prev:G.hands[step(s,-1)].length};
+  let mv=U.pick(h,topC(),G.color,ctx);
+  if(!mv){
+    const got=await drawCards(s,1);if(my!==gen)return;
+    const c=got[0];
+    if(c&&U.ok(c,topC(),G.color)){await sleep(380);if(my!==gen)return;mv={card:c,color:c.c==='w'?U.bestColor(h.filter(x=>x!==c)):null}}
+    else{status(`${NAMES[s]} drew a card`,'');G.turn=step(s);save();await sleep(350);if(my!==gen)return;turnStart();return}
+  }
+  playCard(s,mv.card,mv.color);
+}
+async function playCard(s,card,color){
+  const my=gen;busy=true;
+  if(G.catchable>0&&G.catchable!==s)G.catchable=-1; // the chance to catch someone ends once the next card is played
+  const from=s===0?rectOf(document.querySelector(`.hc[data-id="${card.id}"] .cd`)):seatRect(s);
+  const h=G.hands[s];flying=true;h.splice(h.indexOf(card),1);G.drawn=null;
+  render();
+  await fly(from,rectOf(document.querySelector('#pile .cd:last-child'))||pileRect(),cardHTML(card),300);if(my!==gen)return;
+  G.pile.push(card);G.color=card.c==='w'?color:card.c;flying=false;
+  const who=s===0?'You':NAMES[s];
+  status(`${who} played ${cardName(card)}`,card.c==='w'?`${s===0?'You picked':NAMES[s]+' picked'} ${CN[G.color]}`:'');
+  if(h.length===1&&s>0){if(Math.random()<UNO_P[G.lv]){G.uno[s]=true;toast(`${NAMES[s]}: UNO!`)}else G.catchable=s}
+  if(!h.length){save();render();finish(s);return}
+  render();save();
+  // forgot to tap UNO?
+  if(s===0&&h.length===1&&!G.uno[0]&&Math.random()<CATCH_P[G.lv]){
+    await sleep(500);if(my!==gen)return;
+    const c=1+Math.floor(Math.random()*(G.n-1));
+    toast(`${NAMES[c]} caught you! You forgot UNO — draw 2`);status(`${NAMES[c]} caught you!`,'Tap UNO! when you\'re down to two cards.');
+    await drawCards(0,2);if(my!==gen)return;await sleep(300);if(my!==gen)return;
+  }
+  let next=step(s);
+  if(card.v==='s'){toast(`${next===0?'You are':NAMES[next]+' is'} skipped`);next=step(next)}
+  else if(card.v==='r'){if(G.n===2){toast(`${next===0?'You are':NAMES[next]+' is'} skipped`);next=step(next)}else{G.dir*=-1;next=step(s);toast('Reverse!')}}
+  else if(card.v==='d2'||card.v==='w4'){
+    const k=card.v==='d2'?2:4;toast(`${next===0?'You draw':NAMES[next]+' draws'} ${k}${card.v==='w4'?' · '+CN[G.color]:''}`);
+    await sleep(250);if(my!==gen)return;await drawCards(next,k);if(my!==gen)return;next=step(next);
+  }else if(card.c==='w'&&s>0)toast(`${NAMES[s]} picked ${CN[G.color]}`);
+  G.turn=next;save();
+  await sleep(card.v==='s'||card.v==='r'||card.v==='d2'||card.v==='w4'?450:150);if(my!==gen)return;
+  turnStart();
+}
+function endTitle(){return G.over===0?'You win! 🎉':`${NAMES[G.over]} wins`}
+function finish(s){
+  G.over=s;busy=false;G.catchable=-1;
+  if(!G.counted){G.counted=true;const sc=D.sc[G.lv];sc[1]++;if(s===0)sc[0]++}
+  save();render();status(endTitle(),s===0?'Out of cards!':'');
+  setTimeout(showEnd,1100);
+}
+function showEnd(){
+  if(!G||G.over==null)return;
+  const s=G.over,sc=D.sc[G.lv],left=G.hands[0].length;
+  $('#endIco').innerHTML=ICON;
+  $('#endH').textContent=s===0?'You win!':`${NAMES[s]} wins ${EMO[s]}`;
+  $('#endP').textContent=s===0?(G.lv==='hard'?'You beat Hard — nicely played!':'Out of cards — nicely played!'):`You had ${left} card${left===1?'':'s'} left. Give it another go!`;
+  $('#endT').textContent=`${LVN[G.lv]}: ${sc[0]} win${sc[0]===1?'':'s'} in ${sc[1]} game${sc[1]===1?'':'s'}`;
+  $('#end').hidden=false;
+}
+
+// ---------- your moves ----------
+let pickRes=null;
+function pickColor(){
+  const cnt={r:0,y:0,g:0,b:0};for(const c of G.hands[0])if(c.c!=='w')cnt[c.c]++;
+  document.querySelectorAll('.pk').forEach(b=>{const n=cnt[b.dataset.c];b.querySelector('small').textContent=n?`you have ${n}`:''});
+  $('#pick').hidden=false;
+  return new Promise(r=>{pickRes=r});
+}
+document.querySelectorAll('.pk').forEach(b=>b.onclick=()=>{$('#pick').hidden=true;const r=pickRes;pickRes=null;r&&r(b.dataset.c)});
+$('#pickBack').onclick=()=>{$('#pick').hidden=true;const r=pickRes;pickRes=null;r&&r(null)};
+$('#hand').addEventListener('click',async e=>{
+  const b=e.target.closest('.hc');if(!b||!canAct())return;
+  const card=G.hands[0].find(c=>c.id===+b.dataset.id);if(!card)return;
+  if(!playable(card)){
+    b.classList.remove('shake');void b.offsetWidth;b.classList.add('shake');
+    toast(G.drawn!=null?'Play the card you drew, or tap Pass':`Needs ${CN[G.color]}${topC().c!=='w'?' or '+(VN[topC().v]||topC().v):''}`);return}
+  let color=null;
+  if(card.c==='w'){busy=true;color=await pickColor();busy=false;if(!color){render();return}}
+  playCard(0,card,color);
+});
+$('#deck').onclick=async()=>{
+  if(!canAct()||G.drawn!=null)return;
+  const my=gen;busy=true;hud();
+  const got=await drawCards(0,1);if(my!==gen)return;
+  const c=got[0];
+  if(c&&U.ok(c,topC(),G.color)){G.drawn=c.id;save();busy=false;turnStart();return}
+  status(c?'No match':'The deck is empty','');await sleep(650);if(my!==gen)return;
+  G.turn=step(0);save();turnStart();
+};
+$('#passBtn').onclick=()=>{if(!canAct()||G.drawn==null)return;G.drawn=null;G.turn=step(0);save();turnStart()};
+$('#unoBtn').onclick=()=>{if(!G||G.over!=null)return;G.uno[0]=true;save();toast('UNO! 🎉');try{navigator.vibrate&&navigator.vibrate(20)}catch(e){};hud()};
+$('#catchBtn').onclick=()=>{
+  const s=G.catchable;if(!(s>0)||G.hands[s].length!==1||G.uno[s])return;
+  G.catchable=-1;const from=rectOf(document.querySelector('#deck .cb:last-of-type'));takeCards(s,2);save();
+  toast(`Caught ${NAMES[s]}! +2 for them`);fly(from,seatRect(s),BACK,260).then(render);hud();
+};
+function openSetup(first){
+  const s={...D.set};
+  const paint=()=>{
+    document.querySelectorAll('.pb').forEach(b=>b.classList.toggle('on',+b.dataset.n===s.players));
+    document.querySelectorAll('.lv').forEach(b=>b.classList.toggle('on',b.dataset.lv===s.level));
+    for(const k of ['easy','medium','hard']){const c=D.sc[k];$('#r'+k[0].toUpperCase()+k.slice(1)).textContent=c[1]?`${c[0]} of ${c[1]} won`:''}
+  };
+  document.querySelectorAll('.pb').forEach(b=>b.onclick=()=>{s.players=+b.dataset.n;paint()});
+  document.querySelectorAll('.lv').forEach(b=>b.onclick=()=>{s.level=b.dataset.lv;paint()});
+  $('#start').onclick=()=>{D.set=s;$('#setup').hidden=true;$('#end').hidden=true;newGame()};
+  $('#cancel').hidden=!!first;
+  $('#cancel').onclick=()=>{$('#setup').hidden=true};
+  paint();$('#setup').hidden=false;
+}
+$('#resetSc').addEventListener('click',()=>{
+  const b=$('#resetSc');
+  if(b.dataset.arm){D.sc={easy:[0,0],medium:[0,0],hard:[0,0]};save();b.textContent='Scores reset ✓';delete b.dataset.arm;
+    document.querySelectorAll('.lv i').forEach(x=>x.textContent='');return}
+  b.dataset.arm=1;b.textContent='Tap again to reset all Uno scores';
+});
+$('#gear').onclick=()=>{$('#resetSc').textContent='Reset scores';delete $('#resetSc').dataset.arm;openSetup(false)};
+$('#again').onclick=()=>{$('#end').hidden=true;newGame()};
+$('#change').onclick=()=>{$('#end').hidden=true;openSetup(true)};
+$('#endMenu').onclick=goHome;
+$('#back').onclick=goHome;
+function goHome(){save();try{if(window.parent!==window&&window.parent.tgGoHome){window.parent.tgGoHome();return}}catch(e){}history.back()}
+addEventListener('visibilitychange',()=>{if(document.hidden)save()});
+
+const ICON='<svg viewBox="0 0 84 84" width="84" height="84"><rect width="84" height="84" rx="20" fill="#3b2c86"/>'+
+  [['#1f74dc',-20],['#f3b815',0],['#e43b2f',20]].map(([f,a])=>`<g transform="rotate(${a} 42 72)"><rect x="27" y="14" width="30" height="44" rx="5" fill="#fff"/><rect x="29.5" y="16.5" width="25" height="39" rx="3.5" fill="${f}"/><ellipse cx="42" cy="36" rx="9" ry="15" transform="rotate(28 42 36)" fill="#fff"/></g>`).join('')+
+  '<text x="42" y="42" text-anchor="middle" font-size="15" font-weight="900" fill="#e43b2f" font-family="system-ui,sans-serif" transform="rotate(20 42 72)">+2</text></svg>';
+
+// a little scattered confetti on the table (same spots every time)
+(()=>{const C=['#e43b2f','#f3b815','#2f9e48','#1f74dc'];let h='',x=7;
+  for(let i=0;i<22;i++){x=(x*37+11)%97;const y=(i*41+13)%95,c=C[i%4],r=(i*13)%40;
+    if(x>22&&x<78&&y>20&&y<80)continue; // keep the middle clear for the cards
+    h+=i%2?`<circle cx="${x}" cy="${y}" r="1.1" fill="${c}"/>`:`<rect x="${x}" y="${y}" width="2.6" height="1.2" rx=".4" fill="${c}" transform="rotate(${r} ${x} ${y})"/>`}
+  $('#conf').innerHTML=h})();
+
+// ---------- start ----------
+size();
+if(G&&Array.isArray(G.hands)&&G.hands.length===G.n&&G.pile&&G.pile.length){G.catchable=-1;begin()}
+else{G=null;openSetup(true);status('Pick your table to start','')}
+window.__uno={get G(){return G},get flying(){return flying},U,newGame,playCard,turnStart};
+</script>
+</body></html>

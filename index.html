@@ -670,6 +670,7 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
 <section id="swamp" class="screen" style="background:#0e1a14;padding:0"><iframe id="swampFrame" title="Swamp Defense" allow="fullscreen" allowfullscreen style="flex:1;width:100%;border:0;display:block;background:#0e1a14"></iframe></section>
 <section id="c4" class="screen" style="background:#101a33"><iframe id="c4Frame" title="Connect Four" style="flex:1;width:100%;border:0;display:block;background:#101a33"></iframe></section>
 <section id="chess" class="screen" style="background:#1d2433"><iframe id="chessFrame" title="Chess" style="flex:1;width:100%;border:0;display:block;background:#1d2433"></iframe></section>
+<section id="uno" class="screen" style="background:#1c1446"><iframe id="unoFrame" title="Uno" style="flex:1;width:100%;border:0;display:block;background:#1c1446"></iframe></section>
 <section id="checkers" class="screen" style="background:#14251c"><iframe id="ckFrame" title="Checkers" style="flex:1;width:100%;border:0;display:block;background:#14251c"></iframe></section>
 <section id="hs" class="screen">
   <div class="shade"></div>
@@ -1626,10 +1627,14 @@ const GAMES=[
    style:'background:linear-gradient(160deg,rgba(214,70,52,.9),rgba(40,40,46,.92))',
    icon:()=>Ck.icon(),
    stats(){return Ck.stats()}},
-  {id:'c4',dev:true,name:'Connect Four',desc:'Drop discs, get four in a row — Easy, Medium or Hard',
+  {id:'c4',name:'Connect Four',desc:'Drop discs, get four in a row — Easy, Medium or Hard',
    style:'background:linear-gradient(160deg,rgba(255,196,48,.94),rgba(36,82,196,.94))',
    icon:()=>C4M.icon(),
    stats(){return C4M.stats()}},
+  {id:'uno',name:'Uno',desc:'Match colors and numbers, shout UNO — vs Benji, Gator and Owl',
+   style:'background:linear-gradient(135deg,rgba(228,59,47,.95) 0%,rgba(243,150,21,.92) 34%,rgba(47,140,72,.92) 66%,rgba(31,96,210,.95) 100%);text-shadow:0 1px 3px rgba(0,0,0,.55)',
+   icon:()=>UnoM.icon(),
+   stats(){return UnoM.stats()}},
   {id:'gate',name:'Gate Dash',desc:'Dash through the airport and make your flight',
    style:'background:linear-gradient(160deg,rgba(52,64,86,.92),rgba(14,18,28,.94))',
    icon:()=>Gate.icon(),
@@ -1689,8 +1694,8 @@ function go(id){
 function route(id){
   if(id===undefined)id=location.hash.slice(1);
   if(id)noteRecent(id);
-  Sol.close();Patch.close();Snake.close();Blocks.close();G48.close();Mines.close();Cabin.close();Sand.close();Bz.close();TTT.close();HS.close();Gate.close();Wd.close();Swamp.close();C4M.close();Chess.close();Ck.close();
-  if(id==='solitaire')Sol.open();else if(id==='patch')Patch.open();else if(id==='snake')Snake.open();else if(id==='blocks')Blocks.open();else if(id==='2048')G48.open();else if(id==='mines')Mines.open();else if(id==='cabin')Cabin.open();else if(id==='sort')Sand.open();else if(id==='bounce')Bz.open();else if(id==='ttt')TTT.open();else if(id==='gate')Gate.open();else if(id==='words')Wd.open();else if(id==='swamp')Swamp.open();else if(id==='c4')C4M.open();else if(id==='chess')Chess.open();else if(id==='checkers')Ck.open();else if(id==='scores')HS.open();else showMenu();
+  Sol.close();Patch.close();Snake.close();Blocks.close();G48.close();Mines.close();Cabin.close();Sand.close();Bz.close();TTT.close();HS.close();Gate.close();Wd.close();Swamp.close();C4M.close();UnoM.close();Chess.close();Ck.close();
+  if(id==='solitaire')Sol.open();else if(id==='patch')Patch.open();else if(id==='snake')Snake.open();else if(id==='blocks')Blocks.open();else if(id==='2048')G48.open();else if(id==='mines')Mines.open();else if(id==='cabin')Cabin.open();else if(id==='sort')Sand.open();else if(id==='bounce')Bz.open();else if(id==='ttt')TTT.open();else if(id==='gate')Gate.open();else if(id==='words')Wd.open();else if(id==='swamp')Swamp.open();else if(id==='c4')C4M.open();else if(id==='uno')UnoM.open();else if(id==='chess')Chess.open();else if(id==='checkers')Ck.open();else if(id==='scores')HS.open();else showMenu();
 }
 window.addEventListener('hashchange',()=>route());
 
@@ -4587,7 +4592,9 @@ const Cabin=(()=>{
       <path d="M14 70 L4 70 L9 60 L6 60 L11 50 L8 50 L13 40 L18 50 L15 50 L20 60 L17 60 L22 70Z" fill="#2c5233"/>
       <rect x="17" y="38" width="52" height="33" fill="#8a5a33"/>
       ${[43,49,55,61,67].map(y=>`<path d="M17 ${y} H69" stroke="#5e3a20" stroke-width="1.5"/><circle cx="17" cy="${y-3}" r="2.9" fill="#b07a4c" stroke="#5e3a20" stroke-width=".9"/><circle cx="69" cy="${y-3}" r="2.9" fill="#b07a4c" stroke="#5e3a20" stroke-width=".9"/>`).join('')}
-      <path d="M9 41 L43 15 L77 41 L73 43 L43 20 L13 43Z" fill="#3e2617"/><path d="M13 43 L43 20 L73 43 L69 40 L43 23 L17 40Z" fill="#5a3825"/>
+      <path d="M16 40 L43 19 L70 40Z" fill="#9a6538"/><path d="M23 35.4 V40" stroke="#6e4426" stroke-width="1.3"/><path d="M29 30.8 V40" stroke="#6e4426" stroke-width="1.3"/><path d="M35 26.2 V40" stroke="#6e4426" stroke-width="1.3"/><path d="M41 21.5 V40" stroke="#6e4426" stroke-width="1.3"/><path d="M47 23.1 V40" stroke="#6e4426" stroke-width="1.3"/><path d="M53 27.7 V40" stroke="#6e4426" stroke-width="1.3"/><path d="M59 32.3 V40" stroke="#6e4426" stroke-width="1.3"/><path d="M65 36.9 V40" stroke="#6e4426" stroke-width="1.3"/>
+      <circle cx="43" cy="31" r="4" fill="#ffcf73" stroke="#4a2c18" stroke-width="1.5"/><path d="M43 27 V35 M39 31 H47" stroke="#4a2c18" stroke-width="1"/>
+      <path d="M6 43 L43 12 L80 43 L73 46.5 L43 21.5 L13 46.5Z" fill="#3e2617"/><path d="M10 43.5 L43 16 L76 43.5 L73 45 L43 19.5 L13 45Z" fill="#5a3825"/>
       <rect x="24" y="47" width="13" height="11" fill="#ffcf73" stroke="#4a2c18" stroke-width="1.6"/><path d="M30.5 47 V58 M24 52.5 H37" stroke="#4a2c18" stroke-width="1.2"/>
       <rect x="44" y="50" width="12" height="21" fill="#5a3a22" stroke="#3e2617" stroke-width="1.2"/><circle cx="53" cy="61" r="1.1" fill="#d9b25a"/>
       <rect x="7" y="70" width="72" height="5" rx="1.5" fill="#6b4426"/>
@@ -4830,6 +4837,21 @@ const C4M=(()=>{
   };
 })();
 
+/* Uno lives in uno.html (runs in a frame, like Connect Four); saves tg_uno per player */
+const UnoM=(()=>{
+  const scr=$('#uno'),fr=$('#unoFrame');let open=false;
+  const tot=d=>d&&d.sc?['easy','medium','hard'].reduce((a,k)=>[a[0]+((d.sc[k]||[0,0])[0]|0),a[1]+((d.sc[k]||[0,0])[1]|0)],[0,0]):[0,0];
+  const card=(f,a)=>`<g transform="rotate(${a} 42 72)"><rect x="27" y="14" width="30" height="44" rx="5" fill="#fff"/><rect x="29.5" y="16.5" width="25" height="39" rx="3.5" fill="${f}"/><ellipse cx="42" cy="36" rx="9" ry="15" transform="rotate(28 42 36)" fill="#fff"/></g>`;
+  return{
+    icon:()=>`<svg class="ico" viewBox="0 0 84 84">${card('#1f74dc',-20)}${card('#f3b815',0)}${card('#e43b2f',20)}<text x="42" y="42" text-anchor="middle" font-size="15" font-weight="900" fill="#e43b2f" font-family="system-ui,sans-serif" transform="rotate(20 42 72)">+2</text></svg>`,
+    stats(){const [w,p]=tot(store.get('tg_uno',null));return w?`${w} win${w>1?'s':''}`:p?`${p} played`:'New!'},
+    row(g){const d=g('tg_uno',null),[w,p]=tot(d);if(!w)return null;const h=d.sc.hard&&d.sc.hard[0]|0;return{v:w*1000+h,t:`${w} win${w>1?'s':''}`,s:h?`${h} vs Hard`:`${p} played`}},
+    open(){document.querySelectorAll('.screen').forEach(x=>x.classList.remove('on'));scr.classList.add('on');open=true;
+      fr.src='uno.html'+(curPid?'?p='+curPid:'');setTimeout(()=>{try{fr.focus()}catch(e){}},60)},
+    close(){if(!open)return;open=false;scr.classList.remove('on');fr.src='about:blank'}
+  };
+})();
+
 const Chess=(()=>{
   const scr=$('#chess'),fr=$('#chessFrame');let open=false;
   const rec=g=>{const r=g('tg_chess_rec',null);if(!r)return null;const w=['easy','medium','hard'].reduce((a,k)=>a+((r[k]||[0])[0]|0),0);
@@ -4881,6 +4903,7 @@ const HS=(()=>{
     swamp:g=>Swamp.row(g),
     words:g=>lvl(g,'tg_words_level'),
     c4:g=>C4M.row(g),
+    uno:g=>UnoM.row(g),
     chess:g=>Chess.row(g),
     checkers:g=>Ck.row(g),
     ttt:g=>{const t=g('tg_ttt',null);if(!t||!t.sc)return null;const w=['easy','medium','hard'].reduce((a,k)=>a+((t.sc[k]||[0])[0]|0),0);
