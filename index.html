@@ -539,7 +539,15 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
 @keyframes sdpulse{50%{filter:drop-shadow(0 0 12px #7cf0ff) brightness(1.15)}}
 .sdjar.shake{animation:sdshake .3s}
 @keyframes sdshake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
-.sdstream{position:absolute;border-radius:3px;pointer-events:none;z-index:19;transform-origin:top;background-color:var(--c);background-image:radial-gradient(rgba(0,0,0,.2) .8px,transparent 1.3px),radial-gradient(rgba(255,255,255,.28) .8px,transparent 1.3px);background-size:4px 5px,5px 4px}
+.sdstream{position:absolute;pointer-events:none;z-index:19;overflow:hidden;clip-path:polygon(0 0,100% 0,80% 100%,20% 100%);-webkit-clip-path:polygon(0 0,100% 0,80% 100%,20% 100%)}
+.sdcore{position:absolute;inset:0;border-radius:2px;background-color:var(--c);
+  background-image:linear-gradient(90deg,rgba(0,0,0,.22),rgba(0,0,0,0) 30%,rgba(255,255,255,.22) 52%,rgba(0,0,0,0) 70%,rgba(0,0,0,.25)),
+    radial-gradient(rgba(0,0,0,.25) .8px,transparent 1.3px),radial-gradient(rgba(255,255,255,.35) .8px,transparent 1.3px);
+  background-size:100% 100%,4px 5px,5px 4px;animation:sdflow .22s linear infinite}
+@keyframes sdflow{from{background-position:0 0,0 0,1px 2px}to{background-position:0 0,0 20px,1px 22px}}
+.sdgrain{position:absolute;border-radius:50%;pointer-events:none;z-index:19;opacity:0}
+.sdmound{position:absolute;transform-origin:50% 100%;border-radius:50% 50% 0 0/100% 100% 0 0;background-color:var(--c);
+  background-image:radial-gradient(rgba(0,0,0,.18) .8px,transparent 1.3px),linear-gradient(180deg,rgba(255,255,255,.28),rgba(255,255,255,0) 60%);background-size:5px 5px,100% 100%}
 .sdbar{position:relative;display:flex;gap:10px;justify-content:center;padding:4px 10px 4px}
 #sand .g4hint{position:relative;padding:2px 10px 12px}
 
@@ -3191,7 +3199,8 @@ const Sand=(()=>{
   const DECOR_PAIRS=[['succulent','candle'],['books','ball'],['lantern','succulent'],['candle','pinecone'],['ball','books'],['pinecone','lantern']];
   const shape=()=>SHAPES[(lvl-1)%SHAPES.length];
   const scalePath=(d,w,h)=>{let x=true;return d.replace(/-?[\d.]+/g,v=>{const o=(x?+v*w:+v*h).toFixed(1);x=!x;return o})};
-  const glassH=(w,sh)=>CAP*w*.62/(1-sh.top)+2;
+  const UR=.48; // height of one sand layer vs jar width (was .62 — jars were a bit tall)
+  const glassH=(w,sh)=>CAP*w*UR/(1-sh.top)+2;
 
   function newLevel(n){
     lvl=n;J=L.generate(lvl);start=J.map(j=>j.slice());undo=[];moves=0;sel=-1;over=false;plan=null;
@@ -3206,10 +3215,10 @@ const Sand=(()=>{
   function layout(){
     const r=wrap.getBoundingClientRect(),W=r.width-100,H=r.height-12,n=J.length,sh=shape();
     const rows=n<=6?1:n<=14?2:3,per=Math.ceil(n/rows),gx=Math.max(8,W*.025);
-    let w=Math.min(64,(W-(per-1)*gx)/per);
+    let w=Math.min(66,(W-(per-1)*gx)/per);
     const shelfH=w=>Math.max(10,w*.2),jh=w=>w*.24+glassH(w,sh),rowGap=30;
     while(w>24&&rows*(jh(w)+shelfH(w))+(rows-1)*rowGap+30>H)w-=1;
-    u=w*.62;lid=w*.24;hg=glassH(w,sh);const h=jh(w),sH=shelfH(w);
+    u=w*UR;lid=w*.24;hg=glassH(w,sh);const h=jh(w),sH=shelfH(w);
     const bw=per*w+(per-1)*gx,bh=rows*(h+sH)+(rows-1)*rowGap+26;
     bd.style.width=bw+'px';bd.style.height=bh+'px';
     pos=[];shelves=[];
@@ -3285,7 +3294,7 @@ const Sand=(()=>{
   }
   const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
   function animatePour(a,b,c,n,fin){
-    const T=reduce?300:860,tIn=.27,tOut=.74;busy=true;setTimeout(()=>{busy=false},T*.78);
+    const T=reduce?300:900,tIn=.27,tOut=.74;busy=true;setTimeout(()=>{busy=false},T*.78);
     const ea=jarEl(a),eb=jarEl(b),pa=pos[a],pb=pos[b],sh=shape(),bw=parseFloat(bd.style.width);
     // which side the tipped jar's body hangs on: keep it on the roomier side
     let dir=pa.x+pa.w/2<=pb.x+pb.w/2?1:-1;
@@ -3310,12 +3319,36 @@ const Sand=(()=>{
     if(top){const full=parseFloat(top.style.height),from=Math.max(0,full-n*u);
       top.animate([{height:from+'px'},{height:from+'px',offset:tIn+.04},{height:full+'px',offset:tOut+.02},{height:full+'px'}],{duration:T})}
     // the falling stream of sand from the tipped jar's mouth into the target
-    const s=document.createElement('div');s.className='sdstream';
-    const sw=Math.max(3.5,Math.min(pb.w*.12,mouthHalf*.7)),y1=pb.y+lid+hg-(J[b].length-n)*u;
-    Object.assign(s.style,{left:(Mx-sw/2+dir*2)+'px',top:(My+2)+'px',width:sw+'px',height:Math.max(8,y1-My)+'px','--c':COL[c]});
-    s.style.setProperty('--c',COL[c]);bd.appendChild(s);
-    s.animate([{transform:'scaleY(0)',opacity:0},{transform:'scaleY(0)',opacity:1,offset:tIn-.02},{transform:'scaleY(1)',opacity:1,offset:tIn+.1},
-      {transform:'scaleY(1)',opacity:1,offset:tOut-.04},{transform:'scaleY(1) translateY(0)',opacity:0,offset:tOut+.04},{opacity:0}],{duration:T}).onfinish=()=>s.remove();
+    const col=COL[c],sw=Math.max(3.5,Math.min(pb.w*.12,mouthHalf*.7));
+    const base=pb.y+lid+hg,y0=base-(J[b].length-n)*u,y1=base-J[b].length*u; // sand surface before / after
+    const fA=tIn+.04,fB=tOut+.02,surf=t=>y0+(y1-y0)*Math.min(1,Math.max(0,(t-fA)/(fB-fA)));
+    const sx=Mx+dir*2,top0=My+2;
+    const st=document.createElement('div');st.className='sdstream';
+    Object.assign(st.style,{left:(sx-sw/2)+'px',top:top0+'px',width:sw+'px',height:Math.max(8,y0-top0)+'px'});
+    const core=document.createElement('div');core.className='sdcore';core.style.setProperty('--c',col);st.appendChild(core);bd.appendChild(st);
+    st.animate([{height:Math.max(8,y0-top0)+'px'},{height:Math.max(8,y0-top0)+'px',offset:fA},{height:Math.max(8,y1-top0)+'px',offset:fB},{height:Math.max(8,y1-top0)+'px'}],{duration:T});
+    // head falls in, tail falls away
+    core.animate([{transform:'translateY(-101%)'},{transform:'translateY(-101%)',offset:tIn-.03},{transform:'translateY(0)',offset:tIn+.07,easing:'ease-in'},
+      {transform:'translateY(0)',offset:tOut-.05},{transform:'translateY(101%)',offset:tOut+.07,easing:'ease-in'},{transform:'translateY(101%)'}],{duration:T}).onfinish=()=>st.remove();
+    // a little mound builds where the stream lands, then settles flat
+    const sd=eb.querySelector('.sdsand'),mw=Math.min(pb.w*.6,sw*4.2),mh=Math.max(3,u*.32),b0=(J[b].length-n)*u,b1=J[b].length*u;
+    const md=document.createElement('div');md.className='sdmound';md.style.setProperty('--c',col);
+    Object.assign(md.style,{left:(sx-pb.x-mw/2)+'px',width:mw+'px',height:mh+'px',bottom:b0+'px'});sd.appendChild(md);
+    md.animate([{bottom:b0+'px',transform:'scaleY(0)'},{bottom:b0+'px',transform:'scaleY(0)',offset:tIn+.05},{bottom:b0+'px',transform:'scaleY(1)',offset:tIn+.14},
+      {bottom:b1+'px',transform:'scaleY(1)',offset:fB},{bottom:b1+'px',transform:'scaleY(0)',offset:Math.min(1,fB+.16)},{bottom:b1+'px',transform:'scaleY(0)'}],{duration:T,fill:'forwards'}).onfinish=()=>md.remove();
+    if(!reduce){
+      const R=Math.random,dot=(x,y,sz,shade)=>{const g=document.createElement('div');g.className='sdgrain';
+        Object.assign(g.style,{left:(x-sz/2)+'px',top:(y-sz/2)+'px',width:sz+'px',height:sz+'px',background:col,filter:shade?'brightness(.68)':''});bd.appendChild(g);return g};
+      // loose grains tumbling alongside the stream
+      for(let k=0;k<16;k++){const t0=tIn+.07+R()*(tOut-tIn-.14),fall=.12+R()*.05,x0=sx+(R()-.5)*sw*.9,dx=(R()-.5)*sw*2.2,yE=surf(t0+fall);
+        const g=dot(x0,top0+2+R()*6,1.4+R()*1.6,R()<.35);
+        g.animate([{transform:'translate(0,0)',opacity:1},{transform:`translate(${dx}px,${yE-top0-4}px)`,opacity:1}],{duration:fall*T,delay:t0*T,easing:'cubic-bezier(.55,0,1,.6)'}).onfinish=()=>g.remove()}
+      // tiny splashes where the sand hits
+      for(let k=0;k<10;k++){const t0=fA+.02+R()*(fB-fA-.04),yS=surf(t0)-1,side=R()<.5?-1:1,dx=side*(sw*.6+R()*Math.min(pb.w*.22,sw*2.4)),h=2+R()*Math.max(3,u*.35);
+        const g=dot(sx+side*sw*.3,yS,1.3+R()*1.3,R()<.4);
+        g.animate([{transform:'translate(0,0)',opacity:1},{transform:`translate(${dx*.55}px,${-h}px)`,opacity:1,offset:.45,easing:'ease-in'},{transform:`translate(${dx}px,1px)`,opacity:.2}],
+          {duration:170+R()*80,delay:t0*T,easing:'ease-out'}).onfinish=()=>g.remove()}
+    }
     if(fin){eb.classList.remove('justdone');setTimeout(()=>{eb.classList.add('justdone')},T*.8)}
   }
   function shake(i){const e=jarEl(i);if(!e)return;e.classList.remove('shake');void e.offsetWidth;e.classList.add('shake')}
