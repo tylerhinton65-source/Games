@@ -668,7 +668,7 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
 <!-- HIGH SCORES -->
 <section id="gate" class="screen" style="background:#141a24"><iframe id="gateFrame" title="Gate Dash" style="flex:1;width:100%;border:0;display:block;background:#141a24"></iframe></section>
 <section id="swamp" class="screen" style="background:#0e1a14;padding:0"><iframe id="swampFrame" title="Swamp Defense" allow="fullscreen" allowfullscreen style="flex:1;width:100%;border:0;display:block;background:#0e1a14"></iframe></section>
-<section id="farm" class="screen" style="background:#2b2414"><iframe id="farmFrame" title="ASMR Farmer" style="flex:1;width:100%;border:0;display:block;background:#2b2414"></iframe></section>
+<section id="c4" class="screen" style="background:#101a33"><iframe id="c4Frame" title="Connect Four" style="flex:1;width:100%;border:0;display:block;background:#101a33"></iframe></section>
 <section id="chess" class="screen" style="background:#1d2433"><iframe id="chessFrame" title="Chess" style="flex:1;width:100%;border:0;display:block;background:#1d2433"></iframe></section>
 <section id="checkers" class="screen" style="background:#14251c"><iframe id="ckFrame" title="Checkers" style="flex:1;width:100%;border:0;display:block;background:#14251c"></iframe></section>
 <section id="hs" class="screen">
@@ -1626,6 +1626,10 @@ const GAMES=[
    style:'background:linear-gradient(160deg,rgba(214,70,52,.9),rgba(40,40,46,.92))',
    icon:()=>Ck.icon(),
    stats(){return Ck.stats()}},
+  {id:'c4',dev:true,name:'Connect Four',desc:'Drop discs, get four in a row — Easy, Medium or Hard',
+   style:'background:linear-gradient(160deg,rgba(255,196,48,.94),rgba(36,82,196,.94))',
+   icon:()=>C4M.icon(),
+   stats(){return C4M.stats()}},
   {id:'gate',name:'Gate Dash',desc:'Dash through the airport and make your flight',
    style:'background:linear-gradient(160deg,rgba(52,64,86,.92),rgba(14,18,28,.94))',
    icon:()=>Gate.icon(),
@@ -1638,10 +1642,6 @@ const GAMES=[
    style:'background:linear-gradient(160deg,rgba(74,42,86,.92),rgba(30,64,38,.94))',
    icon:()=>Swamp.icon(),
    stats(){return Swamp.stats()}},
-  {id:'farm',dev:true,name:'ASMR Farmer',desc:'Slow, satisfying wheat harvest — straight rows, endless fields',
-   style:'background:linear-gradient(160deg,rgba(236,192,92,.94),rgba(150,96,34,.94))',
-   icon:()=>Farm.icon(),
-   stats(){return Farm.stats()}},
   {id:'chess',name:'Chess',desc:'Chill chess vs a computer that makes mistakes — Easy, Medium, Hard',
    style:'background:linear-gradient(160deg,rgba(92,120,176,.94),rgba(34,44,72,.94))',
    icon:()=>Chess.icon(),
@@ -1689,8 +1689,8 @@ function go(id){
 function route(id){
   if(id===undefined)id=location.hash.slice(1);
   if(id)noteRecent(id);
-  Sol.close();Patch.close();Snake.close();Blocks.close();G48.close();Mines.close();Cabin.close();Sand.close();Bz.close();TTT.close();HS.close();Gate.close();Wd.close();Swamp.close();Farm.close();Chess.close();Ck.close();
-  if(id==='solitaire')Sol.open();else if(id==='patch')Patch.open();else if(id==='snake')Snake.open();else if(id==='blocks')Blocks.open();else if(id==='2048')G48.open();else if(id==='mines')Mines.open();else if(id==='cabin')Cabin.open();else if(id==='sort')Sand.open();else if(id==='bounce')Bz.open();else if(id==='ttt')TTT.open();else if(id==='gate')Gate.open();else if(id==='words')Wd.open();else if(id==='swamp')Swamp.open();else if(id==='farm')Farm.open();else if(id==='chess')Chess.open();else if(id==='checkers')Ck.open();else if(id==='scores')HS.open();else showMenu();
+  Sol.close();Patch.close();Snake.close();Blocks.close();G48.close();Mines.close();Cabin.close();Sand.close();Bz.close();TTT.close();HS.close();Gate.close();Wd.close();Swamp.close();C4M.close();Chess.close();Ck.close();
+  if(id==='solitaire')Sol.open();else if(id==='patch')Patch.open();else if(id==='snake')Snake.open();else if(id==='blocks')Blocks.open();else if(id==='2048')G48.open();else if(id==='mines')Mines.open();else if(id==='cabin')Cabin.open();else if(id==='sort')Sand.open();else if(id==='bounce')Bz.open();else if(id==='ttt')TTT.open();else if(id==='gate')Gate.open();else if(id==='words')Wd.open();else if(id==='swamp')Swamp.open();else if(id==='c4')C4M.open();else if(id==='chess')Chess.open();else if(id==='checkers')Ck.open();else if(id==='scores')HS.open();else showMenu();
 }
 window.addEventListener('hashchange',()=>route());
 
@@ -4790,16 +4790,19 @@ const Swamp=(()=>{
   };
 })();
 
-/* ================= ASMR FARMER (own file: farm.html, saves tg_farm per player) ================= */
-const Farm=(()=>{
-  const scr=$('#farm'),fr=$('#farmFrame');let open=false;
-  const n=d=>Math.max(0,((d&&d.lvl)||1)-1);
+/* Connect Four lives in connect4.html (runs in a frame, like Checkers); saves tg_c4 per player */
+const C4M=(()=>{
+  const scr=$('#c4'),fr=$('#c4Frame');let open=false;
+  const w=d=>d&&d.sc?['easy','medium','hard'].reduce((a,k)=>a+((d.sc[k]||[0])[0]|0),0):0;
+  const disc=(x,y,f)=>`<circle cx="${x}" cy="${y}" r="6" fill="${f}"/>`;
   return{
-    icon:()=>`<svg class="ico" viewBox="0 0 84 84"><defs><clipPath id="fmclip"><rect x="10" y="10" width="64" height="64" rx="12"/></clipPath></defs><g clip-path="url(#fmclip)"><rect x="10" y="10" width="64" height="64" fill="#d9ab4c"/><g fill="#c49235"><rect x="12" y="10" width="3" height="64"/><rect x="21" y="10" width="3" height="64"/><rect x="60" y="10" width="3" height="64"/><rect x="69" y="10" width="3" height="64"/></g><rect x="30" y="40" width="24" height="34" fill="#c8ad78"/><rect x="39" y="40" width="6" height="34" fill="#e6cc8e"/><g transform="translate(42 46)"><rect x="-15" y="-18" width="30" height="6" rx="2" fill="#3c3e44"/><rect x="-13.5" y="-17" width="27" height="3.6" rx="1.8" fill="#f0c232"/><rect x="-8" y="-11" width="16" height="26" rx="4" fill="#c8322b"/><rect x="-6" y="2" width="12" height="11" rx="2" fill="#9e271f"/><rect x="-4.5" y="-10" width="9" height="7" rx="2" fill="#eae6dc"/><rect x="-11" y="-10" width="3.5" height="8" rx="1.5" fill="#1d1d21"/><rect x="7.5" y="-10" width="3.5" height="8" rx="1.5" fill="#1d1d21"/></g></g></svg>`,
-    stats(){const d=n(store.get('tg_farm',null));return d?`${d} field${d>1?'s':''}`:'New!'},
-    row(g){const d=n(g('tg_farm',null));return d?{v:d,t:`${d} field${d>1?'s':''}`,s:'harvested'}:null},
+    icon:()=>{let h='';const P=[[0,0,0,0],[0,0,2,0],[0,1,2,0],[1,2,1,2]];
+      for(let r=0;r<4;r++)for(let c=0;c<4;c++){const p=P[r][c];h+=disc(19.5+c*15,19.5+r*15,p===1?'#e2402f':p===2?'#ffcc2e':'#16295f')}
+      return `<svg class="ico" viewBox="0 0 84 84"><defs><clipPath id="c4clip"><rect x="10" y="10" width="64" height="64" rx="12"/></clipPath></defs><g clip-path="url(#c4clip)"><rect x="10" y="10" width="64" height="64" fill="#2f5fd6"/>${h}</g></svg>`},
+    stats(){const d=store.get('tg_c4',null),n=w(d),p=d&&d.sc?['easy','medium','hard'].reduce((a,k)=>a+(d.sc[k]||[]).reduce((x,y)=>x+(y|0),0),0):0;return n?`${n} win${n>1?'s':''}`:p?`${p} played`:'New!'},
+    row(g){const d=g('tg_c4',null),n=w(d);if(!n)return null;const h=(d.sc.hard||[0])[0]|0;return{v:n*1000+h,t:`${n} win${n>1?'s':''}`,s:h?`${h} vs Hard`:''}},
     open(){document.querySelectorAll('.screen').forEach(x=>x.classList.remove('on'));scr.classList.add('on');open=true;
-      fr.src='farm.html'+(curPid?'?p='+curPid:'');setTimeout(()=>{try{fr.focus()}catch(e){}},60)},
+      fr.src='connect4.html'+(curPid?'?p='+curPid:'');setTimeout(()=>{try{fr.focus()}catch(e){}},60)},
     close(){if(!open)return;open=false;scr.classList.remove('on');fr.src='about:blank'}
   };
 })();
@@ -4818,7 +4821,7 @@ const Chess=(()=>{
   };
 })();
 
-/* Checkers lives in checkers.html (runs in a frame, like ASMR Farmer); saves tg_checkers per player */
+/* Checkers lives in checkers.html (runs in a frame, like Chess); saves tg_checkers per player */
 const Ck=(()=>{
   const scr=$('#checkers'),fr=$('#ckFrame');let open=false;
   const w=d=>d&&d.sc?['easy','medium','hard'].reduce((a,k)=>a+((d.sc[k]||[0])[0]|0),0):0;
@@ -4854,7 +4857,7 @@ const HS=(()=>{
     gate:g=>Gate.row(g),
     swamp:g=>Swamp.row(g),
     words:g=>lvl(g,'tg_words_level'),
-    farm:g=>Farm.row(g),
+    c4:g=>C4M.row(g),
     chess:g=>Chess.row(g),
     checkers:g=>Ck.row(g),
     ttt:g=>{const t=g('tg_ttt',null);if(!t||!t.sc)return null;const w=['easy','medium','hard'].reduce((a,k)=>a+((t.sc[k]||[0])[0]|0),0);

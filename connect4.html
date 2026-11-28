@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Connect Four</title>
+<style>
+/* Connect Four — Tyler's Games. Runs in a frame inside index.html (like checkers.html). */
+:root{--font:ui-rounded,"SF Pro Rounded",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;height:100%;overflow:hidden;color:#fff;font-family:var(--font);background:#101a33;
+  -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;overscroll-behavior:none}
+button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation;border:0;background:none}
+#app{position:fixed;inset:0;display:flex;flex-direction:column;
+  background:radial-gradient(120% 80% at 50% 40%,#25386a 0%,#18264a 55%,#0d152b 100%);
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+.bar{display:flex;align-items:center;gap:8px;padding:8px 10px 4px}
+.tb{background:rgba(255,255,255,.14);border-radius:12px;padding:8px 12px;font-weight:800;font-size:15px;min-width:44px}
+.tb:active{background:rgba(255,255,255,.26)}
+.hud{flex:1;text-align:center;font-weight:800;font-size:17px;line-height:1.15}
+.hud small{display:block;font-size:11.5px;opacity:.75;font-weight:700}
+.score{display:flex;gap:8px;padding:4px 12px 6px;justify-content:center}
+.pl{flex:1;max-width:150px;background:rgba(255,255,255,.08);border-radius:14px;padding:6px 8px;text-align:center;border:2px solid transparent;transition:border-color .25s,background .25s}
+.pl.mid{flex:.7}
+.pl small{display:flex;align-items:center;justify-content:center;gap:5px;font-size:11.5px;font-weight:800;opacity:.85;white-space:nowrap;overflow:hidden}
+.pl b{display:block;font-size:22px;font-weight:900;font-variant-numeric:tabular-nums}
+.pl.turn{border-color:#ffd666;background:rgba(255,214,102,.14)}
+.dot{width:12px;height:12px;border-radius:50%;flex:none;box-shadow:inset 0 -2px 0 rgba(0,0,0,.3)}
+.dot.red{background:#e2402f}.dot.yel{background:#ffcc2e}
+/* board */
+#wrap{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 8px}
+#zone{position:relative;touch-action:none}
+#lane{position:relative;width:100%}           /* the strip above the board where your next disc waits */
+#board{position:relative;width:100%;border-radius:16px;filter:drop-shadow(0 10px 18px rgba(0,0,0,.45))}
+#discs{position:absolute;inset:0;overflow:hidden;border-radius:16px}
+#face{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.d{position:absolute;left:0;top:0;width:14.2857%;border-radius:50%;pointer-events:none}
+.d::before{content:"";position:absolute;inset:8%;border-radius:50%}
+.d.red::before{background:radial-gradient(circle at 38% 32%,#ff8a6e 0%,#e2402f 48%,#a5221a 100%);box-shadow:inset 0 0 0 4px rgba(0,0,0,.12),inset 0 -4px 0 rgba(0,0,0,.18)}
+.d.yel::before{background:radial-gradient(circle at 38% 32%,#fff1a6 0%,#ffcc2e 48%,#d39a0a 100%);box-shadow:inset 0 0 0 4px rgba(0,0,0,.08),inset 0 -4px 0 rgba(0,0,0,.14)}
+.d::after{content:"";position:absolute;inset:26%;border-radius:50%;border:2px solid rgba(0,0,0,.14);box-shadow:0 1px 0 rgba(255,255,255,.25)}
+.d.ghost{opacity:.9;transition:transform .12s ease-out}
+.d.ghost.hint::before{box-shadow:0 0 0 4px #fff,0 0 18px 6px rgba(255,255,255,.7)}
+.d.win{animation:win 0.9s ease-in-out infinite}
+.d.win::after{border:4px solid #fff;box-shadow:0 0 12px rgba(255,255,255,.9)}
+@keyframes win{0%,100%{filter:brightness(1)}50%{filter:brightness(1.35)}}
+.d.dim{opacity:.45}
+.d.last::after{border-color:rgba(255,255,255,.75)}
+.colhint{position:absolute;top:0;bottom:0;width:14.2857%;border-radius:12px;background:rgba(255,255,255,.12);pointer-events:none}
+.stat{min-height:26px;margin:10px 0 4px;font-weight:900;font-size:17px;text-align:center;text-shadow:0 1px 3px rgba(0,0,0,.5)}
+.stat small{display:block;font-size:12px;font-weight:700;opacity:.7}
+.btns{display:flex;gap:8px;justify-content:center;padding:4px 10px 10px}
+.btn{background:rgba(255,255,255,.14);border-radius:14px;padding:11px 14px;font-weight:800;font-size:15px;min-width:92px}
+.btn:active{background:rgba(255,255,255,.26)}
+.btn:disabled{opacity:.38}
+.btn.go{background:#ffd666;color:#3a2600}
+/* sheets */
+.overlay{position:fixed;inset:0;z-index:50;background:rgba(5,8,20,.62);display:flex;align-items:flex-end;justify-content:center;animation:fade .2s}
+@keyframes fade{from{opacity:0}}
+.sheet{width:100%;max-width:480px;background:#1d2d57;border-radius:24px 24px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom));
+  box-shadow:0 -10px 40px rgba(0,0,0,.45);animation:up .28s cubic-bezier(.2,.8,.3,1);max-height:92vh;overflow:auto}
+@keyframes up{from{transform:translateY(40px);opacity:.4}}
+.sheet h3{margin:2px 0 4px;font-size:20px;text-align:center}
+.sheet p{margin:0 0 12px;text-align:center;opacity:.75;font-size:13.5px;font-weight:600}
+.lab{font-size:12px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;opacity:.6;margin:14px 2px 7px}
+.colors{display:flex;gap:10px}
+.cbtn{flex:1;background:rgba(255,255,255,.08);border:3px solid transparent;border-radius:18px;padding:12px 8px 10px;display:flex;flex-direction:column;align-items:center;gap:6px;font-weight:900;font-size:16px}
+.cbtn small{font-size:11.5px;opacity:.7;font-weight:700}
+.cbtn.on{border-color:#ffd666;background:rgba(255,214,102,.12)}
+.cbtn .big{width:46px;height:46px;border-radius:50%}
+.cbtn .big.red{background:radial-gradient(circle at 38% 32%,#ff8a6e,#e2402f 48%,#a5221a);box-shadow:0 3px 0 #6d140e}
+.cbtn .big.yel{background:radial-gradient(circle at 38% 32%,#fff1a6,#ffcc2e 48%,#d39a0a);box-shadow:0 3px 0 #8a6200}
+.lvls{display:flex;flex-direction:column;gap:7px}
+.lv{display:flex;align-items:center;gap:10px;text-align:left;background:rgba(255,255,255,.08);border:3px solid transparent;border-radius:16px;padding:10px 12px}
+.lv.on{border-color:#ffd666;background:rgba(255,214,102,.12)}
+.lv b{font-size:16px;min-width:70px}
+.lv span{font-size:12.5px;opacity:.75;font-weight:600;line-height:1.3}
+.lv i{font-style:normal;margin-left:auto;font-size:12px;font-weight:800;opacity:.7;white-space:nowrap}
+.row2{display:flex;gap:8px;margin-top:16px}
+.row2 .btn{flex:1;padding:14px}
+.small{display:block;margin:12px auto 0;font-size:13px;font-weight:700;opacity:.6;text-decoration:underline}
+.card{margin:auto;width:min(330px,88vw);background:#1d2d57;border-radius:24px;padding:22px 18px 16px;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.55);animation:pop .35s cubic-bezier(.2,1.3,.4,1)}
+@keyframes pop{from{transform:scale(.85);opacity:0}}
+.overlay.mid{align-items:center}
+.card .ico{width:84px;height:84px;margin:0 auto 6px;border-radius:20px;overflow:hidden}
+.card h2{margin:4px 0 2px;font-size:25px}
+.card p{margin:0 0 6px;opacity:.8;font-weight:600;font-size:14px}
+.card .tally{font-weight:800;font-size:13px;opacity:.7;margin:6px 0 12px}
+.card .btn{display:block;width:100%;margin-top:8px;padding:13px}
+.toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 150px);transform:translateX(-50%);background:rgba(0,0,0,.75);padding:9px 16px;border-radius:99px;font-weight:800;font-size:14px;z-index:60;pointer-events:none;white-space:nowrap}
+@media (prefers-reduced-motion:reduce){.d.win{animation:none}}
+</style></head><body>
+<div id="app">
+  <div class="bar">
+    <button class="tb" id="back" aria-label="Menu">‹ Menu</button>
+    <div class="hud">Connect Four<small id="sub">Medium</small></div>
+    <button class="tb" id="gear" aria-label="New game and settings">⚙︎</button>
+  </div>
+  <div class="score">
+    <div class="pl" id="plMe"><small><i class="dot" id="dMe"></i><span id="nMe">You</span></small><b id="sMe">0</b></div>
+    <div class="pl mid"><small>Ties</small><b id="sDr">0</b></div>
+    <div class="pl" id="plAi"><small><i class="dot" id="dAi"></i>Computer</small><b id="sAi">0</b></div>
+  </div>
+  <div id="wrap">
+    <div id="zone">
+      <div id="lane"></div>
+      <div id="board"><div id="discs"></div>
+        <svg id="face" viewBox="0 0 700 600" preserveAspectRatio="none" aria-hidden="true"></svg>
+      </div>
+    </div>
+    <div class="stat" id="stat">&nbsp;</div>
+  </div>
+  <div class="btns">
+    <button class="btn" id="undo">↶ Undo</button>
+    <button class="btn" id="hint">💡 Hint</button>
+    <button class="btn" id="newg">↻ New</button>
+  </div>
+</div>
+<div class="overlay" id="setup" hidden><div class="sheet">
+  <h3>New game of Connect Four</h3>
+  <p>Get four in a row — across, up and down, or slanted.</p>
+  <div class="lab">Your color</div>
+  <div class="colors">
+    <button class="cbtn" data-color="red"><i class="big red"></i>Red<small>You go first</small></button>
+    <button class="cbtn" data-color="yel"><i class="big yel"></i>Yellow<small>Computer goes first</small></button>
+  </div>
+  <div class="lab">Difficulty</div>
+  <div class="lvls">
+    <button class="lv" data-lv="easy"><b>Easy</b><span>Misses a lot. Great for learning.</span><i id="rEasy"></i></button>
+    <button class="lv" data-lv="medium"><b>Medium</b><span>A fair fight — it slips up now and then.</span><i id="rMedium"></i></button>
+    <button class="lv" data-lv="hard"><b>Hard</b><span>Thinks ahead. You'll have to set traps.</span><i id="rHard"></i></button>
+  </div>
+  <div class="row2"><button class="btn" id="cancel">Cancel</button><button class="btn go" id="start">Start game</button></div>
+  <button class="small" id="resetSc">Reset scores</button>
+</div></div>
+<div class="overlay mid" id="end" hidden><div class="card">
+  <div class="ico" id="endIco"></div>
+  <h2 id="endH">You win!</h2>
+  <p id="endP">Nicely played!</p>
+  <div class="tally" id="endT"></div>
+  <button class="btn go" id="again">Play again</button>
+  <button class="btn" id="change">Change color or difficulty</button>
+  <button class="btn" id="endMenu">Menu</button>
+</div></div>
+<div class="toast" id="toast" hidden></div>
+<script>
+'use strict';
+/*ENGINE-START*/
+// Connect Four engine. Board = 42 cells (row*7+col), row 0 at the top. 1 = red (moves first), -1 = yellow.
+const C4=(()=>{
+  const W=7,H=6,N=42,ORDER=[3,2,4,1,5,0,6],WIN=1e6;
+  const WINS=[],CW=Array.from({length:N},()=>[]);
+  for(let r=0;r<H;r++)for(let c=0;c<W;c++)for(const [dr,dc] of [[0,1],[1,0],[1,1],[1,-1]]){
+    const er=r+3*dr,ec=c+3*dc;if(er<0||er>=H||ec<0||ec>=W)continue;
+    const w=[0,1,2,3].map(k=>(r+k*dr)*W+c+k*dc);const id=WINS.length;WINS.push(w);for(const i of w)CW[i].push(id)}
+  const init=()=>new Array(N).fill(0);
+  const drop=(b,c)=>{for(let r=H-1;r>=0;r--)if(!b[r*W+c])return r*W+c;return -1};
+  const cols=b=>ORDER.filter(c=>!b[c]);
+  const full=b=>!cols(b).length;
+  // the winning four through cell i (or null)
+  function line(b,i){const p=b[i];if(!p)return null;for(const id of CW[i]){const w=WINS[id];if(b[w[0]]===p&&b[w[1]]===p&&b[w[2]]===p&&b[w[3]]===p)return w}return null}
+  function winner(b){for(const w of WINS){const p=b[w[0]];if(p&&b[w[1]]===p&&b[w[2]]===p&&b[w[3]]===p)return{p,w}}return null}
+  // columns where `side` would win right now
+  function wins(b,side){const out=[];for(const c of cols(b)){const i=drop(b,c);b[i]=side;if(line(b,i))out.push(c);b[i]=0}return out}
+  const CEN=[0,1,2,4,2,1,0];
+  // score for `side`
+  function evalS(b,side){
+    let s=0;
+    for(const w of WINS){let me=0,op=0;for(const i of w){const p=b[i];if(p===side)me++;else if(p)op++}
+      if(me&&op)continue;
+      if(me===3)s+=6;else if(me===2)s+=2;else if(op===3)s-=7;else if(op===2)s-=2}
+    for(let i=0;i<N;i++)if(b[i])s+=(b[i]===side?1:-1)*CEN[i%W];
+    return s;
+  }
+  let nodes=0;
+  function nega(b,d,a,be,side,n){
+    nodes++;
+    if(n>=N)return 0;
+    const cs=cols(b);
+    for(const c of cs){const i=drop(b,c);b[i]=side;const w=line(b,i);b[i]=0;if(w)return WIN+d}
+    if(d<=0)return evalS(b,side);
+    let best=-Infinity;
+    for(const c of cs){const i=drop(b,c);b[i]=side;const v=-nega(b,d-1,-be,-a,-side,n+1);b[i]=0;
+      if(v>best)best=v;if(v>a)a=v;if(a>=be)break}
+    return best;
+  }
+  // score every legal column for side, searching d plies
+  function scores(b,side,d){
+    const n=b.filter(x=>x).length,out=[];
+    for(const c of cols(b)){const i=drop(b,c);b[i]=side;
+      const v=line(b,i)?WIN+d+1:-nega(b,d-1,-Infinity,Infinity,-side,n+1);b[i]=0;out.push({c,v})}
+    return out;
+  }
+  // columns that hand the other side a win right on top
+  function gives(b,side,c){const i=drop(b,c);b[i]=side;const r=wins(b,-side).length>0;b[i]=0;return r}
+  const LV={
+    easy:  {win:.7, block:.45,safe:.5, d:0},
+    medium:{win:1,  block:.9, safe:.85,d:3,noise:12,slip:.25},
+    hard:  {win:1,  block:1,  safe:1,  d:5,noise:6,slip:.16}
+  };
+  function weighted(cs,rnd){const wt=[1,2,3,4,3,2,1];let t=0;for(const c of cs)t+=wt[c];let x=rnd()*t;for(const c of cs){x-=wt[c];if(x<=0)return c}return cs[0]}
+  function pick(b,side,lv,rnd){
+    rnd=rnd||Math.random;const L=LV[lv]||LV.medium;b=b.slice();
+    const cs=cols(b);if(cs.length===1)return cs[0];
+    const mine=wins(b,side);if(mine.length&&rnd()<L.win)return mine[0];
+    const theirs=wins(b,-side);if(theirs.length&&rnd()<L.block)return theirs[0];
+    if(!L.d){ // Easy: mostly near the middle, sometimes careless
+      const safe=cs.filter(c=>!gives(b,side,c));
+      return weighted(safe.length&&rnd()<L.safe?safe:cs,rnd);
+    }
+    // early on, a little variety so games aren't all the same
+    const n=b.filter(x=>x).length;
+    const sc=scores(b,side,L.d).map(o=>({c:o.c,v:o.v+(Math.abs(o.v)<WIN/2?(rnd()*2-1)*L.noise*(n<4?2:1):0)}));
+    sc.sort((x,y)=>y.v-x.v);
+    if(rnd()<L.slip){ // a human-ish slip: take a lesser move that doesn't lose on the spot
+      const ok=sc.slice(1).filter(o=>o.v>-WIN/2&&(rnd()>=L.safe||!gives(b,side,o.c)));
+      if(ok.length)return ok[Math.floor(rnd()*Math.min(2,ok.length))].c;
+    }
+    return sc[0].c;
+  }
+  // best honest move for the hint button
+  function hint(b,side){b=b.slice();const m=wins(b,side);if(m.length)return m[0];const t=wins(b,-side);if(t.length)return t[0];
+    const sc=scores(b,side,6);sc.sort((x,y)=>y.v-x.v);return sc[0].c}
+  return{LV,W,H,N,init,drop,cols,full,line,winner,wins,pick,hint,scores,evalS,nodes:()=>nodes};
+})();
+if(typeof module!=='undefined')module.exports=C4;
+/*ENGINE-END*/
+const $=s=>document.querySelector(s);
+// Saves follow Tyler's Games players: player 0 uses plain keys, others get a "p<id>:" prefix (?p=<id>).
+const PID=(()=>{try{return new URLSearchParams(location.search).get('p')}catch(e){return null}})();
+const K=k=>PID&&PID!=='0'?'p'+PID+':'+k:k;
+const ld=(k,d)=>{try{const v=localStorage.getItem(K(k));return v?JSON.parse(v):d}catch(e){return d}};
+const sv=(k,v)=>{try{localStorage.setItem(K(k),JSON.stringify(v))}catch(e){}};
+const myName=(()=>{try{const o=JSON.parse(localStorage.getItem('tg_players'));const id=PID?+PID:(o&&o.cur)||0;const p=o&&o.list&&o.list.find(x=>x.id===id);return p&&p.name?String(p.name).slice(0,14):'You'}catch(e){return 'You'}})();
+const LVN={easy:'Easy',medium:'Medium',hard:'Hard'};
+const HARD_LIMIT=3; // undos and hints per game on Hard
+const W=7,H=6;
+
+let D=ld('tg_c4',null);
+if(!D||!D.set)D={set:{color:'red',level:'medium'},sc:{easy:[0,0,0],medium:[0,0,0],hard:[0,0,0]},g:null};
+for(const k of ['easy','medium','hard'])if(!Array.isArray(D.sc[k]))D.sc[k]=[0,0,0];
+const save=()=>sv('tg_c4',D);
+
+// game state (D.g): b board, turn (1 red / -1 yellow), me, lv, last (cell), undo [], undos, hints, over ('me'|'ai'|'draw'), win [cells], counted
+let G=D.g,busy=false,aiT=0,ghostCol=3,hintCol=-1,touching=false;
+const discs=$('#discs'),lane=$('#lane'),zone=$('#zone');
+const col=p=>p>0?'red':'yel';
+
+// ---------- drawing ----------
+(function face(){
+  // the blue board with 42 holes; discs sit behind it
+  let holes='';for(let r=0;r<H;r++)for(let c=0;c<W;c++)holes+=`<circle cx="${c*100+50}" cy="${r*100+50}" r="40" fill="#000"/>`;
+  let rims='';for(let r=0;r<H;r++)for(let c=0;c<W;c++)rims+=`<circle cx="${c*100+50}" cy="${r*100+50}" r="40.5" fill="none" stroke="rgba(0,0,30,.35)" stroke-width="5"/><path d="M${c*100+19} ${r*100+70} A40 40 0 0 0 ${c*100+81} ${r*100+70}" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="3"/>`;
+  $('#face').innerHTML=`<defs><mask id="m"><rect width="700" height="600" fill="#fff"/>${holes}</mask>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3f74ea"/><stop offset="1" stop-color="#2148b8"/></linearGradient></defs>
+    <rect width="700" height="600" rx="22" fill="url(#bg)" mask="url(#m)"/>${rims}`;
+})();
+const DE={}; // cell -> disc element
+function discEl(cls){const e=document.createElement('div');e.className='d '+cls;return e}
+function place(e,c,r){ // r = -1 is the lane above the board
+  e.style.transform=`translate(${c*100}%,${r*100}%)`;
+}
+function sizeDisc(e){const s=discs.clientWidth/W;e.style.width=e.style.height=s+'px'}
+function render(){
+  for(const k in DE){DE[k].remove();delete DE[k]}
+  const b=G.b,wl=G.win||[];
+  for(let i=0;i<42;i++)if(b[i]){const e=discEl(col(b[i]));sizeDisc(e);place(e,i%W,Math.floor(i/W));discs.appendChild(e);DE[i]=e}
+  marks();ghost();
+}
+function marks(){
+  const wl=G.win||[];
+  for(const k in DE){const i=+k,e=DE[k];e.classList.toggle('win',wl.includes(i));e.classList.toggle('dim',!!wl.length&&!wl.includes(i));e.classList.toggle('last',!wl.length&&i===G.last)}
+}
+let GH=null;
+function ghost(){
+  const show=!G.over&&G.turn===G.me&&!busy;
+  if(!GH){GH=discEl('ghost');lane.appendChild(GH)}
+  GH.className='d ghost '+col(G.me)+(hintCol>=0&&hintCol===ghostCol?' hint':'');
+  GH.hidden=!show;sizeDisc(GH);place(GH,ghostCol,0);
+}
+function size(){
+  const w=$('#wrap');
+  // board is 7×6 plus one lane row above it = 7×7 cells
+  const cell=Math.max(28,Math.floor(Math.min((w.clientWidth-16)/W,(w.clientHeight-48)/(H+1))));
+  zone.style.width=cell*W+'px';lane.style.height=cell+'px';$('#board').style.height=cell*H+'px';
+  if(G)render();
+}
+addEventListener('resize',size);
+
+// ---------- HUD ----------
+function hud(){
+  const sc=D.sc[G.lv];
+  $('#sub').textContent=`${LVN[G.lv]} · you're ${G.me>0?'Red':'Yellow'}`;
+  $('#nMe').textContent=myName;
+  $('#dMe').className='dot '+col(G.me);$('#dAi').className='dot '+col(-G.me);
+  $('#sMe').textContent=sc[0];$('#sDr').textContent=sc[1];$('#sAi').textContent=sc[2];
+  $('#plMe').classList.toggle('turn',!G.over&&G.turn===G.me);$('#plAi').classList.toggle('turn',!G.over&&G.turn!==G.me);
+  const hard=G.lv==='hard';
+  $('#undo').textContent=hard?`↶ Undo (${HARD_LIMIT-G.undos})`:'↶ Undo';
+  $('#hint').textContent=hard?`💡 Hint (${HARD_LIMIT-G.hints})`:'💡 Hint';
+  $('#undo').disabled=busy||G.over||!G.undo.length||(hard&&G.undos>=HARD_LIMIT);
+  $('#hint').disabled=busy||G.over||G.turn!==G.me||(hard&&G.hints>=HARD_LIMIT);
+}
+function status(t,s){$('#stat').innerHTML=t+(s?`<small>${s}</small>`:'')}
+let toastT=0;function toast(m){const t=$('#toast');t.textContent=m;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,1700)}
+
+// ---------- game flow ----------
+function newGame(){
+  clearTimeout(aiT);busy=false;hintCol=-1;
+  const s=D.set;
+  G=D.g={b:C4.init(),turn:1,me:s.color==='yel'?-1:1,lv:s.level,last:-1,undo:[],undos:0,hints:0,over:null,win:null,counted:false};
+  ghostCol=3;save();begin();
+}
+function begin(){render();hud();if(G.over){status(endTitle(),'');showEnd();return}turnStart()}
+function turnStart(){
+  if(C4.full(G.b)){finish('draw');return}
+  hud();ghost();
+  if(G.turn===G.me){
+    const n=G.b.filter(x=>x).length;
+    status('Your turn',n<2?'Tap a column to drop your disc.':'');
+  }else{
+    status('Computer is thinking…','');busy=true;ghost();hud();
+    aiT=setTimeout(aiMove,380+Math.random()*350);
+  }
+}
+function aiMove(){
+  const g=G,c=C4.pick(G.b,G.turn,G.lv,Math.random);
+  dropDisc(c,()=>{if(G!==g)return;busy=false;turnStart()});
+}
+// animate a disc falling into column c, then apply it
+function dropDisc(c,done){
+  const i=C4.drop(G.b,c);if(i<0){done();return}
+  busy=true;hud();
+  const r=Math.floor(i/W),p=G.turn,e=discEl(col(p));sizeDisc(e);discs.appendChild(e);
+  if(GH)GH.hidden=true;
+  // start just above the board (out of view behind the top edge), fall with a little bounce
+  const fall=Math.sqrt(r+1)*150;
+  const a=[{transform:`translate(${c*100}%,-100%)`,easing:'cubic-bezier(.45,0,1,.9)'},
+    {transform:`translate(${c*100}%,${r*100}%)`,offset:.78,easing:'ease-out'},
+    {transform:`translate(${c*100}%,${r*100-9}%)`,offset:.89,easing:'ease-in'},
+    {transform:`translate(${c*100}%,${r*100}%)`}];
+  place(e,c,r);
+  const fin=()=>{
+    G.b[i]=p;DE[i]=e;G.last=i;G.turn=-p;
+    const w=C4.line(G.b,i);
+    if(w){G.win=w;save();marks();finish(p===G.me?'me':'ai');return}
+    save();marks();done();
+  };
+  try{const an=e.animate(a,{duration:fall+120});an.onfinish=fin}catch(_){fin()}
+}
+function endTitle(){return G.over==='me'?'You win! 🎉':G.over==='draw'?'It\'s a tie':'Computer wins'}
+function finish(who){
+  G.over=who;busy=false;
+  if(!G.counted){G.counted=true;const sc=D.sc[G.lv];if(who==='me')sc[0]++;else if(who==='draw')sc[1]++;else sc[2]++}
+  save();hud();marks();ghost();status(endTitle(),'');
+  setTimeout(showEnd,who==='draw'?600:1300);
+}
+function showEnd(){
+  if(!G.over)return;
+  const who=G.over,sc=D.sc[G.lv];
+  $('#endIco').innerHTML=ICON;
+  $('#endH').textContent=who==='me'?'You win!':who==='draw'?'It\'s a tie':'Computer wins';
+  $('#endP').textContent=who==='me'?(G.lv==='hard'?'You beat Hard — nicely played!':'Four in a row — nicely played!'):who==='draw'?'The board filled up with no winner.':'So close — give it another go!';
+  $('#endT').textContent=`${LVN[G.lv]}: ${myName} ${sc[0]} · Ties ${sc[1]} · Computer ${sc[2]}`;
+  $('#end').hidden=false;
+}
+
+// ---------- your moves ----------
+function colAt(x){const r=zone.getBoundingClientRect();return Math.max(0,Math.min(W-1,Math.floor((x-r.left)/r.width*W)))}
+function canPlay(){return G&&!G.over&&!busy&&G.turn===G.me}
+function play(c){
+  if(!canPlay())return;
+  if(G.b[c]){toast('That column is full');return}
+  G.undo.push({b:G.b.slice(),last:G.last,turn:G.turn});if(G.undo.length>50)G.undo.shift();
+  hintCol=-1;ghostCol=c;
+  dropDisc(c,()=>{busy=false;turnStart()});
+}
+// touch the board: your disc follows your finger along the top, let go to drop it
+zone.addEventListener('pointerdown',e=>{
+  if(!canPlay())return;touching=true;ghostCol=colAt(e.clientX);ghost();
+  try{zone.setPointerCapture(e.pointerId)}catch(_){}
+});
+zone.addEventListener('pointermove',e=>{
+  if(!canPlay())return;
+  if(!touching&&e.pointerType!=='mouse')return;
+  const c=colAt(e.clientX);if(c!==ghostCol){ghostCol=c;ghost()}
+});
+zone.addEventListener('pointerup',e=>{if(!touching)return;touching=false;if(!canPlay())return;play(colAt(e.clientX))});
+zone.addEventListener('pointercancel',()=>{touching=false});
+addEventListener('keydown',e=>{
+  if(!canPlay())return;
+  if(e.key==='ArrowLeft'){ghostCol=Math.max(0,ghostCol-1);ghost()}
+  else if(e.key==='ArrowRight'){ghostCol=Math.min(W-1,ghostCol+1);ghost()}
+  else if(e.key==='Enter'||e.key===' '||e.key==='ArrowDown'){e.preventDefault();play(ghostCol)}
+  else if(e.key>='1'&&e.key<='7')play(+e.key-1);
+});
+
+// ---------- buttons ----------
+$('#undo').onclick=()=>{
+  if(busy||G.over||!G.undo.length)return;if(G.lv==='hard'&&G.undos>=HARD_LIMIT)return;
+  clearTimeout(aiT);
+  const u=G.undo.pop();G.b=u.b;G.last=u.last;G.turn=u.turn;hintCol=-1;
+  if(G.lv==='hard')G.undos++;
+  save();render();turnStart();
+};
+$('#hint').onclick=()=>{
+  if(!canPlay())return;if(G.lv==='hard'&&G.hints>=HARD_LIMIT)return;
+  const c=C4.hint(G.b,G.turn);
+  if(G.lv==='hard')G.hints++;
+  hintCol=ghostCol=c;ghost();
+  const mine=C4.wins(G.b,G.me).includes(c),block=!mine&&C4.wins(G.b,-G.me).includes(c);
+  status('Try this column',mine?'That wins it!':block?'Block the computer here!':'Tap anywhere in that column.');
+  save();hud();
+};
+function openSetup(first){
+  const s={...D.set};
+  const paint=()=>{
+    document.querySelectorAll('.cbtn').forEach(b=>b.classList.toggle('on',b.dataset.color===s.color));
+    document.querySelectorAll('.lv').forEach(b=>b.classList.toggle('on',b.dataset.lv===s.level));
+    for(const k of ['easy','medium','hard']){const c=D.sc[k];$('#r'+k[0].toUpperCase()+k.slice(1)).textContent=c[0]||c[2]||c[1]?`${c[0]}–${c[2]}`:''}
+  };
+  document.querySelectorAll('.cbtn').forEach(b=>b.onclick=()=>{s.color=b.dataset.color;paint()});
+  document.querySelectorAll('.lv').forEach(b=>b.onclick=()=>{s.level=b.dataset.lv;paint()});
+  $('#start').onclick=()=>{D.set=s;$('#setup').hidden=true;$('#end').hidden=true;newGame()};
+  $('#cancel').hidden=!!first;
+  $('#cancel').onclick=()=>{$('#setup').hidden=true};
+  paint();$('#setup').hidden=false;
+}
+$('#resetSc').addEventListener('click',()=>{
+  const b=$('#resetSc');
+  if(b.dataset.arm){D.sc={easy:[0,0,0],medium:[0,0,0],hard:[0,0,0]};save();if(G)hud();b.textContent='Scores reset ✓';delete b.dataset.arm;
+    document.querySelectorAll('.lv i').forEach(x=>x.textContent='');return}
+  b.dataset.arm=1;b.textContent='Tap again to reset all Connect Four scores';
+});
+$('#gear').onclick=()=>{if(busy&&G&&G.turn===G.me)return;$('#resetSc').textContent='Reset scores';delete $('#resetSc').dataset.arm;openSetup(false)};
+$('#newg').onclick=()=>$('#gear').onclick();
+$('#again').onclick=()=>{$('#end').hidden=true;newGame()};
+$('#change').onclick=()=>{$('#end').hidden=true;openSetup(true)};
+$('#endMenu').onclick=goHome;
+$('#back').onclick=goHome;
+function goHome(){save();try{if(window.parent!==window&&window.parent.tgGoHome){window.parent.tgGoHome();return}}catch(e){}history.back()}
+addEventListener('visibilitychange',()=>{if(document.hidden)save()});
+
+const ICON='<svg viewBox="0 0 84 84" width="84" height="84"><rect width="84" height="84" fill="#2a56c9"/><g>'+
+  [[0,0,0],[1,0,0],[2,0,0],[3,0,0],[0,1,0],[1,1,0],[2,1,-1],[3,1,0],[0,2,0],[1,2,1],[2,2,-1],[3,2,0],[0,3,1],[1,3,-1],[2,3,1],[3,3,-1]]
+  .map(([c,r,p])=>`<circle cx="${12+c*20}" cy="${12+r*20}" r="8" fill="${p>0?'#e2402f':p<0?'#ffcc2e':'#14275e'}"/>`).join('')+'</g></svg>';
+
+// ---------- start ----------
+size();
+if(G&&G.b&&G.b.length===42){begin()}else{G=null;openSetup(true);G={b:C4.init(),turn:1,me:1,lv:D.set.level,last:-1,undo:[],undos:0,hints:0,over:null,win:null};render();hud();status('Pick your color to start','')}
+window.__c4={get G(){return G},C4,play,newGame};
+</script>
+</body></html>
