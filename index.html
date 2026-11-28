@@ -1057,8 +1057,8 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
 
 <div class="overlay" id="sdStuck" hidden>
   <div class="sheet">
-    <h3>No moves left</h3>
-    <p>Every jar is blocked. Undo a few pours or start this level over. Every level can be solved.</p>
+    <h3 id="sdStuckTitle">No moves left</h3>
+    <p id="sdStuckMsg">Every jar is blocked. Undo a few pours or start this level over. Every level can be solved.</p>
     <button class="opt primary" id="sdsUndo" style="text-align:center">↶ Undo</button>
     <button class="opt" id="sdsRestart" style="text-align:center">↻ Restart level</button>
     <button class="opt ghost" id="sdsClose">Close</button>
@@ -3078,6 +3078,22 @@ const SandLogic=(()=>{
   function pour(J,a,b){const n=amount(J,a,b);if(!n)return null;const K=J.map(j=>j.slice());for(let i=0;i<n;i++)K[b].push(K[a].pop());return{J:K,n}}
   const anyMove=J=>{for(let a=0;a<J.length;a++)for(let b=0;b<J.length;b++)if(amount(J,a,b))return true;return false};
   const key=J=>J.map(j=>j.join('')).sort().join('|');
+  // true when the level can no longer be finished: every position still reachable
+  // (e.g. pouring the same sand back and forth between two jars) is a dead end.
+  // Gives up (returns false) if there are too many positions to check.
+  function deadEnd(J0,cap=4000){
+    if(solved(J0))return false;
+    const seen=new Set([key(J0)]),q=[J0];
+    while(q.length){
+      const J=q.pop();
+      for(let a=0;a<J.length;a++)for(let b=0;b<J.length;b++){
+        if(!amount(J,a,b))continue;const K=pour(J,a,b).J;
+        if(solved(K))return false;const k=key(K);if(seen.has(k))continue;
+        if(seen.size>=cap)return false;seen.add(k);q.push(K);
+      }
+    }
+    return true;
+  }
 
   // depth-first search with memo; returns list of [from,to] or null
   function solve(J0,limit=150000){
@@ -3154,7 +3170,7 @@ const SandLogic=(()=>{
       if(!J.some(j=>uniform(j)&&j.length)&&solve(J,60000))return J;
     }
   }
-  return{CAP,top,uniform,done,solved,run,amount,pour,anyMove,solve,generate,colorsFor,ease,targetEase};
+  return{CAP,top,uniform,done,solved,run,amount,pour,anyMove,deadEnd,solve,generate,colorsFor,ease,targetEase};
 })();
 /* ================= SAND SORT ================= */
 const Sand=(()=>{
@@ -3268,6 +3284,13 @@ const Sand=(()=>{
     $('#sdUndo').disabled=!undo.length;
   }
   function hintMsg(t){$('#sdHint').textContent=t}
+  function stuck(){
+    const none=!L.anyMove(J);
+    $('#sdStuckTitle').textContent=none?'No moves left':'No more moves!';
+    $('#sdStuckMsg').textContent=none?'Every jar is blocked. Undo a few pours or start this level over. Every level can be solved.'
+      :'The only pours left just move sand back and forth, so this level can’t be finished from here. Undo a few pours or start over. Every level can be solved.';
+    $('#sdStuck').hidden=false;
+  }
 
   function tap(i){
     if(busy)return;
@@ -3290,7 +3313,7 @@ const Sand=(()=>{
     const fin=L.done(J[i]);
     render();animatePour(a,i,c,r.n,fin);save();
     if(L.solved(J)){over=true;setTimeout(win,1100)}
-    else if(!L.anyMove(J))setTimeout(()=>{if(open&&!L.anyMove(J)&&!L.solved(J))$('#sdStuck').hidden=false},1000);
+    else if(L.deadEnd(J)){const k=K();setTimeout(()=>{if(open&&K()===k&&L.deadEnd(J))stuck()},1000)}
   }
   const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
   function animatePour(a,b,c,n,fin){
@@ -3363,7 +3386,7 @@ const Sand=(()=>{
     // keep following the same plan so hints never go back and forth
     if(!plan||plan.k!==K()||!plan.path.length){const s=L.solve(J,150000);plan=s?{k:K(),path:s}:null}
     const p=plan&&plan.path;
-    if(!p){hintMsg('This one looks stuck — try Undo or Restart.');return}
+    if(!p){if(L.deadEnd(J))stuck();else hintMsg('This one looks stuck — try Undo or Restart.');return}
     if(!p.length)return;
     if(sel>=0){jarEl(sel).classList.remove('sel');sel=-1}
     const[a,b]=p[0];jarEl(a).classList.add('hint');jarEl(b).classList.add('hint');
